@@ -18,6 +18,7 @@ import com.afterglowtv.data.remote.xtream.XtreamUrlFactory
 import com.afterglowtv.data.parser.XmltvParser
 import com.afterglowtv.player.Media3PlayerEngine
 import com.afterglowtv.player.PlayerEngine
+import com.afterglowtv.player.adaptive.AdaptivePlaybackRecorder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -120,8 +121,9 @@ object NetworkModule {
     fun provideMainPlayerEngine(
         @ApplicationContext context: Context,
         okHttpClient: OkHttpClient,
-        playbackCompatibilityRepository: com.afterglowtv.domain.repository.PlaybackCompatibilityRepository
-    ): PlayerEngine = Media3PlayerEngine(context, okHttpClient, playbackCompatibilityRepository)
+        playbackCompatibilityRepository: com.afterglowtv.domain.repository.PlaybackCompatibilityRepository,
+        adaptiveRecorder: AdaptivePlaybackRecorder,
+    ): PlayerEngine = Media3PlayerEngine(context, okHttpClient, playbackCompatibilityRepository, adaptiveRecorder)
 
     /**
      * Factory binding for preview and multiview playback.
@@ -132,8 +134,9 @@ object NetworkModule {
     fun provideAuxiliaryPlayerEngine(
         @ApplicationContext context: Context,
         okHttpClient: OkHttpClient,
-        playbackCompatibilityRepository: com.afterglowtv.domain.repository.PlaybackCompatibilityRepository
-    ): PlayerEngine = Media3PlayerEngine(context, okHttpClient, playbackCompatibilityRepository).apply {
+        playbackCompatibilityRepository: com.afterglowtv.domain.repository.PlaybackCompatibilityRepository,
+        adaptiveRecorder: AdaptivePlaybackRecorder,
+    ): PlayerEngine = Media3PlayerEngine(context, okHttpClient, playbackCompatibilityRepository, adaptiveRecorder).apply {
         enableMediaSession = false
         bypassAudioFocus = true
     }

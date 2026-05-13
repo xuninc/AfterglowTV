@@ -62,6 +62,8 @@ import com.afterglowtv.player.timeshift.LiveTimeshiftBackend
 import com.afterglowtv.player.timeshift.LiveTimeshiftState
 import com.afterglowtv.player.timeshift.LiveTimeshiftStatus
 import com.afterglowtv.player.timeshift.TimeshiftConfig
+import com.afterglowtv.player.adaptive.AdaptivePlaybackEvent
+import com.afterglowtv.player.adaptive.AdaptivePlaybackRecorder
 import com.afterglowtv.player.tracks.PlayerTrackController
 import com.afterglowtv.player.ui.PlayerViewBinder
 import com.afterglowtv.player.ui.SubtitleStyleController
@@ -88,7 +90,8 @@ import okhttp3.OkHttpClient
 class Media3PlayerEngine @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
-    private val playbackCompatibilityRepository: PlaybackCompatibilityRepository
+    private val playbackCompatibilityRepository: PlaybackCompatibilityRepository,
+    private val adaptiveRecorder: AdaptivePlaybackRecorder,
 ) : PlayerEngine {
 
     companion object {
@@ -252,6 +255,8 @@ class Media3PlayerEngine @Inject constructor(
     private var pendingTimeshiftSeekToEnd: Boolean = false
     private var pendingTimeshiftAutoPlay: Boolean = false
     private var lastAudioRendererRecoveryAtMs: Long = 0L
+    private var lastRebufferStartMs: Long = 0L
+    private var lastVideoMimeType: String? = null
 
     init {
         startEngineCollectors()
@@ -736,6 +741,8 @@ class Media3PlayerEngine @Inject constructor(
         playbackStarted = false
         prepareStartMs = System.currentTimeMillis()
         audioCodecUnsupportedReported = false
+        lastRebufferStartMs = 0L
+        lastVideoMimeType = null
         _error.tryEmit(null)
         _mediaTitle.value = null
         trackController.resetSelections()
@@ -1016,6 +1023,17 @@ class Media3PlayerEngine @Inject constructor(
             ) {
                 statsCollector.onVideoFormatChanged(format)
                 refreshKnownBadCompatibilityRecords()
+                val toMime = format.sampleMimeType.orEmpty()
+                adaptiveRecorder.record(
+                    AdaptivePlaybackEvent.FormatChange(
+                        mediaId = lastMediaId.orEmpty(),
+                        fromMime = lastVideoMimeType,
+                        toMime = toMime,
+                        toBitrate = format.bitrate.takeIf { it > 0 } ?: format.peakBitrate.takeIf { it > 0 } ?: 0,
+                        timestampMs = System.currentTimeMillis(),
+                    )
+                )
+                lastVideoMimeType = toMime
             }
 
             override fun onVideoDecoderInitialized(
@@ -1028,6 +1046,15 @@ class Media3PlayerEngine @Inject constructor(
                 _playerStats.value = _playerStats.value.copy(videoDecoderName = decoderName)
                 Log.i(TAG, "video-decoder name=$decoderName policy=$activeDecoderPolicy surface=${_renderSurfaceType.value}")
                 refreshKnownBadCompatibilityRecords()
+                adaptiveRecorder.record(
+                    AdaptivePlaybackEvent.CodecInit(
+                        decoderName = decoderName,
+                        initDurationMs = initializationDurationMs,
+                        isHardware = !PlaybackCodecSelector.isSoftwareCodec(decoderName),
+                        mimeType = lastVideoMimeType,
+                        timestampMs = System.currentTimeMillis(),
+                    )
+                )
             }
 
             override fun onAudioInputFormatChanged(
@@ -1079,6 +1106,12 @@ class Media3PlayerEngine @Inject constructor(
                 bitrateEstimate: Long
             ) {
                 statsCollector.onBandwidthEstimate(bitrateEstimate)
+                adaptiveRecorder.record(
+                    AdaptivePlaybackEvent.BandwidthSample(
+                        bitsPerSecond = bitrateEstimate,
+                        timestampMs = System.currentTimeMillis(),
+                    )
+                )
             }
 
             override fun onRenderedFirstFrame(
@@ -1089,6 +1122,13 @@ class Media3PlayerEngine @Inject constructor(
                 if (prepareStartMs > 0L) {
                     val ttff = System.currentTimeMillis() - prepareStartMs
                     _playerStats.value = _playerStats.value.copy(ttffMs = ttff)
+                    adaptiveRecorder.record(
+                        AdaptivePlaybackEvent.FirstFrame(
+                            ttffMs = ttff,
+                            mediaId = lastMediaId.orEmpty(),
+                            timestampMs = System.currentTimeMillis(),
+                        )
+                    )
                 }
                 markPlaybackStarted("first-frame-success")
             }
@@ -1106,8 +1146,26 @@ class Media3PlayerEngine @Inject constructor(
                     Player.STATE_ENDED -> PlaybackState.ENDED
                     else -> PlaybackState.IDLE
                 }
+                val now = System.currentTimeMillis()
                 if (previousState == PlaybackState.READY && _playbackState.value == PlaybackState.BUFFERING) {
                     statsCollector.incrementRebufferCount()
+                    lastRebufferStartMs = now
+                    adaptiveRecorder.record(
+                        AdaptivePlaybackEvent.RebufferStart(
+                            mediaId = lastMediaId.orEmpty(),
+                            bufferedDurationMs = _playerStats.value.bufferedDurationMs,
+                            timestampMs = now,
+                        )
+                    )
+                } else if (previousState == PlaybackState.BUFFERING && _playbackState.value == PlaybackState.READY && lastRebufferStartMs > 0L) {
+                    adaptiveRecorder.record(
+                        AdaptivePlaybackEvent.RebufferEnd(
+                            mediaId = lastMediaId.orEmpty(),
+                            recoveryMs = (now - lastRebufferStartMs).coerceAtLeast(0L),
+                            timestampMs = now,
+                        )
+                    )
+                    lastRebufferStartMs = 0L
                 }
                 if (_playbackState.value == PlaybackState.READY) {
                     _retryStatus.value = null
@@ -1342,6 +1400,13 @@ class Media3PlayerEngine @Inject constructor(
         videoStallCount++
         recordCompatibilityFailure("VIDEO_STALL")
         _playerStats.value = _playerStats.value.copy(videoStallCount = videoStallCount)
+        adaptiveRecorder.record(
+            AdaptivePlaybackEvent.StallDetected(
+                mediaId = lastMediaId.orEmpty(),
+                bufferedDurationMs = _playerStats.value.bufferedDurationMs,
+                timestampMs = System.currentTimeMillis(),
+            )
+        )
 
         val wasPlaying = exoPlayer?.playWhenReady ?: true
         val seekPosition = exoPlayer?.currentPosition?.takeIf { it > 0L }
