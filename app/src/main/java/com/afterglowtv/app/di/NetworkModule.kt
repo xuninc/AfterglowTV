@@ -19,6 +19,8 @@ import com.afterglowtv.data.parser.XmltvParser
 import com.afterglowtv.player.Media3PlayerEngine
 import com.afterglowtv.player.PlayerEngine
 import com.afterglowtv.player.adaptive.AdaptivePlaybackRecorder
+import com.afterglowtv.player.adaptive.ConnectionPrewarmer
+import com.afterglowtv.player.adaptive.NetworkClassDetector
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -123,7 +125,16 @@ object NetworkModule {
         okHttpClient: OkHttpClient,
         playbackCompatibilityRepository: com.afterglowtv.domain.repository.PlaybackCompatibilityRepository,
         adaptiveRecorder: AdaptivePlaybackRecorder,
-    ): PlayerEngine = Media3PlayerEngine(context, okHttpClient, playbackCompatibilityRepository, adaptiveRecorder)
+        networkClassDetector: NetworkClassDetector,
+        connectionPrewarmer: ConnectionPrewarmer,
+    ): PlayerEngine = Media3PlayerEngine(
+        context = context,
+        okHttpClient = okHttpClient,
+        playbackCompatibilityRepository = playbackCompatibilityRepository,
+        adaptiveRecorder = adaptiveRecorder,
+        networkClassDetector = networkClassDetector,
+        connectionPrewarmer = connectionPrewarmer,
+    )
 
     /**
      * Factory binding for preview and multiview playback.
@@ -136,7 +147,16 @@ object NetworkModule {
         okHttpClient: OkHttpClient,
         playbackCompatibilityRepository: com.afterglowtv.domain.repository.PlaybackCompatibilityRepository,
         adaptiveRecorder: AdaptivePlaybackRecorder,
-    ): PlayerEngine = Media3PlayerEngine(context, okHttpClient, playbackCompatibilityRepository, adaptiveRecorder).apply {
+        networkClassDetector: NetworkClassDetector,
+        connectionPrewarmer: ConnectionPrewarmer,
+    ): PlayerEngine = Media3PlayerEngine(
+        context = context,
+        okHttpClient = okHttpClient,
+        playbackCompatibilityRepository = playbackCompatibilityRepository,
+        adaptiveRecorder = adaptiveRecorder,
+        networkClassDetector = networkClassDetector,
+        connectionPrewarmer = connectionPrewarmer,
+    ).apply {
         enableMediaSession = false
         bypassAudioFocus = true
     }

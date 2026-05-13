@@ -81,8 +81,22 @@ class HomeViewModel @Inject constructor(
     private val multiViewManager: MultiViewManager,
     private val livePreviewHandoffManager: LivePreviewHandoffManager,
     @AuxiliaryPlayerEngine
-    private val playerEngineProvider: InjectProvider<PlayerEngine>
+    private val playerEngineProvider: InjectProvider<PlayerEngine>,
+    private val connectionPrewarmer: com.afterglowtv.player.adaptive.ConnectionPrewarmer,
 ) : ViewModel() {
+
+    /**
+     * Warm the TCP/TLS connection to a channel the user has focused but
+     * not yet selected. Fire-and-forget, deduplicated by the prewarmer.
+     *
+     * Called from [HomeScreen] on every channel-card focus change. By the
+     * time the user actually presses OK, the connection is in OkHttp's
+     * idle pool and the first segment fetch reuses it instead of paying
+     * the full DNS+TCP+TLS cost.
+     */
+    fun prewarmChannelOnFocus(channel: Channel) {
+        connectionPrewarmer.warm(channel.streamUrl)
+    }
     private companion object {
         const val MIN_CHANNEL_SEARCH_QUERY_LENGTH = 2
         const val CHANNEL_PAGE_SIZE = 200

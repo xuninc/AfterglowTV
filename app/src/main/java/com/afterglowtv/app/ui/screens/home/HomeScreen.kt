@@ -1159,6 +1159,9 @@ fun HomeScreen(
                                             .onFocusChanged { focusState ->
                                                 if (focusState.isFocused) {
                                                     lastFocusedChannelId = channel.id
+                                                    // Fire-and-forget TCP/TLS pre-warm — by the time
+                                                    // the user presses OK, the connection is pooled.
+                                                    viewModel.prewarmChannelOnFocus(channel)
                                                 }
                                             }
                                             .onPreviewKeyEvent { event ->

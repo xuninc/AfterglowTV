@@ -62,8 +62,11 @@ import com.afterglowtv.player.timeshift.LiveTimeshiftBackend
 import com.afterglowtv.player.timeshift.LiveTimeshiftState
 import com.afterglowtv.player.timeshift.LiveTimeshiftStatus
 import com.afterglowtv.player.timeshift.TimeshiftConfig
+import com.afterglowtv.player.adaptive.AdaptiveBandwidthMeter
 import com.afterglowtv.player.adaptive.AdaptivePlaybackEvent
 import com.afterglowtv.player.adaptive.AdaptivePlaybackRecorder
+import com.afterglowtv.player.adaptive.ConnectionPrewarmer
+import com.afterglowtv.player.adaptive.NetworkClassDetector
 import com.afterglowtv.player.tracks.PlayerTrackController
 import com.afterglowtv.player.ui.PlayerViewBinder
 import com.afterglowtv.player.ui.SubtitleStyleController
@@ -92,7 +95,11 @@ class Media3PlayerEngine @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val playbackCompatibilityRepository: PlaybackCompatibilityRepository,
     private val adaptiveRecorder: AdaptivePlaybackRecorder,
+    private val networkClassDetector: NetworkClassDetector,
+    private val connectionPrewarmer: ConnectionPrewarmer,
 ) : PlayerEngine {
+
+    private val adaptiveBandwidthMeter = AdaptiveBandwidthMeter()
 
     companion object {
         private const val TAG = "Media3PlayerEngine"
@@ -615,6 +622,11 @@ class Media3PlayerEngine @Inject constructor(
         }
         if (streamInfo.url == lastStreamInfo?.url) return
 
+        // Open TCP/TLS to the stream's origin in the background so the
+        // first segment fetch on the next prepare hits a warm pooled
+        // connection instead of paying the full handshake cost.
+        connectionPrewarmer.warm(streamInfo.url, streamInfo.headers)
+
         val mediaId = mediaSourceFactory.mediaIdFor(streamInfo)
         val playbackPlan = buildPlaybackPreparationPlan(
             streamInfo = streamInfo,
@@ -885,9 +897,14 @@ class Media3PlayerEngine @Inject constructor(
             .setFallbackMaxPlaybackSpeed(1.0f)
             .build()
 
+        // Adaptive bandwidth meter — per-transport priors (Shaka-style)
+        // override Media3's country-keyed defaults so cold-start picks a
+        // real-quality variant instead of laddering up from 480p.
+        val bandwidthMeter = adaptiveBandwidthMeter.build(context, networkClassDetector.current())
         return ExoPlayer.Builder(context, renderersFactory)
             .setLoadControl(loadControl)
             .setLivePlaybackSpeedControl(livePlaybackSpeedControl)
+            .setBandwidthMeter(bandwidthMeter)
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(10_000)
             .setAudioAttributes(
