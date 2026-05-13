@@ -76,29 +76,91 @@ fun GlowSettingsScreen(
     onBack: () -> Unit = {},
     viewModel: GlowSettingsViewModel = hiltViewModel(),
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppColors.TiviSurfaceDeep)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Layered backdrop matching the Themes picker
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        listOf(
+                            AppColors.TiviSurfaceDeep,
+                            AppColors.TiviSurfaceBase,
+                            AppColors.TiviSurfaceCool,
+                        ),
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                androidx.compose.ui.graphics.Brush.radialGradient(
+                    colors = listOf(
+                        AppColors.TiviAccent.copy(alpha = 0.30f),
+                        AppColors.TiviAccent.copy(alpha = 0f),
+                    ),
+                    center = androidx.compose.ui.geometry.Offset(2400f, -200f),
+                    radius = 1400f,
+                )
+            )
+        )
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                androidx.compose.ui.graphics.Brush.radialGradient(
+                    colors = listOf(
+                        AppColors.EpgNowLine.copy(alpha = 0.20f),
+                        AppColors.EpgNowLine.copy(alpha = 0f),
+                    ),
+                    center = androidx.compose.ui.geometry.Offset(300f, 1900f),
+                    radius = 1100f,
+                )
+            )
+        )
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 48.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            // ── Hero brand strip ──────────────────────────────────────────
             item {
-                Text(
-                    text = "Glow",
-                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = AppColors.TextPrimary,
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "Color, radius, opacity, intensity — per role. Changes apply live.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.TextSecondary,
-                )
+                Row(
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(
+                            id = com.afterglowtv.app.R.drawable.afterglow_logo
+                        ),
+                        contentDescription = "Afterglow TV",
+                        modifier = Modifier
+                            .size(56.dp)
+                            .afterglow(
+                                specs = listOf(
+                                    GlowSpec(AppColors.TiviAccent, 16.dp, 0.55f),
+                                    GlowSpec(AppColors.EpgNowLine, 28.dp, 0.30f),
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                            )
+                            .clip(RoundedCornerShape(14.dp)),
+                    )
+                    Column {
+                        Text(
+                            text = "Glow",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = androidx.compose.ui.unit.TextUnit(36f, androidx.compose.ui.unit.TextUnitType.Sp),
+                            ),
+                            color = AppColors.TextPrimary,
+                        )
+                        Text(
+                            text = "Color · radius · opacity · intensity. Per role. Stacked layers.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AppColors.TiviAccentLight,
+                        )
+                    }
+                }
             }
 
             item { MasterIntensityCard(onPersist = viewModel::saveIntensity) }

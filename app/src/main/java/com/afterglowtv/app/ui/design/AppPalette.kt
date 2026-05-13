@@ -301,9 +301,43 @@ data class AppPalette(
             outline = Color(0x40FF7A38),
         )
 
+        /** Afterglow Gray — direct port of the user's favorite YTAfterglow preset.
+         *  Charcoal-monochrome: pure grayscale luminance steps, no chroma. Pure
+         *  white accent on `#2E2E2E` body. The Lite-inspired "soft white controls
+         *  on charcoal" look from the iOS YouTube tweak, applied to a TV grid. */
+        val AfterglowGray = AppPalette(
+            id = "afterglow_gray",
+            displayName = "Afterglow Gray",
+            description = "Charcoal monochrome — pure white controls on `#2E2E2E` body. The Lite-inspired YT favorite.",
+            surfaceDeep = Color(0xFF2E2E2E),         // YTAG bg (white 0.18)
+            surfaceBase = Color(0xFF3D3D3D),         // YTAG nav (white 0.24)
+            surfaceCool = Color(0xFF4A4A4A),         // extrapolated step
+            surfaceAccent = Color(0xFF575757),       // extrapolated step
+            accent = Color(0xFFFFFFFF),              // YTAG accent — pure white
+            accentLight = Color(0xFFFAFAFA),         // YTAG overlay
+            accentMuted = Color(0x66FFFFFF),
+            panelScrim = Color(0xCC1F1F1F),
+            osdScrim = Color(0x991F1F1F),
+            nowLine = Color(0xFFFFFFFF),             // pure-white now-line pops on `#2E2E2E`
+            nowFill = Color(0x33FFFFFF),
+            live = Color(0xFFFFFFFF),
+            pipPreviewOutline = Color(0xFFFFFFFF),
+            focusFill = Color(0x33FFFFFF),
+            textPrimary = Color(0xFFF5F5F5),         // YTAG textP (white 0.96)
+            textSecondary = Color(0xFFC7C7C7),       // YTAG textS (white 0.78)
+            textTertiary = Color(0x99F5F5F5),
+            textDisabled = Color(0x66F5F5F5),
+            success = Color(0xFFFFFFFF),             // monochrome keeps semantics in luminance only
+            warning = Color(0xFFC7C7C7),
+            info = Color(0xFFEBEBEB),                // YTAG seekBar
+            divider = Color(0x22FFFFFF),
+            outline = Color(0x33FFFFFF),
+        )
+
         /** All available presets, in display order. */
         val ALL: List<AppPalette> = listOf(
             Vaporwave,
+            AfterglowGray,
             Synthwave,
             NeonDusk,
             CyberPunk,

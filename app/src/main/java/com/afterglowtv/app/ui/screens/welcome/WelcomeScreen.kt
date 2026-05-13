@@ -1,38 +1,40 @@
 package com.afterglowtv.app.ui.screens.welcome
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.collectAsState
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Surface
-import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import com.afterglowtv.app.R
-import com.afterglowtv.app.ui.components.shell.StatusPill
 import com.afterglowtv.app.ui.design.AppColors
+import com.afterglowtv.app.ui.design.GlowSpec
+import com.afterglowtv.app.ui.design.afterglow
 import com.afterglowtv.domain.repository.ProviderRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -75,51 +77,106 @@ fun WelcomeScreen(
         }
     }
 
+    // ── Branded loading splash ───────────────────────────────────────────
+    // This usually flashes for ~100 ms while the provider count loads.
+    // Even at that duration it's worth making the first thing users see feel
+    // like the product they downloaded.
     Box(modifier = Modifier.fillMaxSize()) {
+        // Vertical surface gradient + two radial accent melts (matching the
+        // rest of the Afterglow brand language).
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.22f),
-                            AppColors.HeroTop,
-                            AppColors.HeroBottom
-                        )
-                    )
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(
+                        AppColors.TiviSurfaceDeep,
+                        AppColors.TiviSurfaceBase,
+                        AppColors.TiviSurfaceCool,
+                    ),
                 )
+            )
+        )
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        AppColors.TiviAccent.copy(alpha = 0.30f),
+                        AppColors.TiviAccent.copy(alpha = 0f),
+                    ),
+                    center = Offset(2400f, -200f),
+                    radius = 1400f,
+                )
+            )
+        )
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        AppColors.EpgNowLine.copy(alpha = 0.22f),
+                        AppColors.EpgNowLine.copy(alpha = 0f),
+                    ),
+                    center = Offset(400f, 1900f),
+                    radius = 1200f,
+                )
+            )
         )
 
-        Surface(
+        Column(
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(32.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = SurfaceDefaults.colors(containerColor = AppColors.Surface.copy(alpha = 0.9f))
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 36.dp, vertical = 28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                StatusPill(
-                    label = stringResource(R.string.app_name),
-                    containerColor = AppColors.BrandMuted
-                )
-                Spacer(modifier = Modifier.height(18.dp))
-                CircularProgressIndicator(color = AppColors.Brand)
-                Spacer(modifier = Modifier.height(18.dp))
+            // Logo with stacked teal + porange glow halo
+            Image(
+                painter = painterResource(id = R.drawable.afterglow_logo),
+                contentDescription = "Afterglow TV",
+                modifier = Modifier
+                    .size(120.dp)
+                    .afterglow(
+                        specs = listOf(
+                            GlowSpec(AppColors.TiviAccent, 32.dp, 0.65f),
+                            GlowSpec(AppColors.EpgNowLine, 56.dp, 0.40f),
+                        ),
+                        shape = RoundedCornerShape(28.dp),
+                    )
+                    .clip(RoundedCornerShape(28.dp)),
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // "Afterglow TV" wordmark inline — same composition as provider hero
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = stringResource(R.string.welcome_loading_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = AppColors.TextPrimary
+                    text = "Afterglow",
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = TextUnit(56f, TextUnitType.Sp),
+                    ),
+                    color = AppColors.TextPrimary,
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(Modifier.size(14.dp))
                 Text(
-                    text = stringResource(R.string.welcome_loading_subtitle),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = AppColors.TextSecondary
+                    text = "TV",
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = TextUnit(48f, TextUnitType.Sp),
+                    ),
+                    color = AppColors.TiviAccent,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .afterglow(
+                            specs = listOf(GlowSpec(AppColors.TiviAccent, 12.dp, 0.55f)),
+                        ),
                 )
             }
+
+            Spacer(Modifier.height(28.dp))
+
+            CircularProgressIndicator(
+                color = AppColors.TiviAccent,
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(36.dp),
+            )
         }
     }
 }
