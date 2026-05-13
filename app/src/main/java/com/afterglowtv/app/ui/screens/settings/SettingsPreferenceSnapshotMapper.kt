@@ -1,0 +1,70 @@
+package com.afterglowtv.app.ui.screens.settings
+
+internal fun SettingsUiState.applyPreferenceSnapshot(snapshot: SettingsPreferenceSnapshot): SettingsUiState {
+    val cachedAppUpdate = snapshot.toCachedAppUpdateUiModel()
+    return copy(
+        providers = snapshot.providers,
+        activeProviderId = snapshot.activeProviderId,
+        parentalControlLevel = snapshot.parentalControlLevel,
+        hasParentalPin = snapshot.hasParentalPin,
+        appLanguage = snapshot.appLanguage,
+        appTimeFormat = snapshot.appTimeFormat,
+        preferredAudioLanguage = snapshot.preferredAudioLanguage,
+        playerMediaSessionEnabled = snapshot.playerMediaSessionEnabled,
+        playerDecoderMode = snapshot.playerDecoderMode,
+        playerSurfaceMode = snapshot.playerSurfaceMode,
+        playerPlaybackSpeed = snapshot.playerPlaybackSpeed,
+        playerAudioVideoSyncEnabled = snapshot.playerAudioVideoSyncEnabled,
+        playerAudioVideoOffsetMs = snapshot.playerAudioVideoOffsetMs,
+        centerTwoSlotMultiviewLayout = snapshot.centerTwoSlotMultiviewLayout,
+        playerControlsTimeoutSeconds = snapshot.playerControlsTimeoutSeconds,
+        playerLiveOverlayTimeoutSeconds = snapshot.playerLiveOverlayTimeoutSeconds,
+        playerNoticeTimeoutSeconds = snapshot.playerNoticeTimeoutSeconds,
+        playerDiagnosticsTimeoutSeconds = snapshot.playerDiagnosticsTimeoutSeconds,
+        subtitleTextScale = snapshot.subtitleTextScale,
+        subtitleTextColor = snapshot.subtitleTextColor,
+        subtitleBackgroundColor = snapshot.subtitleBackgroundColor,
+        wifiMaxVideoHeight = snapshot.wifiMaxVideoHeight,
+        ethernetMaxVideoHeight = snapshot.ethernetMaxVideoHeight,
+        playerTimeshiftEnabled = snapshot.playerTimeshiftEnabled,
+        playerTimeshiftDepthMinutes = snapshot.playerTimeshiftDepthMinutes,
+        defaultStopPlaybackTimerMinutes = snapshot.defaultStopPlaybackTimerMinutes,
+        defaultIdleStandbyTimerMinutes = snapshot.defaultIdleStandbyTimerMinutes,
+        lastSpeedTest = snapshot.lastSpeedTestMegabits?.let {
+            InternetSpeedTestUiModel(
+                megabitsPerSecond = it,
+                measuredAtMs = snapshot.lastSpeedTestTimestamp ?: 0L,
+                transportLabel = snapshot.lastSpeedTestTransport ?: InternetSpeedTestTransport.UNKNOWN.name,
+                recommendedMaxVideoHeight = snapshot.lastSpeedTestRecommendedHeight,
+                isEstimated = snapshot.lastSpeedTestEstimated
+            )
+        },
+        isIncognitoMode = snapshot.isIncognitoMode,
+        useXtreamTextClassification = snapshot.useXtreamTextClassification,
+        xtreamBase64TextCompatibility = snapshot.xtreamBase64TextCompatibility,
+        liveTvChannelMode = snapshot.liveTvChannelMode,
+        showLiveSourceSwitcher = snapshot.showLiveSourceSwitcher,
+        showAllChannelsCategory = snapshot.showAllChannelsCategory,
+        showRecentChannelsCategory = snapshot.showRecentChannelsCategory,
+        liveTvCategoryFilters = snapshot.liveTvCategoryFilters,
+        liveTvQuickFilterVisibilityMode = snapshot.liveTvQuickFilterVisibilityMode,
+        liveChannelNumberingMode = snapshot.liveChannelNumberingMode,
+        liveChannelGroupingMode = snapshot.liveChannelGroupingMode,
+        groupedChannelLabelMode = snapshot.groupedChannelLabelMode,
+        liveVariantPreferenceMode = snapshot.liveVariantPreferenceMode,
+        vodViewMode = snapshot.vodViewMode,
+        vodInfiniteScroll = snapshot.vodInfiniteScroll,
+        guideDefaultCategoryId = snapshot.guideDefaultCategoryId,
+        guideDefaultCategoryOptions = guideDefaultCategoryOptions,
+        preventStandbyDuringPlayback = snapshot.preventStandbyDuringPlayback,
+        zapAutoRevert = snapshot.zapAutoRevert,
+        autoPlayNextEpisode = snapshot.autoPlayNextEpisode,
+        autoCheckAppUpdates = snapshot.autoCheckAppUpdates,
+        autoDownloadAppUpdates = snapshot.autoDownloadAppUpdates,
+        appUpdate = cachedAppUpdate.copy(
+            downloadStatus = appUpdate.downloadStatus,
+            downloadedVersionName = appUpdate.downloadedVersionName,
+            errorMessage = appUpdate.errorMessage
+        )
+    )
+}

@@ -1,0 +1,1746 @@
+package com.afterglowtv.data.remote.stalker
+
+import android.util.Log
+import com.google.gson.JsonObject as GsonJsonObject
+import com.google.gson.JsonParser
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonToken
+import com.afterglowtv.domain.model.Result
+import com.afterglowtv.domain.util.StreamEntryUrlPolicy
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.net.URI
+import java.net.URLEncoder
+import java.security.MessageDigest
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.format.ResolverStyle
+import java.util.Base64
+import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.longOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+
+@Singleton
+class OkHttpStalkerApiService @Inject constructor(
+    private val okHttpClient: OkHttpClient,
+    private val json: Json
+) : StalkerApiService {
+
+    override suspend fun authenticate(profile: StalkerDeviceProfile): Result<Pair<StalkerSession, StalkerProviderProfile>> {
+        var lastError: Throwable? = null
+        for (loadUrl in StalkerUrlFactory.loadUrlCandidates(profile.portalUrl)) {
+            val referer = StalkerUrlFactory.portalReferer(loadUrl)
+            val handshakeResult = runCatching {
+                requestJson(
+                    url = loadUrl,
+                    profile = profile,
+                    referer = referer,
+                    query = mapOf(
+                        "type" to "stb",
+                        "action" to "handshake",
+                        "token" to "",
+                        "JsHttpRequest" to "1-xml"
+                    )
+                )
+            }
+            val handshakePayload = handshakeResult.getOrElse { error ->
+                lastError = error
+                continue
+            }
+            val token = handshakePayload.findString("token")
+                ?.takeIf { it.isNotBlank() }
+                ?: run {
+                    lastError = IOException("Portal handshake did not return a token.")
+                    continue
+                }
+
+            val session = StalkerSession(loadUrl = loadUrl, portalReferer = referer, token = token)
+            val profileResult = runCatching {
+                requestJson(
+                    url = loadUrl,
+                    profile = profile,
+                    referer = referer,
+                    token = token,
+                    query = buildProfileQuery(profile)
+                )
+            }
+            val profilePayload = profileResult.getOrElse { error ->
+                lastError = error
+                continue
+            }
+
+            return Result.success(session to profilePayload.toProviderProfile())
+        }
+
+        return Result.error(
+            lastError?.message ?: "Failed to connect to portal.",
+            lastError
+        )
+    }
+
+    override suspend fun getLiveCategories(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile
+    ): Result<List<StalkerCategoryRecord>> = runApiCall("Failed to load live categories") {
+        requestJson(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = mapOf(
+                "type" to "itv",
+                "action" to "get_genres",
+                "JsHttpRequest" to "1-xml"
+            )
+        ).toCategoryRecords()
+    }
+
+    override suspend fun getLiveStreams(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        categoryId: String?
+    ): Result<List<StalkerItemRecord>> = runApiCall("Failed to load live channels") {
+        if (categoryId.isNullOrBlank()) {
+            fetchAllLiveChannels(
+                session = session,
+                profile = profile
+            )?.let { return@runApiCall it }
+        }
+
+        fetchPagedItems(
+            session = session,
+            profile = profile,
+            baseQuery = buildMap {
+                put("type", "itv")
+                put("action", "get_ordered_list")
+                put("JsHttpRequest", "1-xml")
+                put("force_ch_link_check", "0")
+                put("fav", "0")
+                categoryId?.takeIf { it.isNotBlank() }?.let { put("genre", it) }
+            }
+        )
+    }
+
+    override suspend fun streamLiveStreams(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        onItem: suspend (StalkerItemRecord) -> Unit
+    ): Result<Int> = runApiCall("Failed to load live channels") {
+        requestStreamingItems(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = mapOf(
+                "type" to "itv",
+                "action" to "get_all_channels",
+                "JsHttpRequest" to "1-xml"
+            ),
+            onItem = onItem
+        )
+    }
+
+    override suspend fun getVodCategories(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile
+    ): Result<List<StalkerCategoryRecord>> = runApiCall("Failed to load movie categories") {
+        requestJson(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = mapOf(
+                "type" to "vod",
+                "action" to "get_categories",
+                "JsHttpRequest" to "1-xml"
+            )
+        ).toCategoryRecords()
+    }
+
+    override suspend fun getVodStreams(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        categoryId: String?
+    ): Result<List<StalkerItemRecord>> = runApiCall("Failed to load movies") {
+        fetchPagedItems(
+            session = session,
+            profile = profile,
+            baseQuery = buildMap {
+                put("type", "vod")
+                put("action", "get_ordered_list")
+                put("JsHttpRequest", "1-xml")
+                categoryId?.takeIf { it.isNotBlank() }?.let { put("category", it) }
+            }
+        ).filterNot { it.isSeries }
+    }
+
+    override suspend fun getVodStreamsPage(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        categoryId: String?,
+        page: Int
+    ): Result<StalkerPagedItems> = runApiCall("Failed to load movies") {
+        fetchPagedItemPage(
+            session = session,
+            profile = profile,
+            page = page,
+            baseQuery = buildMap {
+                put("type", "vod")
+                put("action", "get_ordered_list")
+                put("JsHttpRequest", "1-xml")
+                categoryId?.takeIf { it.isNotBlank() }?.let { put("category", it) }
+            }
+        ).let { paged -> paged.copy(items = paged.items.filterNot { it.isSeries }) }
+    }
+
+    override suspend fun getSeriesCategories(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile
+    ): Result<List<StalkerCategoryRecord>> = runApiCall("Failed to load series categories") {
+        requestJson(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = mapOf(
+                "type" to "series",
+                "action" to "get_categories",
+                "JsHttpRequest" to "1-xml"
+            )
+        ).toCategoryRecords()
+    }
+
+    override suspend fun getSeries(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        categoryId: String?
+    ): Result<List<StalkerItemRecord>> = runApiCall("Failed to load series") {
+        fetchPagedItems(
+            session = session,
+            profile = profile,
+            baseQuery = buildMap {
+                put("type", "series")
+                put("action", "get_ordered_list")
+                put("JsHttpRequest", "1-xml")
+                categoryId?.takeIf { it.isNotBlank() }?.let { put("category", it) }
+            }
+        )
+    }
+
+    override suspend fun getSeriesPage(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        categoryId: String?,
+        page: Int
+    ): Result<StalkerPagedItems> = runApiCall("Failed to load series") {
+        fetchPagedItemPage(
+            session = session,
+            profile = profile,
+            page = page,
+            baseQuery = buildMap {
+                put("type", "series")
+                put("action", "get_ordered_list")
+                put("JsHttpRequest", "1-xml")
+                categoryId?.takeIf { it.isNotBlank() }?.let { put("category", it) }
+            }
+        )
+    }
+
+    override suspend fun getSeriesDetails(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        seriesId: String
+    ): Result<StalkerSeriesDetails> = runApiCall("Failed to load series details") {
+        val seriesPayload = requestJson(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = mapOf(
+                "type" to "series",
+                "action" to "get_ordered_list",
+                "JsHttpRequest" to "1-xml",
+                "movie_id" to seriesId,
+                "season_id" to "0",
+                "episode_id" to "0"
+            )
+        )
+        val seedEntries = seriesPayload.extractItemEntries()
+        val seriesItems = seriesPayload.toItemRecords()
+        val series = seriesItems.firstOrNull { item -> !item.looksLikeSeasonShell() }
+            ?: StalkerItemRecord(
+                id = seriesId,
+                name = ""
+            )
+        val seasonRows = seedEntries
+            .mapNotNull { entry ->
+                entry.findString("season_id")
+                    ?.takeIf { it.isNotBlank() && it != "0" }
+                    ?.let { seasonId ->
+                        seasonId to entry
+                    }
+            }
+            .distinctBy { it.first }
+        val shellSeasonRows = seedEntries.mapIndexedNotNull { index, entry ->
+            entry.toSeasonShellRecord(index + 1)
+                ?.let { season -> season.seasonNumber.toString() to entry }
+        }
+
+        val seasons = if (seasonRows.isNotEmpty()) {
+            seasonRows.map { (seasonId, entry) ->
+                val episodesPayload = requestJson(
+                    url = session.loadUrl,
+                    profile = profile,
+                    referer = session.portalReferer,
+                    token = session.token,
+                    query = mapOf(
+                        "type" to "series",
+                        "action" to "get_ordered_list",
+                        "JsHttpRequest" to "1-xml",
+                        "movie_id" to seriesId,
+                        "season_id" to seasonId,
+                        "episode_id" to "0"
+                    )
+                )
+                entry.toSeasonRecord(episodesPayload.extractItemEntries())
+            }
+        } else if (shellSeasonRows.isNotEmpty()) {
+            shellSeasonRows.map { (seasonId, entry) ->
+                val episodesPayload = requestJson(
+                    url = session.loadUrl,
+                    profile = profile,
+                    referer = session.portalReferer,
+                    token = session.token,
+                    query = mapOf(
+                        "type" to "series",
+                        "action" to "get_ordered_list",
+                        "JsHttpRequest" to "1-xml",
+                        "movie_id" to seriesId,
+                        "season_id" to seasonId,
+                        "episode_id" to "0"
+                    )
+                )
+                entry.toSeasonRecord(episodesPayload.extractItemEntries())
+            }
+        } else {
+            listOf(
+                StalkerSeasonRecord(
+                    seasonNumber = 1,
+                    name = "Season 1",
+                    episodes = seedEntries.mapIndexedNotNull { index, entry ->
+                        entry.toEpisodeRecord(index + 1, 1)
+                    }
+                )
+            ).filter { it.episodes.isNotEmpty() }
+        }
+
+        StalkerSeriesDetails(series = series, seasons = seasons)
+    }
+
+    override suspend fun getShortEpg(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        channelId: String,
+        limit: Int
+    ): Result<List<StalkerProgramRecord>> = runApiCall("Failed to load EPG") {
+        requestJson(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = mapOf(
+                "type" to "itv",
+                "action" to "get_short_epg",
+                "JsHttpRequest" to "1-xml",
+                "ch_id" to channelId,
+                "size" to limit.coerceAtLeast(1).toString()
+            )
+        ).toProgramRecords(channelId)
+    }
+
+    override suspend fun getEpg(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        channelId: String
+    ): Result<List<StalkerProgramRecord>> = runApiCall("Failed to load EPG") {
+        // Legacy buffered API kept for compatibility; route through the streaming path
+        // and cap the in-memory list so a misbehaving portal cannot OOM the caller.
+        val buffer = ArrayList<StalkerProgramRecord>()
+        requestStreamingPrograms(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            channelIdOverride = channelId,
+            query = perChannelEpgQuery(channelId, periodHours = 6)
+        ) { program ->
+            if (buffer.size < MAX_INLINE_EPG_RECORDS) {
+                buffer.add(program)
+            }
+        }
+        buffer
+    }
+
+    override suspend fun getBulkEpg(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        periodHours: Int
+    ): Result<List<StalkerProgramRecord>> = runApiCall("Failed to load bulk EPG") {
+        // Legacy buffered API kept for compatibility; route through the streaming path
+        // and cap the in-memory list so a misbehaving portal cannot OOM the caller.
+        val buffer = ArrayList<StalkerProgramRecord>()
+        requestStreamingPrograms(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            channelIdOverride = null,
+            query = bulkEpgQuery(periodHours)
+        ) { program ->
+            if (buffer.size < MAX_INLINE_EPG_RECORDS) {
+                buffer.add(program)
+            }
+        }
+        buffer
+    }
+
+    override suspend fun streamBulkEpg(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        periodHours: Int,
+        onProgram: suspend (StalkerProgramRecord) -> Unit
+    ): Result<Int> = runApiCall("Failed to load bulk EPG") {
+        requestStreamingPrograms(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            channelIdOverride = null,
+            query = bulkEpgQuery(periodHours),
+            onProgram = onProgram
+        )
+    }
+
+    override suspend fun streamEpg(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        channelId: String,
+        periodHours: Int,
+        onProgram: suspend (StalkerProgramRecord) -> Unit
+    ): Result<Int> = runApiCall("Failed to load EPG") {
+        requestStreamingPrograms(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            channelIdOverride = channelId,
+            query = perChannelEpgQuery(channelId, periodHours),
+            onProgram = onProgram
+        )
+    }
+
+    private fun bulkEpgQuery(periodHours: Int): Map<String, String> = mapOf(
+        "type" to "itv",
+        "action" to "get_epg_info",
+        "JsHttpRequest" to "1-xml",
+        "period" to periodHours.coerceAtLeast(1).toString()
+    )
+
+    private fun perChannelEpgQuery(channelId: String, periodHours: Int): Map<String, String> = mapOf(
+        "type" to "itv",
+        "action" to "get_epg_info",
+        "JsHttpRequest" to "1-xml",
+        "ch_id" to channelId,
+        "period" to periodHours.coerceAtLeast(1).toString()
+    )
+
+    override suspend fun createLink(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        kind: StalkerStreamKind,
+        cmd: String,
+        seriesNumber: Int?
+    ): Result<String> = runApiCall("Failed to resolve playback link") {
+        val type = when (kind) {
+            StalkerStreamKind.LIVE -> "itv"
+            StalkerStreamKind.MOVIE, StalkerStreamKind.EPISODE -> "vod"
+        }
+        val seriesSelector = if (kind == StalkerStreamKind.EPISODE) {
+            seriesNumber?.takeIf { it > 0 }?.toString() ?: "0"
+        } else {
+            "0"
+        }
+        val payload = requestJson(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = mapOf(
+                "type" to type,
+                "action" to "create_link",
+                "JsHttpRequest" to "1-xml",
+                "cmd" to cmd,
+                "series" to seriesSelector,
+                "forced_storage" to "0",
+                "disable_ad" to "0",
+                "download" to "0"
+            )
+        )
+        payload.findString("cmd")
+            ?.substringAfter(' ', missingDelimiterValue = payload.findString("cmd").orEmpty())
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { resolved ->
+                if (!StreamEntryUrlPolicy.isAllowed(resolved)) {
+                    throw IOException("Portal returned an unsupported playback URL scheme for create_link.")
+                }
+                resolved
+            }
+            ?: throw IOException("Portal did not return a playable URL.")
+    }
+
+    private suspend fun fetchPagedItems(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        baseQuery: Map<String, String>
+    ): List<StalkerItemRecord> {
+        val firstPage = requestJson(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = baseQuery + ("p" to "1")
+        )
+        val items = mutableListOf<StalkerItemRecord>()
+        items += firstPage.toItemRecords()
+        val totalPages = firstPage.totalPages()
+        for (page in 2..totalPages) {
+            val pagePayload = requestJson(
+                url = session.loadUrl,
+                profile = profile,
+                referer = session.portalReferer,
+                token = session.token,
+                query = baseQuery + ("p" to page.toString())
+            )
+            items += pagePayload.toItemRecords()
+        }
+        return items
+    }
+
+    private suspend fun fetchPagedItemPage(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile,
+        baseQuery: Map<String, String>,
+        page: Int
+    ): StalkerPagedItems {
+        val safePage = page.coerceAtLeast(1).coerceAtMost(MAX_PAGE_COUNT)
+        val payload = requestJson(
+            url = session.loadUrl,
+            profile = profile,
+            referer = session.portalReferer,
+            token = session.token,
+            query = baseQuery + ("p" to safePage.toString())
+        )
+        val items = payload.toItemRecords()
+        return StalkerPagedItems(
+            items = items,
+            page = safePage,
+            totalPages = payload.totalPages(),
+            pageSize = payload.pageSize(items.size)
+        )
+    }
+
+    private suspend fun fetchAllLiveChannels(
+        session: StalkerSession,
+        profile: StalkerDeviceProfile
+    ): List<StalkerItemRecord>? {
+        return runCatching {
+            requestJson(
+                url = session.loadUrl,
+                profile = profile,
+                referer = session.portalReferer,
+                token = session.token,
+                query = mapOf(
+                    "type" to "itv",
+                    "action" to "get_all_channels",
+                    "JsHttpRequest" to "1-xml"
+                )
+            ).toItemRecords()
+        }.onFailure { error ->
+            Log.w(TAG, "Stalker get_all_channels failed; falling back to paged live catalog", error)
+        }.getOrNull()?.takeIf { it.isNotEmpty() }
+    }
+
+    private suspend fun requestJson(
+        url: String,
+        profile: StalkerDeviceProfile,
+        referer: String,
+        query: Map<String, String>,
+        token: String? = null
+    ): JsonElement = withContext(Dispatchers.IO) {
+        val action = query["action"]
+        val canRetryAlternateEndpoint = !token.isNullOrBlank()
+        val request = Request.Builder()
+            .url(buildUrl(url, query))
+            .header("User-Agent", profile.userAgent)
+            .header("X-User-Agent", profile.xUserAgent)
+            .header("Referer", referer)
+            .header("Accept", "*/*")
+            .header("Cookie", "mac=${profile.macAddress}; stb_lang=${profile.locale}; timezone=${profile.timezone}")
+            .apply {
+                token?.takeIf { it.isNotBlank() }?.let { header("Authorization", "Bearer $it") }
+            }
+            .get()
+            .build()
+
+        runCatching {
+            executeJsonRequest(request, action)
+        }.recoverCatching { error ->
+            if (!canRetryAlternateEndpoint) throw error
+            val alternateUrl = siblingLoadUrl(url)
+                ?.takeIf { it != url }
+                ?: throw error
+            Log.w(
+                TAG,
+                "Retrying Stalker ${action.orEmpty()} via alternate endpoint $alternateUrl after ${error.message}"
+            )
+            val alternateRequest = request.newBuilder()
+                .url(buildUrl(alternateUrl, query))
+                .header("Referer", StalkerUrlFactory.portalReferer(alternateUrl))
+                .build()
+            executeJsonRequest(alternateRequest, action)
+        }.getOrElse { throw it }
+    }
+
+    private fun executeJsonRequest(request: Request, action: String?): JsonElement {
+        return okHttpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                response.body?.close()
+                throw IOException("Portal request failed with HTTP ${response.code}.")
+            }
+            val responseBody = response.body
+                ?: throw IOException("Portal returned an empty response${actionSuffix(action)}.")
+            val charset = responseBody.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
+            val raw = readBodyBounded(
+                stream = responseBody.byteStream(),
+                charsetName = charset.name(),
+                maxBytes = maxBodyBytesForAction(action),
+                action = action
+            )
+            if (raw.isBlank()) {
+                throw IOException("Portal returned an empty response${actionSuffix(action)}.")
+            }
+            val parsed = parsePortalJson(raw, action)
+            parsed.ensureNoPortalError()
+            parsed
+        }
+    }
+
+    /**
+     * Reads [stream] into a String, throwing [IOException] if the body exceeds [maxBytes].
+     * This prevents unbounded heap allocation when portals return unexpectedly large responses.
+     */
+    private fun readBodyBounded(
+        stream: InputStream,
+        charsetName: String,
+        maxBytes: Long,
+        action: String?
+    ): String {
+        val out = ByteArrayOutputStream(16_384)
+        var totalRead = 0L
+        val chunk = ByteArray(8_192)
+        while (true) {
+            val n = stream.read(chunk)
+            if (n < 0) break
+            totalRead += n
+            if (totalRead > maxBytes) {
+                val limitKb = maxBytes / 1024
+                throw IOException(
+                    "Portal response for '${action ?: "request"}' exceeded the ${limitKb}KB limit; " +
+                        "portal may be misbehaving."
+                )
+            }
+            out.write(chunk, 0, n)
+        }
+        return try {
+            out.toString(charsetName)
+        } catch (_: java.io.UnsupportedEncodingException) {
+            out.toString(Charsets.UTF_8.name())
+        }
+    }
+
+    /**
+     * Returns an appropriate response-body size ceiling for the given Stalker [action].
+     * Smaller endpoints (auth, create_link) get tight limits; large catalog endpoints get
+     * a generous but still bounded ceiling to prevent OOM from misbehaving portals.
+     */
+    private fun maxBodyBytesForAction(action: String?): Long = when (action?.trim()) {
+        "handshake", "get_profile", "get_account_info" -> 512L * 1024          // 512 KB
+        "create_link"                                   -> 64L * 1024           // 64 KB
+        "get_genres", "get_vod_categories", "get_series_categories",
+        "get_categories", "get_live_categories"         -> 2L * 1024 * 1024    // 2 MB
+        "get_ordered_list", "get_vod_list", "get_series",
+        "get_seasons", "get_series_info", "get_vod_info" -> 8L * 1024 * 1024  // 8 MB
+        else                                             -> 4L * 1024 * 1024   // 4 MB default
+    }
+
+    private suspend fun requestStreamingItems(
+        url: String,
+        profile: StalkerDeviceProfile,
+        referer: String,
+        query: Map<String, String>,
+        token: String,
+        onItem: suspend (StalkerItemRecord) -> Unit
+    ): Int = withContext(Dispatchers.IO) {
+        val action = query["action"]
+        val request = Request.Builder()
+            .url(buildUrl(url, query))
+            .header("User-Agent", profile.userAgent)
+            .header("X-User-Agent", profile.xUserAgent)
+            .header("Referer", referer)
+            .header("Accept", "*/*")
+            .header("Cookie", "mac=${profile.macAddress}; stb_lang=${profile.locale}; timezone=${profile.timezone}")
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
+
+        runCatching {
+            executeStreamingRequest(request, action, onItem)
+        }.recoverCatching { error ->
+            val alternateUrl = siblingLoadUrl(url)
+                ?.takeIf { it != url }
+                ?: throw error
+            Log.w(
+                TAG,
+                "Retrying streamed Stalker ${action.orEmpty()} via alternate endpoint $alternateUrl after ${error.message}"
+            )
+            val alternateRequest = request.newBuilder()
+                .url(buildUrl(alternateUrl, query))
+                .header("Referer", StalkerUrlFactory.portalReferer(alternateUrl))
+                .build()
+            executeStreamingRequest(alternateRequest, action, onItem)
+        }.getOrElse { throw it }
+    }
+
+    private suspend fun executeStreamingRequest(
+        request: Request,
+        action: String?,
+        onItem: suspend (StalkerItemRecord) -> Unit
+    ): Int {
+        return okHttpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Portal request failed with HTTP ${response.code}.")
+            }
+            val body = response.body ?: throw IOException("Portal returned an empty response${actionSuffix(action)}.")
+            val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
+            val reader = JsonReader(InputStreamReader(body.byteStream(), charset))
+            reader.isLenient = true
+            try {
+                streamStalkerItems(reader, onItem)
+            } catch (error: IllegalStateException) {
+                throw IOException("Portal returned unreadable JSON${actionSuffix(action)}.", error)
+            }
+        }
+    }
+
+    private suspend fun streamStalkerItems(
+        reader: JsonReader,
+        onItem: suspend (StalkerItemRecord) -> Unit
+    ): Int {
+        return when (reader.peek()) {
+            JsonToken.BEGIN_ARRAY -> streamItemArray(reader, onItem)
+            JsonToken.BEGIN_OBJECT -> streamItemObject(reader, onItem)
+            JsonToken.NULL -> {
+                reader.nextNull()
+                0
+            }
+            else -> {
+                reader.skipValue()
+                0
+            }
+        }
+    }
+
+    private suspend fun streamItemObject(
+        reader: JsonReader,
+        onItem: suspend (StalkerItemRecord) -> Unit
+    ): Int {
+        var count = 0
+        reader.beginObject()
+        while (reader.hasNext()) {
+            when (reader.nextName()) {
+                "error" -> {
+                    val error = reader.nextStringOrSkip()
+                    // Use the same placeholder filter as ensureNoPortalError so that
+                    // "null", "0", "false", and "ok" from loose portals are not treated
+                    // as real errors in the streamed item path either.
+                    if (!error.isNullOrBlank() && !isPlaceholderErrorValue(error)) {
+                        throw IOException(error)
+                    }
+                }
+                "js", "data", "items" -> count += streamStalkerItems(reader, onItem)
+                else -> {
+                    // Object-keyed catalogs (e.g. `{"data":{"100":{...},"200":{...}}}`) use
+                    // numeric string keys for each item. Attempt to parse any object value as
+                    // an item record before falling back to skip, so these catalogs are not
+                    // silently dropped on the streaming path.
+                    if (reader.peek() == JsonToken.BEGIN_OBJECT) {
+                        val element = JsonParser.parseReader(reader)
+                        val item = element.asJsonObjectOrNull()?.toItemRecord()
+                        if (item != null) {
+                            onItem(item)
+                            count++
+                        }
+                    } else {
+                        reader.skipValue()
+                    }
+                }
+            }
+        }
+        reader.endObject()
+        return count
+    }
+
+    private suspend fun streamItemArray(
+        reader: JsonReader,
+        onItem: suspend (StalkerItemRecord) -> Unit
+    ): Int {
+        var count = 0
+        reader.beginArray()
+        while (reader.hasNext()) {
+            if (reader.peek() == JsonToken.BEGIN_OBJECT) {
+                val element = JsonParser.parseReader(reader)
+                val item = element.asJsonObjectOrNull()?.toItemRecord()
+                if (item != null) {
+                    onItem(item)
+                    count++
+                }
+            } else {
+                count += streamStalkerItems(reader, onItem)
+            }
+        }
+        reader.endArray()
+        return count
+    }
+
+    /**
+     * Issues a streamed Stalker request that emits [StalkerProgramRecord]s instead of building
+     * a Gson tree of the entire response. This is the heap-safe path used for `get_epg_info`,
+     * which on some portals returns >30 MB of JSON regardless of the requested period.
+     */
+    private suspend fun requestStreamingPrograms(
+        url: String,
+        profile: StalkerDeviceProfile,
+        referer: String,
+        query: Map<String, String>,
+        token: String,
+        channelIdOverride: String?,
+        onProgram: suspend (StalkerProgramRecord) -> Unit
+    ): Int = withContext(Dispatchers.IO) {
+        val action = query["action"]
+        val request = Request.Builder()
+            .url(buildUrl(url, query))
+            .header("User-Agent", profile.userAgent)
+            .header("X-User-Agent", profile.xUserAgent)
+            .header("Referer", referer)
+            .header("Accept", "*/*")
+            .header("Cookie", "mac=${profile.macAddress}; stb_lang=${profile.locale}; timezone=${profile.timezone}")
+            .header("Authorization", "Bearer $token")
+            .get()
+            .build()
+
+        runCatching {
+            executeStreamingPrograms(request, action, channelIdOverride, onProgram)
+        }.recoverCatching { error ->
+            val alternateUrl = siblingLoadUrl(url)
+                ?.takeIf { it != url }
+                ?: throw error
+            Log.w(
+                TAG,
+                "Retrying streamed Stalker EPG ${action.orEmpty()} via alternate endpoint $alternateUrl after ${error.message}"
+            )
+            val alternateRequest = request.newBuilder()
+                .url(buildUrl(alternateUrl, query))
+                .header("Referer", StalkerUrlFactory.portalReferer(alternateUrl))
+                .build()
+            executeStreamingPrograms(alternateRequest, action, channelIdOverride, onProgram)
+        }.getOrElse { throw it }
+    }
+
+    private suspend fun executeStreamingPrograms(
+        request: Request,
+        action: String?,
+        channelIdOverride: String?,
+        onProgram: suspend (StalkerProgramRecord) -> Unit
+    ): Int {
+        return okHttpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Portal request failed with HTTP ${response.code}.")
+            }
+            val body = response.body ?: throw IOException("Portal returned an empty response${actionSuffix(action)}.")
+            val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
+            val limited = ByteSizeLimitInputStream(
+                delegate = body.byteStream(),
+                maxBytes = MAX_EPG_BYTES,
+                onOverflow = {
+                    "Portal EPG payload exceeded ${MAX_EPG_BYTES} bytes${actionSuffix(action)}."
+                }
+            )
+            val reader = JsonReader(InputStreamReader(limited, charset))
+            reader.isLenient = true
+            try {
+                streamStalkerPrograms(reader, channelIdOverride, onProgram)
+            } catch (error: IllegalStateException) {
+                throw IOException("Portal returned unreadable JSON${actionSuffix(action)}.", error)
+            }
+        }
+    }
+
+    private suspend fun streamStalkerPrograms(
+        reader: JsonReader,
+        channelIdOverride: String?,
+        onProgram: suspend (StalkerProgramRecord) -> Unit
+    ): Int {
+        return when (reader.peek()) {
+            JsonToken.BEGIN_ARRAY -> streamProgramArray(reader, channelIdOverride, onProgram)
+            JsonToken.BEGIN_OBJECT -> streamProgramObject(reader, channelIdOverride, onProgram)
+            JsonToken.NULL -> {
+                reader.nextNull()
+                0
+            }
+            else -> {
+                reader.skipValue()
+                0
+            }
+        }
+    }
+
+    private suspend fun streamProgramObject(
+        reader: JsonReader,
+        channelIdOverride: String?,
+        onProgram: suspend (StalkerProgramRecord) -> Unit
+    ): Int {
+        var count = 0
+        reader.beginObject()
+        var sawEnvelope = false
+        while (reader.hasNext()) {
+            val name = reader.nextName()
+            when (name) {
+                "error" -> {
+                    val error = reader.nextStringOrSkip()
+                    if (!error.isNullOrBlank() && !error.equals("null", ignoreCase = true)) {
+                        throw IOException(error)
+                    }
+                }
+                "js", "data", "items" -> {
+                    sawEnvelope = true
+                    count += streamStalkerPrograms(reader, channelIdOverride, onProgram)
+                }
+                else -> {
+                    // Some portals return the bulk EPG as an object whose keys are channel IDs
+                    // mapped to arrays of program objects. When we have not already descended
+                    // into an envelope key and there is no caller-supplied override, treat the
+                    // key as the channel ID and walk the array.
+                    if (!sawEnvelope && channelIdOverride == null && reader.peek() == JsonToken.BEGIN_ARRAY) {
+                        count += streamProgramArray(reader, name, onProgram)
+                    } else {
+                        reader.skipValue()
+                    }
+                }
+            }
+        }
+        reader.endObject()
+        return count
+    }
+
+    private suspend fun streamProgramArray(
+        reader: JsonReader,
+        channelIdOverride: String?,
+        onProgram: suspend (StalkerProgramRecord) -> Unit
+    ): Int {
+        var count = 0
+        reader.beginArray()
+        while (reader.hasNext()) {
+            if (reader.peek() == JsonToken.BEGIN_OBJECT) {
+                val element = JsonParser.parseReader(reader)
+                val program = element.asJsonObjectOrNull()?.toProgramRecord(channelIdOverride)
+                if (program != null) {
+                    onProgram(program)
+                    count++
+                }
+            } else {
+                count += streamStalkerPrograms(reader, channelIdOverride, onProgram)
+            }
+        }
+        reader.endArray()
+        return count
+    }
+
+    private fun GsonJsonObject.toProgramRecord(channelIdOverride: String?): StalkerProgramRecord? {
+        val resolvedChannelId = channelIdOverride
+            ?: findString("ch_id")
+            ?: findString("channel_id")
+            ?: findString("id_channel")
+            ?: findString("xmltv_id")
+            ?: findString("epg_id")
+            ?: return null
+        val startMillis = findString("start_timestamp")?.toLongOrNull()?.times(1000L)
+            ?: findString("time")?.let(::parseDateTime)
+            ?: return null
+        val endMillis = findString("stop_timestamp")?.toLongOrNull()?.times(1000L)
+            ?: findString("time_to")?.let(::parseDateTime)
+            ?: (startMillis + (findString("duration")?.toLongOrNull()?.times(60_000L) ?: DEFAULT_PROGRAM_DURATION_MILLIS))
+        val title = findString("name") ?: findString("title") ?: return null
+        return StalkerProgramRecord(
+            id = findString("id") ?: "$resolvedChannelId:$startMillis",
+            channelId = resolvedChannelId,
+            title = title,
+            description = findString("descr") ?: findString("description") ?: "",
+            startTimeMillis = startMillis,
+            endTimeMillis = endMillis,
+            hasArchive = findBoolean("has_archive") == true || findString("has_archive") == "1",
+            isNowPlaying = findBoolean("now_playing") == true || findString("now_playing") == "1"
+        )
+    }
+
+    private fun siblingLoadUrl(url: String): String? {
+        val normalized = StalkerUrlFactory.normalizePortalUrl(url)
+        val lower = normalized.lowercase(Locale.ROOT)
+        return when {
+            lower.endsWith("/server/load.php") -> normalized.removeSuffix("/server/load.php") + "/portal.php"
+            lower.endsWith("/portal.php") -> normalized.removeSuffix("/portal.php") + "/server/load.php"
+            else -> null
+        }
+    }
+
+    private fun parsePortalJson(body: String, action: String?): JsonElement {
+        val normalized = sanitizePortalResponseBody(body)
+        runCatching { json.parseToJsonElement(normalized) }
+            .getOrNull()
+            ?.let { return it }
+
+        if (looksLikeHtml(normalized)) {
+            val lower = normalized.lowercase(Locale.ROOT)
+            if (lower.contains("access denied") || lower.contains("forbidden")) {
+                throw IOException("Portal denied the request${actionSuffix(action)}.")
+            }
+        }
+
+        extractEmbeddedJson(normalized)?.let { candidate ->
+            runCatching { json.parseToJsonElement(candidate) }
+                .getOrNull()
+                ?.let { return it }
+        }
+
+        throw runCatching { json.parseToJsonElement(normalized) }
+            .fold(
+                onSuccess = { IOException("Portal returned unreadable JSON${actionSuffix(action)}.") },
+                onFailure = { error -> IOException("Portal returned unreadable JSON${actionSuffix(action)}.", error) }
+            )
+    }
+
+    private fun JsonElement.ensureNoPortalError() {
+        val raw = rootObjectOrNull()?.findString("error")
+            ?: findString("error")
+            ?: return
+        // Ignore well-known placeholder values that some portals emit even on success.
+        if (raw.isBlank() || isPlaceholderErrorValue(raw)) return
+        throw IOException(raw)
+    }
+
+    /**
+     * Returns `true` for portal error strings that are not real errors.
+     * Common examples: `"null"`, `"0"`, `"false"`, `"ok"`, empty strings.
+     */
+    private fun isPlaceholderErrorValue(value: String): Boolean {
+        return when (value.lowercase(Locale.ROOT).trim()) {
+            "null", "0", "false", "ok", "" -> true
+            else -> false
+        }
+    }
+
+    private suspend inline fun <T> runApiCall(
+        message: String,
+        crossinline block: suspend () -> T
+    ): Result<T> = try {
+        Result.success(block())
+    } catch (error: Exception) {
+        Result.error(error.message ?: message, error)
+    }
+
+    private fun buildUrl(baseUrl: String, query: Map<String, String>): String {
+        val encodedQuery = query.entries.joinToString("&") { (key, value) ->
+            "${encode(key)}=${encode(value)}"
+        }
+        return "${baseUrl.trimEnd('/')}?$encodedQuery"
+    }
+
+    private fun buildProfileQuery(profile: StalkerDeviceProfile): Map<String, String> {
+        val timestamp = (System.currentTimeMillis() / 1000L).toString()
+        return mapOf(
+            "type" to "stb",
+            "action" to "get_profile",
+            "JsHttpRequest" to "1-xml",
+            "hd" to "1",
+            "ver" to DEFAULT_VERSION_STRING,
+            "num_banks" to "2",
+            "sn" to profile.serialNumber,
+            "stb_type" to profile.deviceProfile,
+            "client_type" to "STB",
+            "image_version" to "218",
+            "video_out" to "hdmi",
+            "device_id" to profile.deviceId,
+            "device_id2" to profile.deviceId2,
+            "signature" to profile.signature,
+            "auth_second_step" to "1",
+            "hw_version" to "1.7-BD-00",
+            "not_valid_token" to "0",
+            "metrics" to "{}",
+            "hw_version_2" to profile.deviceProfile,
+            "timestamp" to timestamp,
+            "api_signature" to "262",
+            "prehash" to "0"
+        )
+    }
+
+    private fun JsonElement.totalPages(): Int {
+        val payload = payloadObjectOrNull() ?: return 1
+        val totalItems = payload["total_items"]?.primitiveContentOrNull()?.toIntOrNull() ?: return 1
+        val pageSize = pageSize(payload["data"]?.jsonArrayOrNull()?.size ?: 0).takeIf { it > 0 }
+            ?: return 1
+        return ((totalItems + pageSize - 1) / pageSize).coerceAtLeast(1).coerceAtMost(MAX_PAGE_COUNT)
+    }
+
+    private fun JsonElement.pageSize(fallback: Int): Int {
+        val payload = payloadObjectOrNull() ?: return fallback
+        return payload["max_page_items"]?.primitiveContentOrNull()?.toIntOrNull()
+            ?.takeIf { it > 0 }
+            ?: payload["data"]?.jsonArrayOrNull()?.size?.takeIf { it > 0 }
+            ?: fallback
+    }
+
+    private fun JsonElement.toProviderProfile(): StalkerProviderProfile {
+        val payload = payloadObjectOrNull()
+        return StalkerProviderProfile(
+            accountId = payload?.findString("id"),
+            accountName = payload?.findString("name")
+                ?: payload?.findString("account")
+                ?: payload?.findString("login"),
+            maxConnections = payload?.findString("max_online")
+                ?.toIntOrNull()
+                ?: payload?.findString("max_connections")?.toIntOrNull(),
+            expirationDate = payload?.findString("expire_billing_date")
+                ?.let(::parseExpirationDate)
+                ?: payload?.findString("end_date")?.let(::parseExpirationDate),
+            statusLabel = payload?.findString("status"),
+            authAccess = payload?.findBoolean("auth_access")
+        )
+    }
+
+    private fun JsonElement.toCategoryRecords(): List<StalkerCategoryRecord> {
+        return extractListElements().mapNotNull { entry ->
+            val id = entry.findString("id")
+                ?: entry.findString("genre_id")
+                ?: entry.findString("category_id")
+                ?: return@mapNotNull null
+            val name = entry.findString("title")
+                ?: entry.findString("name")
+                ?: return@mapNotNull null
+            StalkerCategoryRecord(
+                id = id,
+                name = name,
+                alias = entry.findString("alias")
+            )
+        }
+    }
+
+    private fun JsonElement.toItemRecords(): List<StalkerItemRecord> =
+        extractItemEntries().mapNotNull { entry -> entry.toItemRecord() }
+
+    private fun JsonElement.extractItemEntries(): List<JsonObject> =
+        extractListElements().mapNotNull { it.jsonObjectOrNull() }
+
+    private fun JsonObject.toItemRecord(): StalkerItemRecord? {
+        val id = findString("id")
+            ?: findString("ch_id")
+            ?: findString("video_id")
+            ?: findString("series_id")
+            ?: return null
+        val name = findString("name")
+            ?: findString("title")
+            ?: return null
+        return StalkerItemRecord(
+            id = id,
+            name = name,
+            categoryId = findString("tv_genre_id")
+                ?: findString("category_id")
+                ?: findString("genre_id"),
+            categoryName = findString("category_name"),
+            number = findString("number")?.toIntOrNull() ?: 0,
+            logoUrl = sanitizeUrl(findString("logo"))
+                ?: sanitizeUrl(findString("screenshot_uri"))
+                ?: sanitizeUrl(findString("cover")),
+            epgChannelId = findString("xmltv_id") ?: findString("epg_id"),
+            cmd = findString("cmd"),
+            streamUrl = sanitizeUrl(findString("cmd")),
+            plot = findString("description") ?: findString("plot"),
+            cast = findString("censored")?.takeIf { false } ?: findString("actors"),
+            director = findString("director"),
+            genre = findString("genres_str") ?: findString("genre"),
+            releaseDate = findString("year")
+                ?.takeIf { it.length == 4 }
+                ?: findString("released") ?: findString("added"),
+            rating = findString("rating_imdb")?.toFloatOrNull()
+                ?: findString("rating")?.toFloatOrNull()
+                ?: 0f,
+            tmdbId = findString("tmdb_id")?.toLongOrNull(),
+            youtubeTrailer = findString("trailer_url"),
+            backdropUrl = sanitizeUrl(findString("backdrop_path")),
+            containerExtension = extractContainerExtension(
+                findString("cmd"),
+                findString("container_extension")
+            ),
+            addedAt = findString("added")?.toLongOrNull() ?: 0L,
+            isAdult = findBoolean("censored") == true,
+            isSeries = findBoolean("is_series") == true || findString("is_series") == "1"
+        )
+    }
+
+    private fun GsonJsonObject.toItemRecord(): StalkerItemRecord? {
+        val id = findString("id")
+            ?: findString("ch_id")
+            ?: findString("video_id")
+            ?: findString("series_id")
+            ?: return null
+        val name = findString("name")
+            ?: findString("title")
+            ?: return null
+        return StalkerItemRecord(
+            id = id,
+            name = name,
+            categoryId = findString("tv_genre_id")
+                ?: findString("category_id")
+                ?: findString("genre_id"),
+            categoryName = findString("category_name"),
+            number = findString("number")?.toIntOrNull() ?: 0,
+            logoUrl = sanitizeUrl(findString("logo"))
+                ?: sanitizeUrl(findString("screenshot_uri"))
+                ?: sanitizeUrl(findString("cover")),
+            epgChannelId = findString("xmltv_id") ?: findString("epg_id"),
+            cmd = findString("cmd"),
+            streamUrl = sanitizeUrl(findString("cmd")),
+            plot = findString("description") ?: findString("plot"),
+            cast = findString("actors"),
+            director = findString("director"),
+            genre = findString("genres_str") ?: findString("genre"),
+            releaseDate = findString("year")
+                ?.takeIf { it.length == 4 }
+                ?: findString("released") ?: findString("added"),
+            rating = findString("rating_imdb")?.toFloatOrNull()
+                ?: findString("rating")?.toFloatOrNull()
+                ?: 0f,
+            tmdbId = findString("tmdb_id")?.toLongOrNull(),
+            youtubeTrailer = findString("trailer_url"),
+            backdropUrl = sanitizeUrl(findString("backdrop_path")),
+            containerExtension = extractContainerExtension(
+                findString("cmd"),
+                findString("container_extension")
+            ),
+            addedAt = findString("added")?.toLongOrNull() ?: 0L,
+            isAdult = findBoolean("censored") == true,
+            isSeries = findBoolean("is_series") == true || findString("is_series") == "1"
+        )
+    }
+
+    private fun StalkerItemRecord.looksLikeSeasonShell(): Boolean {
+        val normalizedName = name.trim()
+        if (normalizedName.startsWith("Season ", ignoreCase = true)) {
+            return true
+        }
+        return id.contains(':') && isSeries.not() && cmd.isNullOrBlank().not()
+    }
+
+    private fun JsonObject.toSeasonRecord(episodeEntries: List<JsonObject>): StalkerSeasonRecord {
+        val seasonNumber = findString("season_id")?.toIntOrNull()
+            ?: findString("season_number")?.toIntOrNull()
+            ?: extractSeasonNumberFromCmd(findString("cmd"))
+            ?: 1
+        val seasonName = findString("title")
+            ?: findString("name")
+            ?: "Season $seasonNumber"
+        val explicitEpisodes = episodeEntries.mapIndexedNotNull { index, entry ->
+            entry.toEpisodeRecord(index + 1, seasonNumber)
+        }
+        return StalkerSeasonRecord(
+            seasonNumber = seasonNumber,
+            name = seasonName,
+            coverUrl = sanitizeUrl(findString("screenshot_uri")) ?: sanitizeUrl(findString("cover")),
+            episodes = explicitEpisodes.takeUnless { it.isEmpty() || it.isSeasonShellOnly() }
+                ?: buildEpisodesFromSeriesShell(seasonNumber, seasonName)
+        )
+    }
+
+    private fun JsonObject.toSeasonShellRecord(fallbackSeasonNumber: Int): StalkerSeasonRecord? {
+        val episodeNumbers = extractSeasonShellEpisodeNumbers()
+        if (episodeNumbers.isEmpty()) {
+            return null
+        }
+        val seasonNumber = findString("season_id")?.toIntOrNull()
+            ?: findString("season_number")?.toIntOrNull()
+            ?: extractSeasonNumberFromCmd(findString("cmd"))
+            ?: findString("name")?.filter(Char::isDigit)?.toIntOrNull()
+            ?: fallbackSeasonNumber
+        val seasonName = findString("title")
+            ?: findString("name")
+            ?: "Season $seasonNumber"
+        return StalkerSeasonRecord(
+            seasonNumber = seasonNumber,
+            name = seasonName,
+            coverUrl = sanitizeUrl(findString("screenshot_uri")) ?: sanitizeUrl(findString("cover")),
+            episodes = buildEpisodesFromSeriesShell(seasonNumber, seasonName)
+        )
+    }
+
+    private fun JsonObject.toEpisodeRecord(
+        fallbackEpisodeNumber: Int,
+        fallbackSeasonNumber: Int
+    ): StalkerEpisodeRecord? {
+        val id = findString("id")
+            ?: findString("series_id")
+            ?: findString("video_id")
+            ?: return null
+        val title = findString("name")
+            ?: findString("title")
+            ?: "Episode $fallbackEpisodeNumber"
+        return StalkerEpisodeRecord(
+            id = id,
+            title = title,
+            episodeNumber = findString("series_number")?.toIntOrNull()
+                ?: findString("episode_number")?.toIntOrNull()
+                ?: fallbackEpisodeNumber,
+            seasonNumber = findString("season_id")?.toIntOrNull()
+                ?: findString("season_number")?.toIntOrNull()
+                ?: fallbackSeasonNumber,
+            cmd = findString("cmd"),
+            coverUrl = sanitizeUrl(findString("screenshot_uri")) ?: sanitizeUrl(findString("cover")),
+            plot = findString("description") ?: findString("plot"),
+            durationSeconds = findString("duration")?.toIntOrNull() ?: 0,
+            releaseDate = findString("added"),
+            rating = findString("rating_imdb")?.toFloatOrNull()
+                ?: findString("rating")?.toFloatOrNull()
+                ?: 0f,
+            containerExtension = extractContainerExtension(findString("cmd"), findString("container_extension"))
+        )
+    }
+
+    private fun JsonObject.buildEpisodesFromSeriesShell(
+        fallbackSeasonNumber: Int,
+        fallbackSeasonName: String
+    ): List<StalkerEpisodeRecord> {
+        val episodeNumbers = extractSeasonShellEpisodeNumbers()
+        if (episodeNumbers.isEmpty()) {
+            return emptyList()
+        }
+        val seasonName = fallbackSeasonName.ifBlank { "Season $fallbackSeasonNumber" }
+        return episodeNumbers.map { episodeNumber ->
+            StalkerEpisodeRecord(
+                id = "${findString("id") ?: findString("series_id") ?: "season:$fallbackSeasonNumber"}:$episodeNumber",
+                title = "$seasonName Episode $episodeNumber",
+                episodeNumber = episodeNumber,
+                seasonNumber = fallbackSeasonNumber,
+                cmd = findString("cmd"),
+                coverUrl = sanitizeUrl(findString("screenshot_uri")) ?: sanitizeUrl(findString("cover")),
+                plot = findString("description") ?: findString("plot"),
+                durationSeconds = findString("duration")?.toIntOrNull() ?: 0,
+                releaseDate = findString("added"),
+                rating = findString("rating_imdb")?.toFloatOrNull()
+                    ?: findString("rating")?.toFloatOrNull()
+                    ?: 0f,
+                containerExtension = extractContainerExtension(findString("cmd"), findString("container_extension"))
+            )
+        }
+    }
+
+    private fun JsonObject.extractSeasonShellEpisodeNumbers(): List<Int> {
+        val seriesArray = this["series"]?.jsonArrayOrNull() ?: return emptyList()
+        return seriesArray.mapIndexedNotNull { index, element ->
+            element.primitiveContentOrNull()?.toIntOrNull()
+                ?: element.jsonObjectOrNull()?.findString("series_number")?.toIntOrNull()
+                ?: element.jsonObjectOrNull()?.findString("episode_number")?.toIntOrNull()
+                ?: (index + 1)
+        }
+    }
+
+    private fun List<StalkerEpisodeRecord>.isSeasonShellOnly(): Boolean {
+        if (size != 1) {
+            return false
+        }
+        val entry = first()
+        return entry.episodeNumber <= 1 && entry.title.startsWith("Season ", ignoreCase = true)
+    }
+
+    private fun extractSeasonNumberFromCmd(cmd: String?): Int? {
+        val decoded = decodeBase64JsonPayload(cmd) ?: return null
+        return decoded.findString("season_num")?.toIntOrNull()
+            ?: decoded.findString("season_id")?.toIntOrNull()
+    }
+
+    private fun decodeBase64JsonPayload(cmd: String?): GsonJsonObject? {
+        val value = cmd?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        return runCatching {
+            val decoded = String(Base64.getDecoder().decode(value), Charsets.UTF_8)
+            JsonParser.parseString(decoded).asJsonObject
+        }.getOrNull()
+    }
+
+    private fun JsonElement.toProgramRecords(channelId: String? = null): List<StalkerProgramRecord> {
+        return extractListElements().mapNotNull { entry ->
+            val resolvedChannelId = channelId ?: entry.findProgramChannelId() ?: return@mapNotNull null
+            val startMillis = entry.findString("start_timestamp")?.toLongOrNull()?.times(1000L)
+                ?: entry.findString("time")?.let(::parseDateTime)
+                ?: return@mapNotNull null
+            val endMillis = entry.findString("stop_timestamp")?.toLongOrNull()?.times(1000L)
+                ?: entry.findString("time_to")?.let(::parseDateTime)
+                ?: startMillis + (entry.findString("duration")?.toLongOrNull()?.times(60_000L) ?: DEFAULT_PROGRAM_DURATION_MILLIS)
+            StalkerProgramRecord(
+                id = entry.findString("id") ?: "$resolvedChannelId:$startMillis",
+                channelId = resolvedChannelId,
+                title = entry.findString("name")
+                    ?: entry.findString("title")
+                    ?: return@mapNotNull null,
+                description = entry.findString("descr")
+                    ?: entry.findString("description")
+                    ?: "",
+                startTimeMillis = startMillis,
+                endTimeMillis = endMillis,
+                hasArchive = entry.findBoolean("has_archive") == true || entry.findString("has_archive") == "1",
+                isNowPlaying = entry.findBoolean("now_playing") == true || entry.findString("now_playing") == "1"
+            )
+        }
+    }
+
+    private fun JsonElement.findProgramChannelId(): String? {
+        val payload = payloadObjectOrNull() ?: return null
+        return payload.findString("ch_id")
+            ?: payload.findString("channel_id")
+            ?: payload.findString("id_channel")
+            ?: payload.findString("xmltv_id")
+            ?: payload.findString("epg_id")
+    }
+
+    private fun JsonElement.extractListElements(): List<JsonElement> {
+        val jsValue = rootObjectOrNull()?.get("js") ?: this
+        return when {
+            jsValue is JsonArray -> jsValue.toList()
+            jsValue is JsonObject && jsValue["data"] is JsonArray -> jsValue["data"]!!.jsonArray.toList()
+            jsValue is JsonObject && jsValue["items"] is JsonArray -> jsValue["items"]!!.jsonArray.toList()
+            // Object-keyed catalogs: {"js":{"data":{"100":{...}}}} — use map values
+            jsValue is JsonObject && jsValue["data"] is JsonObject -> jsValue["data"]!!.jsonObject.values.toList()
+            jsValue is JsonObject && jsValue["items"] is JsonObject -> jsValue["items"]!!.jsonObject.values.toList()
+            else -> emptyList()
+        }
+    }
+
+    private fun JsonElement.findString(key: String): String? {
+        val payload = payloadObjectOrNull()
+        return payload?.findString(key)
+    }
+
+    private fun JsonElement.findBoolean(key: String): Boolean? {
+        val payload = payloadObjectOrNull()
+        return payload?.findBoolean(key)
+    }
+
+    private fun JsonElement.payloadObjectOrNull(): JsonObject? =
+        rootObjectOrNull()?.get("js")?.jsonObjectOrNull() ?: rootObjectOrNull()
+
+    private fun JsonElement.rootObjectOrNull(): JsonObject? = when (this) {
+        is JsonObject -> this
+        else -> null
+    }
+
+    private fun JsonObject.findString(key: String): String? {
+        val element = this[key] ?: return null
+        return when (element) {
+            is JsonPrimitive -> element.contentOrNull?.trim()?.takeIf { it.isNotBlank() }
+            else -> null
+        }
+    }
+
+    private fun JsonObject.findBoolean(key: String): Boolean? {
+        val element = this[key] as? JsonPrimitive ?: return null
+        return element.booleanOrNull
+            ?: when (element.contentOrNull?.trim()?.lowercase(Locale.ROOT)) {
+                "1", "true", "yes" -> true
+                "0", "false", "no" -> false
+                else -> null
+            }
+    }
+
+    private fun GsonJsonObject.findString(key: String): String? {
+        val element = get(key) ?: return null
+        if (!element.isJsonPrimitive) return null
+        return element.asJsonPrimitive
+            .takeUnless { it.isJsonNull }
+            ?.asString
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun GsonJsonObject.findBoolean(key: String): Boolean? {
+        val value = findString(key)?.lowercase(Locale.ROOT) ?: return null
+        return when (value) {
+            "1", "true", "yes" -> true
+            "0", "false", "no" -> false
+            else -> null
+        }
+    }
+
+    private fun com.google.gson.JsonElement.asJsonObjectOrNull(): GsonJsonObject? =
+        if (isJsonObject) asJsonObject else null
+
+    private fun JsonReader.nextStringOrSkip(): String? {
+        return when (peek()) {
+            JsonToken.STRING,
+            JsonToken.NUMBER,
+            JsonToken.BOOLEAN -> nextString()
+            JsonToken.NULL -> {
+                nextNull()
+                null
+            }
+            else -> {
+                skipValue()
+                null
+            }
+        }
+    }
+
+    private fun JsonElement.jsonArrayOrNull(): JsonArray? = when (this) {
+        is JsonArray -> this
+        else -> null
+    }
+
+    private fun JsonElement.primitiveContentOrNull(): String? = (this as? JsonPrimitive)?.contentOrNull
+
+    private fun JsonElement.jsonObjectOrNull(): JsonObject? = (this as? JsonObject)
+
+    private fun sanitizeUrl(value: String?): String? =
+        value?.trim()?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+
+    private fun sanitizePortalResponseBody(body: String): String {
+        val withoutBom = body.trimStart('\uFEFF')
+        val sanitizedControls = withoutBom.filter { char ->
+            char == '\n' || char == '\r' || char == '\t' || char.code >= 0x20
+        }
+        return sanitizedControls.trim()
+    }
+
+    private fun looksLikeHtml(body: String): Boolean {
+        val trimmed = body.trimStart()
+        return trimmed.startsWith("<!DOCTYPE", ignoreCase = true) ||
+            trimmed.startsWith("<html", ignoreCase = true) ||
+            trimmed.startsWith("<body", ignoreCase = true)
+    }
+
+    private fun extractEmbeddedJson(body: String): String? {
+        val trimmed = body.trim()
+        if (trimmed.isEmpty()) return null
+
+        val callbackStart = trimmed.indexOf('(')
+        val callbackEnd = trimmed.lastIndexOf(')')
+        if (callbackStart in 1 until callbackEnd) {
+            val callbackPayload = trimmed.substring(callbackStart + 1, callbackEnd).trim()
+            if (callbackPayload.startsWith('{') || callbackPayload.startsWith('[')) {
+                return callbackPayload
+            }
+        }
+
+        val objectStart = trimmed.indexOf('{')
+        val objectEnd = trimmed.lastIndexOf('}')
+        if (objectStart >= 0 && objectEnd > objectStart) {
+            return trimmed.substring(objectStart, objectEnd + 1)
+        }
+
+        val arrayStart = trimmed.indexOf('[')
+        val arrayEnd = trimmed.lastIndexOf(']')
+        if (arrayStart >= 0 && arrayEnd > arrayStart) {
+            return trimmed.substring(arrayStart, arrayEnd + 1)
+        }
+
+        return null
+    }
+
+    private fun actionSuffix(action: String?): String =
+        action?.takeIf { it.isNotBlank() }?.let { " for $it" }.orEmpty()
+
+    private fun extractContainerExtension(cmd: String?, fallback: String?): String? {
+        fallback?.trim()?.removePrefix(".")?.takeIf { it.isNotBlank() }?.let { return it.lowercase(Locale.ROOT) }
+        val path = runCatching { URI(cmd).path }.getOrNull() ?: cmd
+        val extension = path?.substringAfterLast('.', "")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: return null
+        return extension.lowercase(Locale.ROOT)
+    }
+
+    private fun encode(value: String): String =
+        URLEncoder.encode(value, Charsets.UTF_8.name()).replace("+", "%20")
+
+    companion object {
+        private const val TAG = "OkHttpStalkerApi"
+        private const val MAX_PAGE_COUNT = 200
+        private const val DEFAULT_PROGRAM_DURATION_MILLIS = 30 * 60_000L
+        /** Hard ceiling for the streamed `get_epg_info` body; anything larger is treated as a portal fault. */
+        private const val MAX_EPG_BYTES = 64L * 1024L * 1024L
+        /** Records retained by the legacy buffered [getBulkEpg]/[getEpg] APIs to keep callers heap-safe. */
+        private const val MAX_INLINE_EPG_RECORDS = 1500
+        private const val DEFAULT_VERSION_STRING =
+            "ImageDescription: 0.2.18-r23-250; ImageDate: Wed Oct 31 15:22:54 EEST 2018; PORTAL version: 5.6.2; API Version: JS API version: 343; STB API version: 146; Player Engine version: 0x58c"
+    }
+}
+
+internal fun buildStalkerDeviceProfile(
+    portalUrl: String,
+    macAddress: String,
+    deviceProfile: String,
+    timezone: String,
+    locale: String
+): StalkerDeviceProfile {
+    val normalizedProfile = deviceProfile.ifBlank { "MAG250" }
+    val normalizedTimezone = timezone.ifBlank { java.util.TimeZone.getDefault().id }
+    val normalizedLocale = locale.ifBlank { Locale.getDefault().language.ifBlank { "en" } }
+    val normalizedMac = macAddress.uppercase(Locale.ROOT)
+    val serialSeed = normalizedMac.replace(":", "")
+    val serialNumber = serialSeed.takeLast(13).padStart(13, '0')
+    val deviceId = stalkerDigest("device:$normalizedProfile:$normalizedMac")
+    val deviceId2 = stalkerDigest("device2:$normalizedProfile:$normalizedMac")
+    val signature = stalkerDigest("signature:$normalizedProfile:$normalizedMac:$normalizedTimezone")
+    return StalkerDeviceProfile(
+        portalUrl = portalUrl,
+        macAddress = normalizedMac,
+        deviceProfile = normalizedProfile,
+        timezone = normalizedTimezone,
+        locale = normalizedLocale,
+        serialNumber = serialNumber,
+        deviceId = deviceId,
+        deviceId2 = deviceId2,
+        signature = signature,
+        userAgent = "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) $normalizedProfile stbapp ver: 2 rev: 250 Safari/533.3",
+        xUserAgent = "Model: $normalizedProfile; Link: Ethernet"
+    )
+}
+
+private fun stalkerDigest(seed: String): String =
+    MessageDigest.getInstance("SHA-256")
+        .digest(seed.toByteArray(Charsets.UTF_8))
+        .joinToString("") { byte -> "%02X".format(byte.toInt() and 0xFF) }
+
+internal fun parseExpirationDate(raw: String?): Long? {
+    val value = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    value.toLongOrNull()?.let { numeric ->
+        return if (numeric >= 1_000_000_000_000L) numeric else numeric * 1000L
+    }
+    runCatching { Instant.parse(value).toEpochMilli() }.getOrNull()?.let { return it }
+    runCatching { OffsetDateTime.parse(value).toInstant().toEpochMilli() }.getOrNull()?.let { return it }
+    STALKER_DATE_TIME_FORMATTERS.forEach { formatter ->
+        runCatching {
+            LocalDateTime.parse(value, formatter).toInstant(ZoneOffset.UTC).toEpochMilli()
+        }.getOrNull()?.let { return it }
+    }
+    STALKER_DATE_FORMATTERS.forEach { formatter ->
+        runCatching {
+            LocalDate.parse(value, formatter).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+        }.getOrNull()?.let { return it }
+    }
+    return null
+}
+
+private fun parseDateTime(raw: String?): Long? {
+    val value = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    return parseExpirationDate(value)
+}
+
+private val STALKER_DATE_TIME_FORMATTERS: List<DateTimeFormatter> = listOf(
+    "yyyy-MM-dd HH:mm:ss",
+    "yyyy-MM-dd HH:mm",
+    "yyyy/MM/dd HH:mm:ss",
+    "yyyy/MM/dd HH:mm"
+).map { pattern ->
+    DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern(pattern)
+        .toFormatter(Locale.ROOT)
+        .withResolverStyle(ResolverStyle.SMART)
+}
+
+private val STALKER_DATE_FORMATTERS: List<DateTimeFormatter> = listOf(
+    DateTimeFormatter.ISO_LOCAL_DATE,
+    DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern("yyyy/MM/dd")
+        .toFormatter(Locale.ROOT)
+        .withResolverStyle(ResolverStyle.SMART)
+)
+
+
+/**
+ * InputStream wrapper that throws [IOException] when more than [maxBytes] bytes are read from
+ * [delegate]. Used to bound the streamed get_epg_info response so a misbehaving portal
+ * cannot push the device into low-memory or OOM territory.
+ */
+private class ByteSizeLimitInputStream(
+    private val delegate: InputStream,
+    private val maxBytes: Long,
+    private val onOverflow: () -> String
+) : InputStream() {
+    private var bytesRead: Long = 0
+
+    override fun read(): Int {
+        val value = delegate.read()
+        if (value >= 0) {
+            bytesRead += 1
+            checkLimit()
+        }
+        return value
+    }
+
+    override fun read(b: ByteArray, off: Int, len: Int): Int {
+        val n = delegate.read(b, off, len)
+        if (n > 0) {
+            bytesRead += n
+            checkLimit()
+        }
+        return n
+    }
+
+    override fun available(): Int = delegate.available()
+    override fun close() = delegate.close()
+
+    private fun checkLimit() {
+        if (bytesRead > maxBytes) {
+            throw IOException(onOverflow())
+        }
+    }
+}

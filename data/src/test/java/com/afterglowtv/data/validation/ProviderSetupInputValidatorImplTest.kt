@@ -1,0 +1,145 @@
+package com.afterglowtv.data.validation
+
+import com.google.common.truth.Truth.assertThat
+import com.afterglowtv.domain.model.Result
+import org.junit.Test
+
+class ProviderSetupInputValidatorImplTest {
+
+    private val validator = ProviderSetupInputValidatorImpl()
+
+    @Test
+    fun `validateXtream rejects blank password for new providers`() {
+        val result = validator.validateXtream(
+            serverUrl = "https://example.com",
+            username = "alice",
+            password = "",
+            allowBlankPassword = false,
+            name = "Premium"
+        )
+
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).isEqualTo("Please enter password")
+    }
+
+    @Test
+    fun `validateXtream allows blank password when editing existing providers`() {
+        val result = validator.validateXtream(
+            serverUrl = "https://example.com",
+            username = "alice",
+            password = "",
+            allowBlankPassword = true,
+            name = "Premium"
+        )
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        assertThat((result as Result.Success).data.password).isEmpty()
+    }
+
+    @Test
+    fun `validateXtream rejects control characters in password`() {
+        val result = validator.validateXtream(
+            serverUrl = "https://example.com",
+            username = "alice",
+            password = "sec\u0000ret",
+            allowBlankPassword = false,
+            name = "Premium"
+        )
+
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).isEqualTo("Password cannot contain control characters.")
+    }
+
+    // ── Stalker semantic validation ──────────────────────────────────────────
+
+    private fun stalkerResult(
+        timezone: String = "UTC",
+        locale: String = "en",
+        deviceProfile: String = "MAG250"
+    ) = validator.validateStalker(
+        portalUrl = "https://portal.example.com",
+        macAddress = "00:1A:79:12:34:56",
+        name = "MAG",
+        deviceProfile = deviceProfile,
+        timezone = timezone,
+        locale = locale
+    )
+
+    @Test
+    fun `validateStalker accepts blank optional fields and uses defaults`() {
+        val result = stalkerResult(timezone = "", locale = "", deviceProfile = "")
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+    }
+
+    @Test
+    fun `validateStalker accepts valid timezone`() {
+        assertThat(stalkerResult(timezone = "America/New_York")).isInstanceOf(Result.Success::class.java)
+        assertThat(stalkerResult(timezone = "Europe/London")).isInstanceOf(Result.Success::class.java)
+        assertThat(stalkerResult(timezone = "UTC")).isInstanceOf(Result.Success::class.java)
+    }
+
+    @Test
+    fun `validateStalker rejects unknown timezone identifier`() {
+        val result = stalkerResult(timezone = "Not/ATimezone")
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).contains("recognized")
+    }
+
+    @Test
+    fun `validateStalker rejects timezone with semicolon that would break cookie header`() {
+        // Cookie header: "timezone=<value>" — a semicolon splits into a new cookie pair.
+        val result = stalkerResult(timezone = "UTC;injected=value")
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).contains("characters that are not allowed")
+    }
+
+    @Test
+    fun `validateStalker rejects timezone with comma that would break cookie header`() {
+        val result = stalkerResult(timezone = "UTC,extra")
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).contains("characters that are not allowed")
+    }
+
+    @Test
+    fun `validateStalker accepts valid BCP-47 locale`() {
+        assertThat(stalkerResult(locale = "en")).isInstanceOf(Result.Success::class.java)
+        assertThat(stalkerResult(locale = "en-US")).isInstanceOf(Result.Success::class.java)
+        assertThat(stalkerResult(locale = "fr")).isInstanceOf(Result.Success::class.java)
+        assertThat(stalkerResult(locale = "zh-Hans")).isInstanceOf(Result.Success::class.java)
+    }
+
+    @Test
+    fun `validateStalker rejects locale with semicolon that would break cookie header`() {
+        val result = stalkerResult(locale = "en;injected=value")
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).contains("language tag")
+    }
+
+    @Test
+    fun `validateStalker rejects locale that does not match BCP-47 pattern`() {
+        val result = stalkerResult(locale = "not a locale")
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).contains("language tag")
+    }
+
+    @Test
+    fun `validateStalker accepts valid device profile tokens`() {
+        assertThat(stalkerResult(deviceProfile = "MAG250")).isInstanceOf(Result.Success::class.java)
+        assertThat(stalkerResult(deviceProfile = "MAG254")).isInstanceOf(Result.Success::class.java)
+        assertThat(stalkerResult(deviceProfile = "Model.X-1")).isInstanceOf(Result.Success::class.java)
+    }
+
+    @Test
+    fun `validateStalker rejects device profile with semicolon that would break cookie header`() {
+        val result = stalkerResult(deviceProfile = "MAG250;injected=evil")
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).contains("Device profile must contain only")
+    }
+
+    @Test
+    fun `validateStalker rejects device profile with spaces`() {
+        val result = stalkerResult(deviceProfile = "MAG 250")
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).contains("Device profile must contain only")
+    }
+}

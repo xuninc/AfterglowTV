@@ -1,0 +1,210 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
+package com.afterglowtv.app.ui.screens.settings
+
+import com.afterglowtv.app.ui.model.LiveTvChannelMode
+import com.afterglowtv.app.ui.model.LiveTvQuickFilterVisibilityMode
+import com.afterglowtv.app.ui.model.VodViewMode
+import com.afterglowtv.data.preferences.PreferencesRepository
+import com.afterglowtv.domain.model.AppTimeFormat
+import com.afterglowtv.domain.model.ChannelNumberingMode
+import com.afterglowtv.domain.model.DecoderMode
+import com.afterglowtv.domain.model.GroupedChannelLabelMode
+import com.afterglowtv.domain.model.LiveChannelGroupingMode
+import com.afterglowtv.domain.model.LiveVariantPreferenceMode
+import com.afterglowtv.domain.model.VirtualCategoryIds
+import com.afterglowtv.domain.repository.ProviderRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+
+internal fun observeSettingsPreferenceSnapshot(
+    providerRepository: ProviderRepository,
+    activeProviderIdFlow: Flow<Long?>,
+    preferencesRepository: PreferencesRepository
+): Flow<SettingsPreferenceSnapshot> {
+    return combine(
+        providerRepository.getProviders(),
+        activeProviderIdFlow,
+        preferencesRepository.parentalControlLevel,
+        preferencesRepository.hasParentalPin
+    ) { providers, activeId, level, hasParentalPin ->
+        SettingsPreferenceSnapshot(
+            providers = providers,
+            activeProviderId = activeId,
+            parentalControlLevel = level,
+            hasParentalPin = hasParentalPin,
+            appLanguage = "system",
+            appTimeFormat = AppTimeFormat.SYSTEM,
+            preferredAudioLanguage = "auto",
+            playerMediaSessionEnabled = true,
+            playerDecoderMode = DecoderMode.AUTO,
+            playerSurfaceMode = com.afterglowtv.domain.model.PlayerSurfaceMode.AUTO,
+            playerPlaybackSpeed = 1f,
+            playerAudioVideoSyncEnabled = false,
+            playerAudioVideoOffsetMs = 0,
+            centerTwoSlotMultiviewLayout = false,
+            playerControlsTimeoutSeconds = 5,
+            playerLiveOverlayTimeoutSeconds = 4,
+            playerNoticeTimeoutSeconds = 6,
+            playerDiagnosticsTimeoutSeconds = 15,
+            subtitleTextScale = 1f,
+            subtitleTextColor = 0xFFFFFFFF.toInt(),
+            subtitleBackgroundColor = 0x80000000.toInt(),
+            wifiMaxVideoHeight = null,
+            ethernetMaxVideoHeight = null,
+            playerTimeshiftEnabled = false,
+            playerTimeshiftDepthMinutes = 30,
+            defaultStopPlaybackTimerMinutes = 0,
+            defaultIdleStandbyTimerMinutes = 0,
+            lastSpeedTestMegabits = null,
+            lastSpeedTestTimestamp = null,
+            lastSpeedTestTransport = null,
+            lastSpeedTestRecommendedHeight = null,
+            lastSpeedTestEstimated = false,
+            isIncognitoMode = false,
+            useXtreamTextClassification = true,
+            xtreamBase64TextCompatibility = false,
+            liveTvChannelMode = LiveTvChannelMode.PRO,
+            showLiveSourceSwitcher = false,
+            showAllChannelsCategory = true,
+            showRecentChannelsCategory = true,
+            liveTvCategoryFilters = emptyList(),
+            liveTvQuickFilterVisibilityMode = LiveTvQuickFilterVisibilityMode.ALWAYS_VISIBLE,
+            liveChannelNumberingMode = ChannelNumberingMode.GROUP,
+            liveChannelGroupingMode = LiveChannelGroupingMode.RAW_VARIANTS,
+            groupedChannelLabelMode = GroupedChannelLabelMode.HYBRID,
+            liveVariantPreferenceMode = LiveVariantPreferenceMode.BALANCED,
+            vodViewMode = VodViewMode.MODERN,
+            vodInfiniteScroll = true,
+            guideDefaultCategoryId = VirtualCategoryIds.FAVORITES,
+            guideDefaultCategoryOptions = emptyList(),
+            preventStandbyDuringPlayback = true,
+            zapAutoRevert = true,
+            autoPlayNextEpisode = true,
+            autoCheckAppUpdates = true,
+            autoDownloadAppUpdates = false,
+            lastAppUpdateCheckAt = null,
+            cachedAppUpdateVersionName = null,
+            cachedAppUpdateVersionCode = null,
+            cachedAppUpdateReleaseUrl = null,
+            cachedAppUpdateDownloadUrl = null,
+            cachedAppUpdateReleaseNotes = "",
+            cachedAppUpdatePublishedAt = null
+        )
+    }.combine(preferencesRepository.appLanguage) { snapshot, language ->
+        snapshot.copy(appLanguage = language)
+    }.combine(preferencesRepository.appTimeFormat) { snapshot, timeFormat ->
+        snapshot.copy(appTimeFormat = timeFormat)
+    }.combine(preferencesRepository.preferredAudioLanguage) { snapshot, preferredAudioLanguage ->
+        snapshot.copy(preferredAudioLanguage = preferredAudioLanguage ?: "auto")
+    }.combine(preferencesRepository.playerMediaSessionEnabled) { snapshot, mediaSessionEnabled ->
+        snapshot.copy(playerMediaSessionEnabled = mediaSessionEnabled)
+    }.combine(preferencesRepository.playerDecoderMode) { snapshot, decoderMode ->
+        snapshot.copy(playerDecoderMode = decoderMode)
+    }.combine(preferencesRepository.playerSurfaceMode) { snapshot, surfaceMode ->
+        snapshot.copy(playerSurfaceMode = surfaceMode)
+    }.combine(preferencesRepository.playerPlaybackSpeed) { snapshot, playerPlaybackSpeed ->
+        snapshot.copy(playerPlaybackSpeed = playerPlaybackSpeed)
+    }.combine(preferencesRepository.playerAudioVideoSyncEnabled) { snapshot, enabled ->
+        snapshot.copy(playerAudioVideoSyncEnabled = enabled)
+    }.combine(preferencesRepository.playerAudioVideoOffsetMs) { snapshot, playerAudioVideoOffsetMs ->
+        snapshot.copy(playerAudioVideoOffsetMs = playerAudioVideoOffsetMs)
+    }.combine(preferencesRepository.multiViewCenterTwoSlotLayout) { snapshot, centerTwoSlotLayout ->
+        snapshot.copy(centerTwoSlotMultiviewLayout = centerTwoSlotLayout)
+    }.combine(preferencesRepository.playerControlsTimeoutSeconds) { snapshot, timeoutSeconds ->
+        snapshot.copy(playerControlsTimeoutSeconds = timeoutSeconds)
+    }.combine(preferencesRepository.playerLiveOverlayTimeoutSeconds) { snapshot, timeoutSeconds ->
+        snapshot.copy(playerLiveOverlayTimeoutSeconds = timeoutSeconds)
+    }.combine(preferencesRepository.playerNoticeTimeoutSeconds) { snapshot, timeoutSeconds ->
+        snapshot.copy(playerNoticeTimeoutSeconds = timeoutSeconds)
+    }.combine(preferencesRepository.playerDiagnosticsTimeoutSeconds) { snapshot, timeoutSeconds ->
+        snapshot.copy(playerDiagnosticsTimeoutSeconds = timeoutSeconds)
+    }.combine(preferencesRepository.playerSubtitleTextScale) { snapshot, subtitleTextScale ->
+        snapshot.copy(subtitleTextScale = subtitleTextScale)
+    }.combine(preferencesRepository.playerSubtitleTextColor) { snapshot, subtitleTextColor ->
+        snapshot.copy(subtitleTextColor = subtitleTextColor)
+    }.combine(preferencesRepository.playerSubtitleBackgroundColor) { snapshot, subtitleBackgroundColor ->
+        snapshot.copy(subtitleBackgroundColor = subtitleBackgroundColor)
+    }.combine(preferencesRepository.playerWifiMaxVideoHeight) { snapshot, wifiMaxVideoHeight ->
+        snapshot.copy(wifiMaxVideoHeight = wifiMaxVideoHeight)
+    }.combine(preferencesRepository.playerEthernetMaxVideoHeight) { snapshot, ethernetMaxVideoHeight ->
+        snapshot.copy(ethernetMaxVideoHeight = ethernetMaxVideoHeight)
+    }.combine(preferencesRepository.playerTimeshiftEnabled) { snapshot, enabled ->
+        snapshot.copy(playerTimeshiftEnabled = enabled)
+    }.combine(preferencesRepository.playerTimeshiftDepthMinutes) { snapshot, depthMinutes ->
+        snapshot.copy(playerTimeshiftDepthMinutes = depthMinutes)
+    }.combine(preferencesRepository.defaultStopPlaybackTimerMinutes) { snapshot, minutes ->
+        snapshot.copy(defaultStopPlaybackTimerMinutes = minutes)
+    }.combine(preferencesRepository.defaultIdleStandbyTimerMinutes) { snapshot, minutes ->
+        snapshot.copy(defaultIdleStandbyTimerMinutes = minutes)
+    }.combine(preferencesRepository.lastSpeedTestMegabits) { snapshot, lastSpeedTestMegabits ->
+        snapshot.copy(lastSpeedTestMegabits = lastSpeedTestMegabits)
+    }.combine(preferencesRepository.lastSpeedTestTimestamp) { snapshot, lastSpeedTestTimestamp ->
+        snapshot.copy(lastSpeedTestTimestamp = lastSpeedTestTimestamp)
+    }.combine(preferencesRepository.lastSpeedTestTransport) { snapshot, lastSpeedTestTransport ->
+        snapshot.copy(lastSpeedTestTransport = lastSpeedTestTransport)
+    }.combine(preferencesRepository.lastSpeedTestRecommendedHeight) { snapshot, lastSpeedTestRecommendedHeight ->
+        snapshot.copy(lastSpeedTestRecommendedHeight = lastSpeedTestRecommendedHeight)
+    }.combine(preferencesRepository.lastSpeedTestEstimated) { snapshot, lastSpeedTestEstimated ->
+        snapshot.copy(lastSpeedTestEstimated = lastSpeedTestEstimated)
+    }.combine(preferencesRepository.isIncognitoMode) { snapshot, incognito ->
+        snapshot.copy(isIncognitoMode = incognito)
+    }.combine(preferencesRepository.useXtreamTextClassification) { snapshot, useTextClass ->
+        snapshot.copy(useXtreamTextClassification = useTextClass)
+    }.combine(preferencesRepository.xtreamBase64TextCompatibility) { snapshot, compatibilityEnabled ->
+        snapshot.copy(xtreamBase64TextCompatibility = compatibilityEnabled)
+    }.combine(preferencesRepository.liveTvChannelMode) { snapshot, liveTvChannelMode ->
+        snapshot.copy(liveTvChannelMode = LiveTvChannelMode.fromStorage(liveTvChannelMode))
+    }.combine(preferencesRepository.showLiveSourceSwitcher) { snapshot, showLiveSourceSwitcher ->
+        snapshot.copy(showLiveSourceSwitcher = showLiveSourceSwitcher)
+    }.combine(preferencesRepository.showAllChannelsCategory) { snapshot, showAllChannelsCategory ->
+        snapshot.copy(showAllChannelsCategory = showAllChannelsCategory)
+    }.combine(preferencesRepository.showRecentChannelsCategory) { snapshot, showRecentChannelsCategory ->
+        snapshot.copy(showRecentChannelsCategory = showRecentChannelsCategory)
+    }.combine(preferencesRepository.liveTvCategoryFilters) { snapshot, liveTvCategoryFilters ->
+        snapshot.copy(liveTvCategoryFilters = liveTvCategoryFilters)
+    }.combine(preferencesRepository.liveTvQuickFilterVisibility) { snapshot, visibilityMode ->
+        snapshot.copy(
+            liveTvQuickFilterVisibilityMode = LiveTvQuickFilterVisibilityMode.fromStorage(visibilityMode)
+        )
+    }.combine(preferencesRepository.liveChannelNumberingMode) { snapshot, liveChannelNumberingMode ->
+        snapshot.copy(liveChannelNumberingMode = liveChannelNumberingMode)
+    }.combine(preferencesRepository.liveChannelGroupingMode) { snapshot, liveChannelGroupingMode ->
+        snapshot.copy(liveChannelGroupingMode = liveChannelGroupingMode)
+    }.combine(preferencesRepository.groupedChannelLabelMode) { snapshot, groupedChannelLabelMode ->
+        snapshot.copy(groupedChannelLabelMode = groupedChannelLabelMode)
+    }.combine(preferencesRepository.liveVariantPreferenceMode) { snapshot, liveVariantPreferenceMode ->
+        snapshot.copy(liveVariantPreferenceMode = liveVariantPreferenceMode)
+    }.combine(preferencesRepository.vodViewMode) { snapshot, vodViewMode ->
+        snapshot.copy(vodViewMode = VodViewMode.fromStorage(vodViewMode))
+    }.combine(preferencesRepository.vodInfiniteScroll) { snapshot, vodInfiniteScroll ->
+        snapshot.copy(vodInfiniteScroll = vodInfiniteScroll)
+    }.combine(preferencesRepository.guideDefaultCategoryId) { snapshot, guideDefaultCategoryId ->
+        snapshot.copy(guideDefaultCategoryId = guideDefaultCategoryId ?: VirtualCategoryIds.FAVORITES)
+    }.combine(preferencesRepository.preventStandbyDuringPlayback) { snapshot, preventStandby ->
+        snapshot.copy(preventStandbyDuringPlayback = preventStandby)
+    }.combine(preferencesRepository.zapAutoRevert) { snapshot, zapAutoRevert ->
+        snapshot.copy(zapAutoRevert = zapAutoRevert)
+    }.combine(preferencesRepository.autoPlayNextEpisode) { snapshot, autoPlayNextEpisode ->
+        snapshot.copy(autoPlayNextEpisode = autoPlayNextEpisode)
+    }.combine(preferencesRepository.autoCheckAppUpdates) { snapshot, autoCheckAppUpdates ->
+        snapshot.copy(autoCheckAppUpdates = autoCheckAppUpdates)
+    }.combine(preferencesRepository.autoDownloadAppUpdates) { snapshot, autoDownloadAppUpdates ->
+        snapshot.copy(autoDownloadAppUpdates = autoDownloadAppUpdates)
+    }.combine(preferencesRepository.lastAppUpdateCheckTimestamp) { snapshot, lastAppUpdateCheckAt ->
+        snapshot.copy(lastAppUpdateCheckAt = lastAppUpdateCheckAt)
+    }.combine(preferencesRepository.cachedAppUpdateVersionName) { snapshot, versionName ->
+        snapshot.copy(cachedAppUpdateVersionName = versionName)
+    }.combine(preferencesRepository.cachedAppUpdateVersionCode) { snapshot, versionCode ->
+        snapshot.copy(cachedAppUpdateVersionCode = versionCode)
+    }.combine(preferencesRepository.cachedAppUpdateReleaseUrl) { snapshot, releaseUrl ->
+        snapshot.copy(cachedAppUpdateReleaseUrl = releaseUrl)
+    }.combine(preferencesRepository.cachedAppUpdateDownloadUrl) { snapshot, downloadUrl ->
+        snapshot.copy(cachedAppUpdateDownloadUrl = downloadUrl)
+    }.combine(preferencesRepository.cachedAppUpdateReleaseNotes) { snapshot, releaseNotes ->
+        snapshot.copy(cachedAppUpdateReleaseNotes = releaseNotes)
+    }.combine(preferencesRepository.cachedAppUpdatePublishedAt) { snapshot, publishedAt ->
+        snapshot.copy(cachedAppUpdatePublishedAt = publishedAt)
+    }
+}

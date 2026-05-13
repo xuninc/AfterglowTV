@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Afterglow TV — UI Layout Concepts</title>
+<style>
+:root {
+  --surface-deep: #0A0E16;
+  --surface-base: #141A24;
+  --surface-cool: #1F2735;
+  --surface-accent: #2A3346;
+  --accent: #5EEAD4;
+  --accent-light: #A7F3E5;
+  --accent-muted: rgba(94,234,212,0.4);
+  --accent-faint: rgba(94,234,212,0.12);
+  --now-line: #FF3D7F;
+  --now-fill: rgba(94,234,212,0.2);
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(238,238,238,0.7);
+  --text-tertiary: rgba(238,238,238,0.5);
+  --text-disabled: rgba(238,238,238,0.3);
+  --divider: rgba(255,255,255,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #050505;
+  color: #ddd;
+  min-height: 100vh;
+}
+body { padding: 48px 32px 80px; }
+
+h1 {
+  font-size: 36px; font-weight: 700; color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  color: #999; max-width: 800px; line-height: 1.55;
+  margin-bottom: 56px; font-size: 14px;
+}
+
+.concept {
+  max-width: 1600px;
+  margin: 0 auto 64px;
+  background: #0a0a0a;
+  border: 1px solid #1c1c1c;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.concept-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid #1c1c1c;
+  display: flex; align-items: baseline; gap: 16px;
+}
+.concept-num {
+  font-size: 14px; font-weight: 700; color: #5EEAD4;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  width: 56px;
+}
+.concept-name {
+  font-size: 22px; font-weight: 600; color: #fff;
+  letter-spacing: -0.01em;
+}
+.concept-tagline {
+  font-size: 13px; color: #999;
+  margin-left: auto; max-width: 50%;
+  text-align: right;
+}
+.concept-body {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0;
+  min-height: 540px;
+}
+.mockup-frame {
+  background: var(--surface-deep);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid #1c1c1c;
+}
+.annotation {
+  padding: 24px 28px;
+  background: #0e0e0e;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #bbb;
+}
+.annotation h3 {
+  font-size: 14px; font-weight: 700; color: #fff;
+  margin-bottom: 12px; letter-spacing: 0.02em;
+}
+.annotation .badge {
+  display: inline-block;
+  background: rgba(94,234,212,0.15);
+  color: #5EEAD4;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin: 0 4px 4px 0;
+}
+.annotation ul { list-style: none; padding: 0; }
+.annotation ul li {
+  padding: 6px 0; border-bottom: 1px solid #1a1a1a;
+}
+.annotation ul li::before {
+  content: '→ '; color: #5EEAD4; margin-right: 4px;
+}
+.annotation ul li:last-child { border-bottom: none; }
+.annotation .vs {
+  margin-top: 16px; padding: 12px; background: #060606;
+  border-left: 3px solid #FF3D7F; border-radius: 4px;
+  font-size: 12px; color: #888;
+}
+.annotation .vs strong { color: #FF3D7F; }
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* CONCEPT 1 — Guide-First Home (magazine-style, no Live TV stage)        */
+/* ─────────────────────────────────────────────────────────────────────── */
+.mockup-guide-home {
+  padding: 20px 32px;
+  display: flex; flex-direction: column;
+  gap: 20px;
+  color: var(--text-primary);
+  height: 100%;
+}
+.gh-topbar {
+  display: flex; align-items: center; gap: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--divider);
+}
+.gh-logo {
+  font-weight: 800; font-size: 18px; letter-spacing: -0.02em;
+  color: var(--accent);
+}
+.gh-logo span { color: var(--text-primary); }
+.gh-tabs { display: flex; gap: 18px; flex: 1; }
+.gh-tab {
+  font-size: 13px; color: var(--text-tertiary); padding: 4px 0;
+  position: relative;
+}
+.gh-tab.active {
+  color: var(--accent-light); font-weight: 600;
+}
+.gh-tab.active::after {
+  content: ''; position: absolute;
+  bottom: -16px; left: 0; right: 0; height: 2px; background: var(--accent);
+}
+.gh-search {
+  background: var(--surface-base); border-radius: 999px;
+  padding: 6px 14px; font-size: 11px; color: var(--text-tertiary);
+}
+.gh-clock { font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.gh-hero {
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+  background:
+    linear-gradient(90deg, rgba(10,14,22,0.95) 30%, transparent 65%),
+    radial-gradient(circle at 70% 50%, rgba(94,234,212,0.18), transparent 50%),
+    var(--surface-base);
+  padding: 24px;
+  border-radius: 4px;
+  border-left: 4px solid var(--accent);
+  position: relative;
+  min-height: 180px;
+}
+.gh-hero::before {
+  content: 'ON NOW'; position: absolute; top: 16px; right: 16px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.2em;
+  color: var(--now-line);
+}
+.gh-hero-channel { font-size: 11px; color: var(--accent-light); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+.gh-hero-title { font-size: 26px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; }
+.gh-hero-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+.gh-hero-desc { font-size: 12px; color: var(--text-secondary); margin-top: 12px; max-width: 92%; line-height: 1.5; }
+.gh-hero-progress { margin-top: 14px; height: 3px; background: var(--surface-accent); position: relative; }
+.gh-hero-progress::after { content: ''; display: block; width: 35%; height: 100%; background: var(--accent); }
+.gh-hero-time { font-size: 10px; color: var(--text-tertiary); margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+.gh-rail { display: flex; flex-direction: column; gap: 10px; }
+.gh-rail-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.18em;
+  color: var(--text-tertiary); text-transform: uppercase;
+}
+.gh-rail .gh-row {
+  display: flex; gap: 10px; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--divider);
+  font-size: 11px;
+}
+.gh-rail .gh-row:last-child { border-bottom: none; }
+.gh-row-time { color: var(--accent-light); width: 48px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gh-row-ch { color: var(--text-tertiary); width: 60px; font-size: 10px; }
+.gh-row-title { color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.gh-rows-section { display: flex; flex-direction: column; gap: 18px; }
+.gh-row-block { }
+.gh-row-block-head {
+  display: flex; align-items: baseline; gap: 14px;
+  margin-bottom: 12px;
+}
+.gh-row-block-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.gh-row-block-sub { font-size: 11px; color: var(--text-tertiary); }
+.gh-cards {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+.gh-card {
+  background: var(--surface-base); padding: 12px; border-radius: 2px;
+  border-left: 3px solid transparent;
+  font-size: 11px;
+  min-height: 78px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.gh-card.focused {
+  border-left-color: var(--accent);
+  background: var(--accent-faint);
+}
+.gh-card-time { color: var(--accent-light); font-size: 10px; font-weight: 600; }
+.gh-card-title { color: var(--text-primary); font-weight: 600; font-size: 12px; line-height: 1.25; }
+.gh-card-ch { color: var(--text-tertiary); font-size: 10px; margin-top: auto; }
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* CONCEPT 2 — Floating Channel Deck (no slab overlay)                    */
+/* ─────────────────────────────────────────────────────────────────────── */
+.mockup-deck {
+  position: relative;
+  width: 100%; height: 540px;
+  background:
+    radial-gradient(ellipse at 30% 30%, rgba(94,234,212,0.10), transparent 60%),
+    radial-gradient(ellipse at 80% 60%, rgba(255,61,127,0.08), transparent 60%),
+    linear-gradient(135deg, #1a2236, #0a0e16);
+  overflow: hidden;
+}
+.deck-video-label {
+  position: absolute; top: 20px; left: 24px;
+  font-size: 10px; letter-spacing: 0.2em; color: var(--text-tertiary);
+}
+.deck-now-pill {
+  position: absolute; top: 20px; right: 24px;
+  background: var(--now-line); color: var(--text-primary);
+  padding: 4px 10px; border-radius: 999px; font-size: 10px; font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.deck-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 24px;
+  background: linear-gradient(180deg, transparent 0%, rgba(10,14,22,0.92) 70%);
+}
+.deck-info { margin-bottom: 16px; }
+.deck-channel { font-size: 12px; color: var(--accent-light); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+.deck-program { font-size: 22px; font-weight: 700; color: var(--text-primary); margin-top: 4px; }
+.deck-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+.deck-cards {
+  display: flex; gap: 12px; overflow: hidden;
+  padding: 8px 0 4px;
+}
+.deck-card {
+  flex-shrink: 0;
+  width: 180px; height: 92px;
+  background: rgba(20,26,36,0.85);
+  backdrop-filter: blur(12px);
+  border-radius: 4px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 11px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.deck-card.focused {
+  width: 240px; height: 108px;
+  border: 2px solid var(--accent);
+  background: rgba(94,234,212,0.18);
+  transform: translateY(-8px);
+}
+.deck-card-num { font-size: 10px; color: var(--text-tertiary); }
+.deck-card-name { color: var(--text-primary); font-weight: 700; font-size: 13px; }
+.deck-card.focused .deck-card-name { font-size: 15px; }
+.deck-card-now { color: var(--text-secondary); font-size: 10px; margin-top: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deck-card-progress { height: 2px; background: var(--surface-accent); margin-top: 4px; position: relative; }
+.deck-card-progress::after { content: ''; display: block; width: 60%; height: 100%; background: var(--accent); }
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* CONCEPT 3 — Hybrid EPG (grid + story stack)                            */
+/* ─────────────────────────────────────────────────────────────────────── */
+.mockup-epg {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  height: 540px;
+  background: var(--surface-deep);
+  color: var(--text-primary);
+}
+.epg-grid-pane { padding: 16px 20px; border-bottom: 1px solid var(--divider); position: relative; }
+.epg-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
+.epg-day { font-size: 14px; font-weight: 600; }
+.epg-day-pill {
+  background: var(--accent-faint); color: var(--accent-light);
+  padding: 2px 10px; border-radius: 999px;
+  font-size: 10px; font-weight: 600;
+}
+.epg-times { display: flex; padding-left: 130px; font-size: 10px; color: var(--text-tertiary); gap: 0; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.epg-times .epg-time-slot { width: 25%; }
+.epg-times .epg-time-slot.now { color: var(--now-line); font-weight: 700; }
+.epg-rows-mini { position: relative; }
+.epg-row-mini { display: grid; grid-template-columns: 130px 1fr; gap: 8px; padding: 4px 0; }
+.epg-row-mini .ch-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.ch-logo-mini { width: 24px; height: 24px; background: var(--surface-cool); border-radius: 4px; }
+.ch-name-mini { font-size: 11px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-num-mini { font-size: 10px; color: var(--text-tertiary); width: 28px; }
+.epg-blocks-mini { display: flex; gap: 2px; height: 22px; }
+.epg-block-mini { background: var(--surface-cool); border-radius: 1px; padding: 3px 8px; font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.epg-block-mini.now { background: var(--now-fill); color: var(--text-primary); border-left: 2px solid var(--accent); }
+.epg-block-mini.focused { background: var(--accent-faint); border: 1px solid var(--accent); padding: 2px 7px; }
+.epg-now-line-vert {
+  position: absolute; top: 36px; bottom: 8px; left: calc(130px + 20px + 25%); width: 2px;
+  background: var(--now-line); box-shadow: 0 0 12px rgba(255,61,127,0.6);
+}
+
+.epg-story-pane {
+  padding: 20px 24px;
+  display: grid; grid-template-columns: 200px 1fr 220px;
+  gap: 24px;
+  background:
+    radial-gradient(ellipse at 80% 30%, rgba(94,234,212,0.10), transparent 60%),
+    var(--surface-base);
+}
+.epg-poster {
+  background: linear-gradient(135deg, var(--surface-accent), var(--surface-cool));
+  border-radius: 4px;
+  height: 100%;
+  position: relative;
+}
+.epg-poster::after {
+  content: '►'; position: absolute; bottom: 12px; left: 12px;
+  color: var(--accent); font-size: 24px;
+}
+.epg-story-meta h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.epg-story-meta .epg-story-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+.epg-story-meta .epg-story-pills { margin: 12px 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.epg-story-meta .epg-pill { font-size: 10px; padding: 3px 8px; border-radius: 999px; background: rgba(94,234,212,0.18); color: var(--accent-light); }
+.epg-story-meta .epg-story-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; max-width: 600px; }
+.epg-story-actions { margin-top: 16px; display: flex; gap: 10px; }
+.epg-act-btn { font-size: 11px; padding: 8px 14px; background: var(--accent); color: var(--surface-deep); border-radius: 2px; font-weight: 700; }
+.epg-act-btn.secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+.epg-story-similar { display: flex; flex-direction: column; gap: 8px; }
+.epg-similar-label { font-size: 10px; letter-spacing: 0.15em; color: var(--text-tertiary); text-transform: uppercase; }
+.epg-similar-card { background: var(--surface-cool); padding: 8px 10px; border-radius: 2px; font-size: 11px; }
+.epg-similar-card .epg-sim-title { font-weight: 600; color: var(--text-primary); }
+.epg-similar-card .epg-sim-when { color: var(--text-tertiary); font-size: 10px; margin-top: 2px; }
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* CONCEPT 4 — Top-anchored Glass OSD + Quick Rail                        */
+/* ─────────────────────────────────────────────────────────────────────── */
+.mockup-osd {
+  position: relative; width: 100%; height: 540px;
+  background:
+    linear-gradient(135deg, #16213a 0%, #0a0e16 60%, #1a0e22 100%);
+  overflow: hidden;
+}
+.osd-bg-shapes::before, .osd-bg-shapes::after {
+  content: ''; position: absolute;
+  border-radius: 50%; filter: blur(60px);
+}
+.osd-bg-shapes::before {
+  top: 200px; left: -100px; width: 400px; height: 400px;
+  background: rgba(94,234,212,0.12);
+}
+.osd-bg-shapes::after {
+  top: 80px; right: -100px; width: 320px; height: 320px;
+  background: rgba(255,61,127,0.10);
+}
+.osd-top-glass {
+  position: absolute; top: 16px; left: 24px; right: 24px;
+  background: rgba(20,26,36,0.75);
+  backdrop-filter: blur(20px);
+  border-radius: 4px;
+  border: 1px solid rgba(94,234,212,0.25);
+  padding: 16px 20px;
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 20px;
+  z-index: 2;
+}
+.osd-channel-logo { width: 48px; height: 48px; border-radius: 4px; background: var(--surface-accent); }
+.osd-channel-info .osd-channel-num { font-size: 10px; color: var(--text-tertiary); letter-spacing: 0.1em; }
+.osd-channel-info .osd-channel-title { font-size: 20px; font-weight: 700; }
+.osd-channel-info .osd-show-title { font-size: 12px; color: var(--accent-light); margin-top: 2px; }
+.osd-progress-block { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.osd-time-label { font-size: 10px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.osd-progress-line { width: 160px; height: 3px; background: var(--surface-accent); border-radius: 2px; overflow: hidden; }
+.osd-progress-line::after { content: ''; display: block; width: 60%; height: 100%; background: var(--accent); }
+.osd-progress-now { font-size: 10px; color: var(--accent); font-weight: 700; }
+
+.osd-side-rail {
+  position: absolute; right: 24px; top: 120px;
+  display: flex; flex-direction: column; gap: 12px;
+  z-index: 2;
+}
+.osd-quick-action {
+  width: 48px; height: 48px; border-radius: 4px;
+  background: rgba(20,26,36,0.75); backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--text-secondary);
+}
+.osd-quick-action.focused {
+  border: 2px solid var(--accent);
+  color: var(--accent-light);
+  background: var(--accent-faint);
+}
+
+.osd-bottom-strip {
+  position: absolute; bottom: 24px; left: 24px;
+  padding: 14px 20px;
+  background: rgba(20,26,36,0.75); backdrop-filter: blur(20px);
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; gap: 16px;
+  font-size: 11px;
+  z-index: 2;
+}
+.osd-bottom-strip span { color: var(--text-secondary); }
+.osd-bottom-strip .key { background: rgba(94,234,212,0.18); color: var(--accent-light); padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; }
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* INTRO + PRINCIPLES                                                     */
+/* ─────────────────────────────────────────────────────────────────────── */
+.principles {
+  max-width: 1200px; margin: 0 auto 56px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.principle {
+  background: #0a0a0a; border: 1px solid #1c1c1c;
+  border-radius: 4px; padding: 18px 20px;
+  border-left: 3px solid var(--accent);
+}
+.principle h4 {
+  font-size: 13px; font-weight: 700; color: var(--accent-light);
+  letter-spacing: 0.04em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.principle p { font-size: 12px; line-height: 1.55; color: #999; }
+
+@media (max-width: 1100px) {
+  .concept-body { grid-template-columns: 1fr; }
+  .mockup-frame { border-right: none; border-bottom: 1px solid #1c1c1c; }
+  .principles { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<h1>Afterglow TV — Layout Concepts</h1>
+<div class="subtitle">
+  Four screen-level redesigns that move Afterglow away from the TiViMate
+  template into its own visual logic. Each concept solves a specific problem
+  TiViMate's UI doesn't solve. All four assume the Neon Dusk palette but
+  every theme would inherit the same layout — themes change <em>color</em>,
+  layout changes <em>thinking</em>.
+</div>
+
+<div class="principles">
+  <div class="principle">
+    <h4>Density without clutter</h4>
+    <p>Show more programs at once than TiViMate's classic grid by collapsing dead chrome — no left rail on Guide, no permanent channel slab on Live TV.</p>
+  </div>
+  <div class="principle">
+    <h4>Magazine over grid</h4>
+    <p>Default home is curated rails ("On Now", "Tonight at 8", "Up Next on Favorites") — readable like a TV magazine, not a wall of cells.</p>
+  </div>
+  <div class="principle">
+    <h4>Floating, not nailed-down</h4>
+    <p>Channel switcher and quick-settings are glass cards floating over the live video — not opaque slabs that hide it. The current channel stays visible while you browse.</p>
+  </div>
+  <div class="principle">
+    <h4>Accent stripe is the voice</h4>
+    <p>Every focusable surface — rows, cards, fields, even program blocks — wears the leading accent stripe. Cohesive system, instantly recognizable.</p>
+  </div>
+</div>
+
+<!-- ─── CONCEPT 1 ─────────────────────────────────────────────────────── -->
+<div class="concept">
+  <div class="concept-header">
+    <div class="concept-num">01</div>
+    <div class="concept-name">Guide-First Home</div>
+    <div class="concept-tagline">A landing screen that <em>looks like a TV magazine</em>, not a launcher grid.</div>
+  </div>
+  <div class="concept-body">
+    <div class="mockup-frame">
+      <div class="mockup-guide-home">
+        <div class="gh-topbar">
+          <div class="gh-logo">simple<span>iptv</span></div>
+          <div class="gh-tabs">
+            <div class="gh-tab active">Home</div>
+            <div class="gh-tab">Live TV</div>
+            <div class="gh-tab">Guide</div>
+            <div class="gh-tab">Movies</div>
+            <div class="gh-tab">Series</div>
+            <div class="gh-tab">Recordings</div>
+          </div>
+          <div class="gh-search">🔍 Search anything</div>
+          <div class="gh-clock">21:47</div>
+        </div>
+
+        <div class="gh-hero">
+          <div>
+            <div class="gh-hero-channel">CNN International · CH 102</div>
+            <div class="gh-hero-title">World Report — Live</div>
+            <div class="gh-hero-meta">21:00–22:00 · News · Live</div>
+            <div class="gh-hero-desc">Christiane Amanpour anchors the latest from Brussels, Kyiv, and Washington with reporters on the ground. Tonight: the EU summit's last day and reaction from Ankara.</div>
+            <div class="gh-hero-progress"></div>
+            <div class="gh-hero-time">21:00 ── now 21:21 ──────── 22:00</div>
+          </div>
+          <div class="gh-rail">
+            <div class="gh-rail-label">Up Next on Favorites</div>
+            <div class="gh-row"><div class="gh-row-time">22:00</div><div class="gh-row-ch">CNN Int'l</div><div class="gh-row-title">Amanpour</div></div>
+            <div class="gh-row"><div class="gh-row-time">22:00</div><div class="gh-row-ch">BBC News</div><div class="gh-row-title">The Context</div></div>
+            <div class="gh-row"><div class="gh-row-time">22:30</div><div class="gh-row-ch">Al Jazeera</div><div class="gh-row-title">Inside Story</div></div>
+            <div class="gh-row"><div class="gh-row-time">23:00</div><div class="gh-row-ch">FOX News</div><div class="gh-row-title">Hannity</div></div>
+            <div class="gh-row"><div class="gh-row-time">23:00</div><div class="gh-row-ch">MSNBC</div><div class="gh-row-title">Last Word</div></div>
+          </div>
+        </div>
+
+        <div class="gh-rows-section">
+          <div class="gh-row-block">
+            <div class="gh-row-block-head">
+              <div class="gh-row-block-title">Tonight at 22:00</div>
+              <div class="gh-row-block-sub">12 minutes from now · 8 channels</div>
+            </div>
+            <div class="gh-cards">
+              <div class="gh-card focused">
+                <div class="gh-card-time">22:00 · 60m</div>
+                <div class="gh-card-title">Amanpour</div>
+                <div class="gh-card-ch">CNN International</div>
+              </div>
+              <div class="gh-card">
+                <div class="gh-card-time">22:00 · 30m</div>
+                <div class="gh-card-title">BBC The Context</div>
+                <div class="gh-card-ch">BBC News</div>
+              </div>
+              <div class="gh-card">
+                <div class="gh-card-time">22:00 · 60m</div>
+                <div class="gh-card-title">Hannity</div>
+                <div class="gh-card-ch">FOX News</div>
+              </div>
+              <div class="gh-card">
+                <div class="gh-card-time">22:00 · 60m</div>
+                <div class="gh-card-title">The 11th Hour</div>
+                <div class="gh-card-ch">MSNBC</div>
+              </div>
+              <div class="gh-card">
+                <div class="gh-card-time">22:00 · 30m</div>
+                <div class="gh-card-title">RT Newshour</div>
+                <div class="gh-card-ch">RT America</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <h3>What's different</h3>
+      <p>
+        TiViMate (and most IPTV apps) drop you on Live TV with a slab of channel
+        names. That's a <em>tuner</em>, not a home screen. Afterglow's home
+        treats the EPG as the front door — what's <em>on right now</em> is the
+        hero, and "what's coming up" is the dominant rail.
+      </p>
+      <ul>
+        <li><strong>Top tabs</strong>, no left rail — gives the magazine its width</li>
+        <li><strong>Hero shows your last-tuned channel</strong> with live progress + description</li>
+        <li><strong>Up Next rail</strong> on the right is just your favorites' next program — one-keypress jump</li>
+        <li><strong>"Tonight at 22:00"</strong> shelf below: the next time-block across all channels, magazine-style</li>
+      </ul>
+      <div class="vs">
+        <strong>vs TiViMate:</strong> they have no "home". Live TV is the start;
+        you press LEFT to see channels; you press MENU to see EPG; the launcher
+        leaves you tuned to whatever was on last. Afterglow's home gives you
+        the <em>shape of the evening</em> before you pick.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CONCEPT 2 ─────────────────────────────────────────────────────── -->
+<div class="concept">
+  <div class="concept-header">
+    <div class="concept-num">02</div>
+    <div class="concept-name">Floating Channel Deck</div>
+    <div class="concept-tagline">Channel switcher as a glass card deck that doesn't hide the picture.</div>
+  </div>
+  <div class="concept-body">
+    <div class="mockup-frame">
+      <div class="mockup-deck">
+        <div class="deck-video-label">▶ LIVE PLAYBACK</div>
+        <div class="deck-now-pill">LIVE</div>
+        <div class="deck-bottom">
+          <div class="deck-info">
+            <div class="deck-channel">CH 102 · CNN International</div>
+            <div class="deck-program">World Report</div>
+            <div class="deck-meta">21:00 – 22:00 · News · Live</div>
+          </div>
+          <div class="deck-cards">
+            <div class="deck-card">
+              <div class="deck-card-num">101</div>
+              <div class="deck-card-name">FOX News</div>
+              <div class="deck-card-now">Special Report</div>
+              <div class="deck-card-progress"></div>
+            </div>
+            <div class="deck-card focused">
+              <div class="deck-card-num">102 · NOW PLAYING</div>
+              <div class="deck-card-name">CNN International</div>
+              <div class="deck-card-now">World Report — Live</div>
+              <div class="deck-card-progress"></div>
+            </div>
+            <div class="deck-card">
+              <div class="deck-card-num">103</div>
+              <div class="deck-card-name">MSNBC HD</div>
+              <div class="deck-card-now">Andrea Mitchell</div>
+              <div class="deck-card-progress"></div>
+            </div>
+            <div class="deck-card">
+              <div class="deck-card-num">104</div>
+              <div class="deck-card-name">BBC News</div>
+              <div class="deck-card-now">Newsday</div>
+              <div class="deck-card-progress"></div>
+            </div>
+            <div class="deck-card">
+              <div class="deck-card-num">105</div>
+              <div class="deck-card-name">Al Jazeera</div>
+              <div class="deck-card-now">Inside Story</div>
+              <div class="deck-card-progress"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <h3>What's different</h3>
+      <p>
+        TiViMate's iconic Live-TV-with-side-panel covers ~32% of the picture
+        with an opaque slab any time you want to switch channels. Afterglow's
+        deck is a <em>horizontal glass card row</em> anchored at the bottom —
+        the picture stays visible, your eye doesn't have to re-acquire context.
+      </p>
+      <ul>
+        <li><strong>D-pad LEFT/RIGHT</strong> scrolls the deck horizontally</li>
+        <li><strong>Focused card grows</strong> — 240×108 dp vs 180×92 idle, with a -8 dp lift</li>
+        <li><strong>Glass effect</strong> — 75% surface + 20 dp blur — picture bleeds through</li>
+        <li><strong>D-pad UP</strong> from the deck → full EPG grid (Concept 3)</li>
+        <li><strong>D-pad DOWN</strong> dismisses the deck → picture fully unobstructed</li>
+      </ul>
+      <div class="vs">
+        <strong>vs TiViMate:</strong> they hide the picture with a 320 dp wide
+        opaque slab. Afterglow keeps the picture front and center while
+        you browse, like the iOS Control Center / Apple TV channel switcher.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CONCEPT 3 ─────────────────────────────────────────────────────── -->
+<div class="concept">
+  <div class="concept-header">
+    <div class="concept-num">03</div>
+    <div class="concept-name">Hybrid EPG · Grid + Story Stack</div>
+    <div class="concept-tagline">Top half is the grid you know. Bottom half is the program you're hovering.</div>
+  </div>
+  <div class="concept-body">
+    <div class="mockup-frame">
+      <div class="mockup-epg">
+        <div class="epg-grid-pane">
+          <div class="epg-header">
+            <div class="epg-day">Tuesday, 12 May</div>
+            <div class="epg-day-pill">Today</div>
+            <div style="margin-left: auto; font-size: 11px; color: var(--text-tertiary);">3-hour window · Drag time to scroll</div>
+          </div>
+          <div class="epg-times">
+            <div class="epg-time-slot">21:00</div>
+            <div class="epg-time-slot now">21:30 ▼ NOW</div>
+            <div class="epg-time-slot">22:00</div>
+            <div class="epg-time-slot">22:30</div>
+          </div>
+          <div class="epg-rows-mini">
+            <div class="epg-row-mini"><div class="ch-meta"><div class="ch-num-mini">101</div><div class="ch-logo-mini"></div><div class="ch-name-mini">FOX News</div></div><div class="epg-blocks-mini"><div class="epg-block-mini">Special Report</div><div class="epg-block-mini now">The Five</div><div class="epg-block-mini">Hannity</div></div></div>
+            <div class="epg-row-mini"><div class="ch-meta"><div class="ch-num-mini">102</div><div class="ch-logo-mini"></div><div class="ch-name-mini">CNN International</div></div><div class="epg-blocks-mini"><div class="epg-block-mini">World Report</div><div class="epg-block-mini now focused">Amanpour</div><div class="epg-block-mini">The Lead</div></div></div>
+            <div class="epg-row-mini"><div class="ch-meta"><div class="ch-num-mini">103</div><div class="ch-logo-mini"></div><div class="ch-name-mini">MSNBC HD</div></div><div class="epg-blocks-mini"><div class="epg-block-mini">Andrea Mitchell</div><div class="epg-block-mini now">Deadline: White House</div><div class="epg-block-mini">The Beat</div></div></div>
+            <div class="epg-row-mini"><div class="ch-meta"><div class="ch-num-mini">104</div><div class="ch-logo-mini"></div><div class="ch-name-mini">BBC News</div></div><div class="epg-blocks-mini"><div class="epg-block-mini">Newsday</div><div class="epg-block-mini now">HARDtalk</div><div class="epg-block-mini">BBC World</div></div></div>
+            <div class="epg-row-mini"><div class="ch-meta"><div class="ch-num-mini">105</div><div class="ch-logo-mini"></div><div class="ch-name-mini">Al Jazeera English</div></div><div class="epg-blocks-mini"><div class="epg-block-mini">News Live</div><div class="epg-block-mini now">Inside Story</div><div class="epg-block-mini">The Stream</div></div></div>
+            <div class="epg-now-line-vert"></div>
+          </div>
+        </div>
+        <div class="epg-story-pane">
+          <div class="epg-poster"></div>
+          <div class="epg-story-meta">
+            <h2>Amanpour</h2>
+            <div class="epg-story-sub">CNN International · 22:00–23:00 · 60 min · Live</div>
+            <div class="epg-story-pills">
+              <span class="epg-pill">News</span>
+              <span class="epg-pill">Live</span>
+              <span class="epg-pill">Interview</span>
+              <span class="epg-pill">Subtitles</span>
+            </div>
+            <p class="epg-story-desc">
+              Christiane Amanpour brings a global perspective to the day's news.
+              Tonight: live from London, an exclusive interview with the
+              Ukrainian foreign minister followed by analysis from senior
+              correspondents in Brussels and Washington.
+            </p>
+            <div class="epg-story-actions">
+              <div class="epg-act-btn">▶ Watch</div>
+              <div class="epg-act-btn secondary">+ Remind me</div>
+              <div class="epg-act-btn secondary">● Record</div>
+            </div>
+          </div>
+          <div class="epg-story-similar">
+            <div class="epg-similar-label">More like this</div>
+            <div class="epg-similar-card">
+              <div class="epg-sim-title">The Lead</div>
+              <div class="epg-sim-when">23:00 · CNN Int'l</div>
+            </div>
+            <div class="epg-similar-card">
+              <div class="epg-sim-title">Hardball</div>
+              <div class="epg-sim-when">Tomorrow · 18:00 · MSNBC</div>
+            </div>
+            <div class="epg-similar-card">
+              <div class="epg-sim-title">HARDtalk</div>
+              <div class="epg-sim-when">22:00 · BBC News</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <h3>What's different</h3>
+      <p>
+        Traditional EPG grids are read-only walls of titles. TiViMate's grid is
+        a clean execution of the classic Gemstar format, but you have to leave
+        the grid to learn anything about a program. Afterglow splits the screen:
+        the top half is the grid you'd recognize; the bottom half is a live
+        "story stack" for whatever program is focused.
+      </p>
+      <ul>
+        <li><strong>Top half:</strong> 3-hour grid, red now-line with glow, focus on Amanpour</li>
+        <li><strong>Bottom half:</strong> auto-updates as you move focus — poster, description, cast, length, broadcast features (subs, live), and three primary actions</li>
+        <li><strong>"More like this"</strong> rail surfaces related programs across channels and days — discovery built into the EPG</li>
+        <li><strong>Pills</strong> use the accent palette — News, Live, Subtitles, etc. — easy parse on a TV</li>
+      </ul>
+      <div class="vs">
+        <strong>vs TiViMate:</strong> grid only. To see a synopsis you press OK
+        which navigates away from the grid. Afterglow's grid <em>is</em> the
+        browse view — you never leave it.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CONCEPT 4 ─────────────────────────────────────────────────────── -->
+<div class="concept">
+  <div class="concept-header">
+    <div class="concept-num">04</div>
+    <div class="concept-name">Glass OSD + Quick-Action Rail</div>
+    <div class="concept-tagline">All in-player UI is glass, never solid. The picture is always visible.</div>
+  </div>
+  <div class="concept-body">
+    <div class="mockup-frame">
+      <div class="mockup-osd">
+        <div class="osd-bg-shapes"></div>
+        <div class="osd-top-glass">
+          <div class="osd-channel-logo"></div>
+          <div class="osd-channel-info">
+            <div class="osd-channel-num">CH 102 · CNN INTERNATIONAL</div>
+            <div class="osd-channel-title">World Report</div>
+            <div class="osd-show-title">Christiane Amanpour · Live from London</div>
+          </div>
+          <div class="osd-progress-block">
+            <div class="osd-time-label">21:00 ── 22:00</div>
+            <div class="osd-progress-line"></div>
+            <div class="osd-progress-now">21 min elapsed · 39 min left</div>
+          </div>
+        </div>
+
+        <div class="osd-side-rail">
+          <div class="osd-quick-action focused">SUB</div>
+          <div class="osd-quick-action">AUD</div>
+          <div class="osd-quick-action">⊟</div>
+          <div class="osd-quick-action">►×</div>
+          <div class="osd-quick-action">●</div>
+        </div>
+
+        <div class="osd-bottom-strip">
+          <span><span class="key">▲</span> Info</span>
+          <span><span class="key">◀</span> Channels</span>
+          <span><span class="key">▶</span> Quick settings</span>
+          <span><span class="key">OK</span> Pause</span>
+          <span><span class="key">⌂</span> Home</span>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <h3>What's different</h3>
+      <p>
+        TiViMate's OSD lives in the bottom third — opaque, full-width, blocks
+        the picture for 6+ seconds. Afterglow's OSD floats: a glass strip
+        anchored to the <em>top</em> with channel & program info, a small
+        quick-action rail on the right edge (subs / audio / aspect / speed /
+        record), and a discoverable key-hints strip at the bottom.
+      </p>
+      <ul>
+        <li><strong>Top glass strip</strong> — 75% surface + 20 dp blur + accent border — auto-dismisses 3 s after channel change</li>
+        <li><strong>Right edge rail</strong> — five quick-actions stacked vertically — D-pad RIGHT to enter the rail</li>
+        <li><strong>Bottom key hints</strong> — discoverable controls, not a feature; visible only when OSD is open</li>
+        <li><strong>Never covers the picture</strong> — the corner regions are blurred glass, the center stays clear</li>
+      </ul>
+      <div class="vs">
+        <strong>vs TiViMate:</strong> their OSD steals the bottom third of the
+        screen and there's no quick-action shortcut — you have to open the
+        full settings panel to toggle subtitles. Afterglow's rail is one
+        D-pad press away from a focused channel.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width: 1600px; margin: 64px auto 0; padding: 24px 32px; background: #0e0e0e; border: 1px solid #222; border-radius: 8px; color: #999; font-size: 13px; line-height: 1.6;">
+  <strong style="color: #5EEAD4; letter-spacing: 0.04em;">What to look at next →</strong>
+  These are <em>layout</em> concepts — they're orthogonal to the 8 themes from
+  <code>themes.html</code>. Any of these screens would inherit whatever palette
+  you've picked. If a concept here feels right, I'll start landing it in the
+  actual app: probably the Guide-First Home first (it's mostly compose
+  rearrangement, no new state), then the Floating Channel Deck (replaces the
+  existing slab `LivePanelOverlay`), then the Hybrid EPG (the most ambitious —
+  splits `EpgScreen` into two panes).
+</div>
+
+</body>
+</html>

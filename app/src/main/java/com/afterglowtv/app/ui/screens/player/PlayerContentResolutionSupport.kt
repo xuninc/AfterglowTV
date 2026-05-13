@@ -1,0 +1,160 @@
+package com.afterglowtv.app.ui.screens.player
+
+import com.afterglowtv.data.remote.xtream.XtreamStreamUrlResolver
+import com.afterglowtv.data.security.CredentialDecryptionException
+import com.afterglowtv.domain.model.ContentType
+import com.afterglowtv.domain.model.Episode
+import com.afterglowtv.domain.model.Result
+import com.afterglowtv.domain.model.Series
+import com.afterglowtv.domain.model.StreamInfo
+import com.afterglowtv.domain.model.StreamType
+import com.afterglowtv.domain.repository.ChannelRepository
+import com.afterglowtv.domain.repository.MovieRepository
+import com.afterglowtv.domain.repository.SeriesRepository
+
+internal data class SeriesEpisodeResolution(
+    val resolvedEpisode: Episode?,
+    val nextEpisode: Episode?,
+    val resolvedArtworkUrl: String?,
+    val resolvedTitle: String?,
+    val resolvedSeasonNumber: Int?,
+    val resolvedEpisodeNumber: Int?
+)
+
+internal data class PlayerPlaybackStreamResolution(
+    val streamInfo: StreamInfo?,
+    val credentialFailureMessage: String? = null
+)
+
+internal fun buildSeriesEpisodeResolution(
+    series: Series,
+    episodeId: Long,
+    seasonNumber: Int?,
+    episodeNumber: Int?,
+    currentContentType: ContentType,
+    currentArtworkUrl: String?
+): SeriesEpisodeResolution {
+    val resolvedEpisode = resolveEpisode(series, episodeId, seasonNumber, episodeNumber)
+    return SeriesEpisodeResolution(
+        resolvedEpisode = resolvedEpisode,
+        nextEpisode = resolvedEpisode?.let { findNextEpisode(series, it) },
+        resolvedArtworkUrl = if (resolvedEpisode != null && currentContentType == ContentType.SERIES_EPISODE) {
+            resolvedEpisode.coverUrl ?: currentArtworkUrl ?: series.posterUrl ?: series.backdropUrl
+        } else {
+            currentArtworkUrl
+        },
+        resolvedTitle = if (resolvedEpisode != null && currentContentType == ContentType.SERIES_EPISODE) {
+            buildEpisodePlaybackTitle(resolvedEpisode)
+        } else {
+            null
+        },
+        resolvedSeasonNumber = resolvedEpisode?.seasonNumber ?: seasonNumber,
+        resolvedEpisodeNumber = resolvedEpisode?.episodeNumber ?: episodeNumber
+    )
+}
+
+internal suspend fun resolvePlayerPlaybackStreamInfo(
+    logicalUrl: String,
+    internalContentId: Long,
+    providerId: Long,
+    contentType: ContentType,
+    currentTitle: String,
+    currentSeries: Series?,
+    currentEpisode: Episode?,
+    channelRepository: ChannelRepository,
+    movieRepository: MovieRepository,
+    seriesRepository: SeriesRepository,
+    xtreamStreamUrlResolver: XtreamStreamUrlResolver
+): PlayerPlaybackStreamResolution {
+    var fallbackStreamId: Long? = null
+    var fallbackContainerExtension: String? = null
+
+    if (providerId > 0L && internalContentId > 0L) {
+        when (contentType) {
+            ContentType.LIVE -> {
+                channelRepository.getChannel(internalContentId)?.let { channel ->
+                    fallbackStreamId = channel.streamId.takeIf { it > 0L }
+                        ?: channel.epgChannelId?.toLongOrNull()
+                    channelRepository.getStreamInfo(channel).getOrNull()?.let { resolved ->
+                        return PlayerPlaybackStreamResolution(
+                            streamInfo = resolved.copy(title = resolved.title ?: currentTitle)
+                        )
+                    }
+                }
+            }
+
+            ContentType.MOVIE -> {
+                movieRepository.getMovie(internalContentId)?.let { movie ->
+                    fallbackStreamId = movie.streamId.takeIf { it > 0L }
+                    fallbackContainerExtension = movie.containerExtension
+                    movieRepository.getStreamInfo(movie).getOrNull()?.let { resolved ->
+                        return PlayerPlaybackStreamResolution(
+                            streamInfo = resolved.copy(title = resolved.title ?: currentTitle)
+                        )
+                    }
+                }
+            }
+
+            ContentType.SERIES,
+            ContentType.SERIES_EPISODE -> {
+                val episode = when {
+                    currentEpisode?.id == internalContentId -> currentEpisode
+                    else -> currentSeries
+                        ?.seasons
+                        .sanitizedForPlayer()
+                        .asSequence()
+                        .flatMap { it.episodes.asSequence() }
+                        .firstOrNull { it.id == internalContentId }
+                }
+                episode?.let {
+                    fallbackStreamId = it.episodeId.takeIf { episodeId -> episodeId > 0L } ?: it.id
+                    fallbackContainerExtension = it.containerExtension
+                    seriesRepository.getEpisodeStreamInfo(it).getOrNull()?.let { resolved ->
+                        return PlayerPlaybackStreamResolution(
+                            streamInfo = resolved.copy(title = resolved.title ?: currentTitle)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    try {
+        xtreamStreamUrlResolver.resolveWithMetadata(
+            url = logicalUrl,
+            fallbackProviderId = providerId.takeIf { it > 0 },
+            fallbackStreamId = fallbackStreamId,
+            fallbackContentType = contentType,
+            fallbackContainerExtension = fallbackContainerExtension
+        )?.let { resolved ->
+            val ext = resolved.containerExtension ?: fallbackContainerExtension
+            return PlayerPlaybackStreamResolution(
+                streamInfo = StreamInfo(
+                    url = resolved.url,
+                    title = currentTitle,
+                    headers = resolved.headers,
+                    userAgent = resolved.userAgent,
+                    streamType = StreamType.fromContainerExtension(ext),
+                    containerExtension = ext,
+                    expirationTime = resolved.expirationTime
+                )
+            )
+        }
+    } catch (e: CredentialDecryptionException) {
+        return PlayerPlaybackStreamResolution(
+            streamInfo = null,
+            credentialFailureMessage = e.message ?: CredentialDecryptionException.MESSAGE
+        )
+    }
+
+    return PlayerPlaybackStreamResolution(
+        streamInfo = logicalUrl.takeIf { it.isNotBlank() }?.let {
+            StreamInfo(
+                url = it,
+                title = currentTitle,
+                streamType = StreamType.fromContainerExtension(fallbackContainerExtension),
+                containerExtension = fallbackContainerExtension
+            )
+        }
+    )
+}

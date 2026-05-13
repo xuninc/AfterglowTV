@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Afterglow TV — Component Shape Studies</title>
+<style>
+:root {
+  --surface-deep: #0A0E16;
+  --surface-base: #141A24;
+  --surface-cool: #1F2735;
+  --surface-accent: #2A3346;
+  --accent: #5EEAD4;
+  --accent-light: #A7F3E5;
+  --accent-muted: rgba(94,234,212,0.4);
+  --accent-faint: rgba(94,234,212,0.12);
+  --now-line: #FF3D7F;
+  --now-fill: rgba(94,234,212,0.2);
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(238,238,238,0.7);
+  --text-tertiary: rgba(238,238,238,0.5);
+  --text-disabled: rgba(238,238,238,0.3);
+  --divider: rgba(255,255,255,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #050505; color: #ddd;
+}
+body { padding: 48px 32px 80px; }
+h1 {
+  font-size: 36px; font-weight: 700; color: #fff; letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.subtitle {
+  color: #999; max-width: 720px; line-height: 1.55;
+  margin-bottom: 48px; font-size: 14px;
+}
+
+.section { max-width: 1600px; margin: 0 auto 56px; }
+.section-head {
+  display: flex; align-items: baseline; gap: 16px;
+  padding-bottom: 14px; margin-bottom: 28px;
+  border-bottom: 1px solid #1c1c1c;
+}
+.section-num { font-size: 13px; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; }
+.section-title { font-size: 24px; font-weight: 600; color: #fff; letter-spacing: -0.01em; }
+.section-tagline { font-size: 13px; color: #888; margin-left: auto; }
+
+.variants {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.variant {
+  background: #0a0a0a;
+  border: 1px solid #1c1c1c;
+  border-radius: 8px; overflow: hidden;
+}
+.variant-stage {
+  padding: 32px;
+  background: var(--surface-deep);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  min-height: 200px; justify-content: center;
+}
+.variant-meta {
+  padding: 14px 18px; border-top: 1px solid #1c1c1c;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.variant-name { font-size: 13px; font-weight: 700; color: #fff; }
+.variant-name .check {
+  background: var(--accent); color: var(--surface-deep);
+  padding: 2px 6px; border-radius: 999px; font-size: 9px; font-weight: 800;
+  margin-left: 6px; letter-spacing: 0.06em;
+}
+.variant-spec { font-size: 11px; color: #888; line-height: 1.5; }
+.variant-spec code { color: var(--accent-light); background: #1a1a1a; padding: 1px 5px; border-radius: 2px; font-size: 10px; }
+
+/* ───────── BUTTONS ───────── */
+.btn {
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  padding: 12px 24px; cursor: pointer; border: 0;
+  color: var(--surface-deep); background: var(--accent);
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: inherit;
+}
+.btn-pill { border-radius: 999px; padding: 12px 28px; }
+.btn-sharp { border-radius: 0; padding: 14px 28px; }
+.btn-soft { border-radius: 6px; }
+.btn-cut { /* clipped corner */
+  border-radius: 0;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+.btn-stripe { /* left-stripe variant */
+  background: var(--surface-cool); color: var(--text-primary);
+  border-radius: 2px; padding-left: 14px; position: relative;
+  border-left: 4px solid var(--accent);
+}
+.btn-ghost {
+  background: transparent; color: var(--accent);
+  border: 1.5px solid var(--accent); border-radius: 2px;
+}
+.btn-glass {
+  background: rgba(94,234,212,0.10);
+  color: var(--accent-light);
+  border: 1px solid rgba(94,234,212,0.35);
+  backdrop-filter: blur(10px);
+  border-radius: 4px;
+}
+.btn-double {
+  background: var(--accent); color: var(--surface-deep);
+  border-radius: 2px; padding: 12px 24px;
+  box-shadow: 4px 4px 0 0 var(--now-line);
+}
+.btn .key { font-size: 10px; background: rgba(0,0,0,0.2); padding: 2px 5px; border-radius: 3px; opacity: 0.7; }
+
+/* ───────── EPG CELLS ───────── */
+.epg-cell {
+  font-size: 12px; color: var(--text-primary);
+  background: var(--surface-cool);
+  padding: 10px 14px; width: 180px;
+  display: flex; flex-direction: column; gap: 3px;
+  position: relative;
+}
+.epg-cell .cell-title { font-weight: 600; font-size: 13px; line-height: 1.25; }
+.epg-cell .cell-time { font-size: 10px; color: var(--text-tertiary); }
+.epg-cell .cell-bar { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--accent); width: 60%; }
+.epg-rect { border-radius: 0; }
+.epg-soft { border-radius: 4px; }
+.epg-stripe { border-radius: 2px; border-left: 4px solid var(--accent); padding-left: 10px; }
+.epg-bevel {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  border-radius: 0;
+}
+.epg-glow {
+  border-radius: 2px;
+  border: 1.5px solid var(--accent);
+  background: var(--accent-faint);
+  box-shadow: 0 0 16px rgba(94,234,212,0.4);
+}
+.epg-now {
+  background: var(--accent-faint);
+  border-left: 3px solid var(--accent);
+  border-top: 1px solid var(--accent-muted);
+}
+.epg-now::after {
+  content: 'NOW'; position: absolute; top: 6px; right: 6px;
+  font-size: 9px; font-weight: 800; color: var(--accent); letter-spacing: 0.1em;
+}
+.epg-corner-tag {
+  border-radius: 2px;
+  position: relative; padding-top: 18px;
+}
+.epg-corner-tag::before {
+  content: 'LIVE'; position: absolute; top: 0; left: 0;
+  background: var(--now-line); color: var(--text-primary);
+  padding: 2px 8px 2px 6px; font-size: 9px; font-weight: 800; letter-spacing: 0.08em;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+.epg-double-edge {
+  border-radius: 2px;
+  border-left: 3px solid var(--accent);
+  border-right: 1px solid var(--accent-muted);
+  background: linear-gradient(90deg, var(--accent-faint), var(--surface-cool) 40%);
+}
+
+/* ───────── TEXT FIELDS ───────── */
+.field {
+  background: var(--surface-cool); color: var(--text-primary);
+  padding: 12px 16px; font-size: 13px; width: 320px;
+  border: 0;
+  font-family: inherit;
+}
+.field-rect { border-radius: 0; border: 1px solid var(--divider); }
+.field-soft { border-radius: 4px; border: 1px solid var(--divider); }
+.field-pill { border-radius: 999px; padding: 12px 20px; border: 1px solid var(--divider); }
+.field-stripe {
+  border-radius: 2px;
+  border-left: 4px solid var(--accent);
+  padding-left: 18px;
+}
+.field-stripe-focused {
+  border-radius: 2px;
+  background: var(--accent-faint);
+  border-left: 6px solid var(--accent);
+  border: 1px solid var(--accent-muted);
+  border-left-width: 6px;
+  padding-left: 18px;
+}
+.field-underline {
+  border-radius: 0; background: transparent;
+  border-bottom: 2px solid var(--accent);
+  padding-left: 0; padding-bottom: 8px;
+}
+.field-double-line {
+  border-radius: 0; background: transparent;
+  border-top: 1px solid var(--accent-muted);
+  border-bottom: 2px solid var(--accent);
+  padding: 8px 0;
+}
+.field-bracketed {
+  border-radius: 0; background: var(--surface-base);
+  position: relative;
+  border-left: 3px solid var(--accent);
+  border-right: 3px solid var(--accent);
+}
+.field-prefixed {
+  border-radius: 2px;
+  background: var(--surface-base);
+  display: flex; align-items: center; padding: 0;
+  border: 1px solid var(--divider);
+}
+.field-prefixed .pre {
+  background: var(--accent); color: var(--surface-deep);
+  padding: 12px 14px; font-weight: 700; font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.field-prefixed input {
+  background: transparent; border: 0; padding: 12px 14px;
+  color: var(--text-primary); font-size: 13px; font-family: inherit;
+  flex: 1; outline: none;
+}
+
+/* ───────── CHANNEL ROW VARIATIONS ───────── */
+.row { width: 320px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; background: var(--surface-base); color: var(--text-primary); }
+.row .num { font-size: 11px; color: var(--text-tertiary); width: 24px; font-variant-numeric: tabular-nums; }
+.row .logo { width: 28px; height: 28px; background: var(--surface-accent); border-radius: 4px; flex-shrink: 0; }
+.row .name { flex: 1; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .sub { font-size: 10px; color: var(--text-tertiary); }
+.row .col { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
+.row-flat { border-radius: 0; }
+.row-soft { border-radius: 4px; }
+.row-stripe { border-radius: 2px; border-left: 4px solid var(--accent); padding-left: 8px; }
+.row-stripe-fill {
+  border-radius: 2px; border-left: 4px solid var(--accent);
+  background: var(--accent-faint); padding-left: 8px;
+}
+.row-bevel {
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+}
+.row-progressbar {
+  border-radius: 2px; border-left: 3px solid var(--accent); padding-left: 9px;
+  position: relative;
+}
+.row-progressbar::after {
+  content: ''; position: absolute; left: 0; bottom: 0; height: 2px;
+  width: 55%; background: var(--accent);
+}
+.row-bracketed {
+  border-radius: 0; background: var(--surface-base);
+  border-left: 3px solid var(--accent); border-right: 3px solid var(--accent-muted);
+}
+
+/* ───────── PILLS / CHIPS ───────── */
+.pills { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.pill {
+  font-size: 11px; padding: 4px 10px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 5px;
+  letter-spacing: 0.04em;
+}
+.pill-round { border-radius: 999px; background: var(--accent-faint); color: var(--accent-light); }
+.pill-square { border-radius: 0; background: var(--accent-faint); color: var(--accent-light); }
+.pill-soft { border-radius: 2px; background: var(--accent-faint); color: var(--accent-light); }
+.pill-stripe { border-radius: 0; background: var(--accent-faint); color: var(--accent-light); border-left: 3px solid var(--accent); padding-left: 8px; }
+.pill-bevel {
+  border-radius: 0; background: var(--accent-faint); color: var(--accent-light);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  padding: 4px 14px;
+}
+.pill-solid { background: var(--accent); color: var(--surface-deep); border-radius: 999px; }
+.pill-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; }
+.pill-live {
+  background: var(--now-line); color: var(--text-primary); border-radius: 2px;
+  font-weight: 800;
+}
+.pill-live::before {
+  content: '●'; color: var(--text-primary); margin-right: 4px;
+  animation: blink 1.6s infinite;
+}
+@keyframes blink { 50% { opacity: 0.4; } }
+
+/* ───────── FOCUS INDICATORS ───────── */
+.focus-target {
+  width: 240px; height: 90px;
+  background: var(--surface-cool); border-radius: 2px;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 14px 18px; gap: 4px; color: var(--text-primary);
+}
+.focus-target .ft-title { font-weight: 600; font-size: 13px; }
+.focus-target .ft-sub { font-size: 11px; color: var(--text-tertiary); }
+.focus-border-only { border: 3px solid var(--accent); padding: 11px 15px; }
+.focus-fill-only { background: var(--accent-faint); }
+.focus-stripe { border-left: 6px solid var(--accent); padding-left: 12px; }
+.focus-stripe-fill { border-left: 6px solid var(--accent); background: var(--accent-faint); padding-left: 12px; }
+.focus-glow { border: 2px solid var(--accent); box-shadow: 0 0 16px rgba(94,234,212,0.5); padding: 12px 16px; }
+.focus-cut-corner {
+  border: 2px solid var(--accent);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  padding: 12px 16px;
+}
+.focus-double { border: 1px solid var(--accent); box-shadow: 0 0 0 4px rgba(94,234,212,0.12); padding: 13px 17px; }
+.focus-corner-marks {
+  position: relative; padding: 14px 18px;
+}
+.focus-corner-marks::before, .focus-corner-marks::after,
+.focus-corner-marks > .ft-title::before, .focus-corner-marks > .ft-title::after {
+  content: ''; position: absolute;
+  width: 12px; height: 12px; border-color: var(--accent);
+  border-style: solid; border-width: 0;
+}
+.focus-corner-marks::before { top: 4px; left: 4px; border-top-width: 2px; border-left-width: 2px; }
+.focus-corner-marks::after { top: 4px; right: 4px; border-top-width: 2px; border-right-width: 2px; }
+.focus-corner-marks .ft-title { position: relative; }
+.focus-corner-marks .ft-title::before { bottom: -50px; left: -10px; border-bottom-width: 2px; border-left-width: 2px; }
+.focus-corner-marks .ft-title::after { bottom: -50px; right: -10px; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* ───────── PROGRESS / SLIDER ───────── */
+.progress-stage { width: 280px; height: 8px; background: var(--surface-cool); position: relative; }
+.progress-stage .fill { display: block; height: 100%; background: var(--accent); width: 60%; }
+.prog-flat { border-radius: 0; }
+.prog-flat .fill { border-radius: 0; }
+.prog-soft { border-radius: 999px; }
+.prog-soft .fill { border-radius: 999px; }
+.prog-segmented {
+  border-radius: 0; background: transparent; height: 8px;
+  display: flex; gap: 2px;
+}
+.prog-segmented div { flex: 1; background: var(--surface-cool); height: 100%; }
+.prog-segmented div.on { background: var(--accent); }
+.prog-thin { height: 2px; border-radius: 0; }
+.prog-thin .fill { background: var(--accent); }
+.prog-dots {
+  display: flex; gap: 6px; align-items: center;
+}
+.prog-dots div { width: 10px; height: 10px; border-radius: 50%; background: var(--surface-cool); }
+.prog-dots div.on { background: var(--accent); }
+.prog-dots div.now { background: var(--now-line); box-shadow: 0 0 8px var(--now-line); }
+
+/* ───────── HEADER (intro) ───────── */
+.legend {
+  max-width: 1600px; margin: 0 auto 56px;
+  padding: 18px 24px; background: #0e0e0e;
+  border: 1px solid #1c1c1c; border-radius: 8px;
+  font-size: 13px; line-height: 1.55; color: #aaa;
+}
+
+/* ───────── INTERACTIVE PICKER ───────── */
+.variant {
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.variant:hover {
+  border-color: rgba(94,234,212,0.35);
+  transform: translateY(-2px);
+}
+.variant.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(94,234,212,0.18);
+}
+.variant.selected .variant-meta {
+  background: rgba(94,234,212,0.06);
+}
+.variant.selected::after {
+  content: '✓ YOUR PICK';
+  position: absolute; top: 12px; right: 12px;
+  background: var(--accent); color: var(--surface-deep);
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em;
+  z-index: 2;
+}
+.variant { position: relative; }
+.variant-name .check { display: none; } /* hide the static recommendation chips now that everything is clickable */
+
+/* sticky summary panel */
+.summary {
+  position: fixed; right: 24px; bottom: 24px;
+  width: 320px; max-height: 70vh; overflow-y: auto;
+  background: rgba(14,14,14,0.96);
+  border: 1px solid var(--accent-muted);
+  border-radius: 8px;
+  padding: 18px 20px;
+  font-size: 12px; line-height: 1.55;
+  z-index: 100;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.6);
+  backdrop-filter: blur(20px);
+}
+.summary.collapsed { max-height: 60px; overflow: hidden; }
+.summary-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px; padding-bottom: 10px;
+  border-bottom: 1px solid #222;
+  cursor: pointer;
+}
+.summary-head h3 {
+  font-size: 13px; font-weight: 700; color: var(--accent-light);
+  letter-spacing: 0.04em; margin: 0; flex: 1;
+}
+.summary-head .count {
+  background: var(--accent); color: var(--surface-deep);
+  padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800;
+}
+.summary-head .toggle {
+  color: var(--text-tertiary); font-size: 16px; line-height: 1;
+}
+.summary-list { display: flex; flex-direction: column; gap: 6px; }
+.summary-row {
+  display: grid; grid-template-columns: 100px 1fr;
+  gap: 8px; padding: 6px 0; border-bottom: 1px solid #1a1a1a;
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-row .cat { color: var(--text-tertiary); font-size: 11px; }
+.summary-row .pick { color: var(--accent-light); font-weight: 600; font-size: 12px; }
+.summary-row .pick.empty { color: #666; font-style: italic; font-weight: 400; }
+.summary-actions {
+  margin-top: 12px; display: flex; gap: 8px;
+}
+.summary-actions button {
+  flex: 1; background: var(--accent); color: var(--surface-deep);
+  border: 0; padding: 8px 12px; border-radius: 2px;
+  font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+  letter-spacing: 0.04em;
+}
+.summary-actions button.secondary {
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.summary-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: var(--surface-deep);
+  padding: 10px 20px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  z-index: 200;
+  animation: toast-in 2.4s ease forwards;
+}
+@keyframes toast-in {
+  0% { opacity: 0; transform: translate(-50%, 8px); }
+  10%, 80% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -8px); }
+}
+
+.legend .key {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(94,234,212,0.15); color: var(--accent);
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  margin-right: 6px;
+}
+.legend strong { color: var(--accent-light); }
+</style>
+</head>
+<body>
+
+<h1>Afterglow TV — Component Shape Studies</h1>
+<div class="subtitle">
+  Every primitive — buttons, EPG cells, text fields, channel rows, pills, focus
+  indicators, progress bars — in multiple shape variations.
+  <strong style="color: #A7F3E5;">Click any variant to pick it.</strong>
+  Picks survive page reload; the panel at the bottom-right shows your current
+  set. Click "Copy summary" when you're done and paste the result back to me.
+</div>
+
+<div class="legend">
+  <span class="key">RECT</span> sharp 0 dp corners (terminal vibe) ·
+  <span class="key">SOFT</span> 4-6 dp rounded ·
+  <span class="key">PILL</span> 999 dp fully rounded ·
+  <span class="key">STRIPE</span> accent stripe leading edge ·
+  <span class="key">BEVEL</span> cut-corner / clip-path ·
+  <span class="key">DOUBLE</span> two-edge or layered accent. <br>
+  <strong>Reading note:</strong> all components shown on the Neon Dusk palette
+  for consistency. Shape is theme-independent — what you pick here applies
+  whichever palette you're on.
+</div>
+
+<!-- ──────── BUTTONS ──────── -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-num">01</div>
+    <div class="section-title">Buttons</div>
+    <div class="section-tagline">Primary action surfaces — Add Playlist, Watch, Record, Save</div>
+  </div>
+  <div class="variants">
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-pill">Add Playlist</button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Pill</div>
+        <div class="variant-spec"><code>border-radius: 999dp</code> · fully-rounded · approachable, friendly</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-sharp">Add Playlist</button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Razor-sharp</div>
+        <div class="variant-spec"><code>border-radius: 0</code> · terminal / cyberpunk · pairs with Synthwave</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-soft">Add Playlist</button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Soft</div>
+        <div class="variant-spec"><code>border-radius: 6dp</code> · neutral, default Material vibe</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-cut">Add Playlist</button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Cut corner <span class="check">PICK</span></div>
+        <div class="variant-spec"><code>clip-path</code> 12dp top-left and bottom-right · distinctive silhouette · readable from couch distance</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-stripe">Add Playlist</button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Accent-stripe (ghost)</div>
+        <div class="variant-spec"><code>border-left: 4dp accent</code> · matches text fields · for secondary actions</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-ghost">Add Playlist</button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Outline ghost</div>
+        <div class="variant-spec">1.5 dp accent border, transparent fill · tertiary actions like Cancel</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-glass">Add Playlist</button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Glass</div>
+        <div class="variant-spec"><code>backdrop-blur: 10px</code> · for floating UI over live video</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-double">Add Playlist</button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Double-shadow</div>
+        <div class="variant-spec">4dp magenta shadow on accent button · maximum visual punch, very 80s</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><button class="btn btn-cut">▶ Watch <span class="key">OK</span></button></div>
+      <div class="variant-meta">
+        <div class="variant-name">Cut corner + key hint <span class="check">PICK</span></div>
+        <div class="variant-spec">D-pad shortcut hint inside the button · TV-native pattern</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── EPG CELLS ──────── -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-num">02</div>
+    <div class="section-title">EPG Cells</div>
+    <div class="section-tagline">The most-rendered primitive in the app — needs to read fast and feel ours</div>
+  </div>
+  <div class="variants">
+    <div class="variant">
+      <div class="variant-stage"><div class="epg-cell epg-rect"><div class="cell-time">21:30 · 30m</div><div class="cell-title">Amanpour</div><div class="cell-bar"></div></div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Rectangular</div>
+        <div class="variant-spec">0dp corners · maximum density · classic Gemstar EPG</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="epg-cell epg-soft"><div class="cell-time">21:30 · 30m</div><div class="cell-title">Amanpour</div><div class="cell-bar"></div></div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Soft</div>
+        <div class="variant-spec">4dp corners · gentle separation between cells</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="epg-cell epg-stripe"><div class="cell-time">21:30 · 30m</div><div class="cell-title">Amanpour</div><div class="cell-bar"></div></div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Accent stripe</div>
+        <div class="variant-spec">4dp leading stripe on every cell · unified with rows & fields · always identifies Afterglow</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="epg-cell epg-bevel"><div class="cell-time">21:30 · 30m</div><div class="cell-title">Amanpour</div><div class="cell-bar"></div></div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Beveled corner <span class="check">PICK</span></div>
+        <div class="variant-spec">Clipped top-left & bottom-right · gives the grid a distinctive silhouette · readable at speed</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="epg-cell epg-now"><div class="cell-time">21:30 · 30m</div><div class="cell-title">Amanpour</div><div class="cell-bar"></div></div></div>
+      <div class="variant-meta">
+        <div class="variant-name">"NOW" state <span class="check">PICK</span></div>
+        <div class="variant-spec">Accent fill + stripe + top-line + corner NOW tag · the active block in the grid</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="epg-cell epg-corner-tag"><div class="cell-time">21:30 · 30m</div><div class="cell-title">Amanpour — Live</div><div class="cell-bar"></div></div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Corner-tag</div>
+        <div class="variant-spec">Beveled LIVE tag in top-left · for live broadcasts on VOD-mixed playlists</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="epg-cell epg-glow"><div class="cell-time">21:30 · 30m</div><div class="cell-title">Amanpour</div><div class="cell-bar"></div></div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Glow (focused)</div>
+        <div class="variant-spec">Accent border + faint fill + outer glow · for the focused cell only</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="epg-cell epg-double-edge"><div class="cell-time">21:30 · 30m</div><div class="cell-title">Amanpour</div><div class="cell-bar"></div></div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Double-edge gradient</div>
+        <div class="variant-spec">Strong leading stripe + faint trailing stripe + horizontal gradient fade · most distinctive</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── TEXT FIELDS ──────── -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-num">03</div>
+    <div class="section-title">Text Fields</div>
+    <div class="section-tagline">Forms — provider URL, EPG URL, search box, rename, group titles</div>
+  </div>
+  <div class="variants">
+    <div class="variant">
+      <div class="variant-stage"><div class="field field-rect">M3U URL</div></div>
+      <div class="variant-meta"><div class="variant-name">Rectangular</div><div class="variant-spec">0dp · 1dp divider border · most neutral</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="field field-soft">M3U URL</div></div>
+      <div class="variant-meta"><div class="variant-name">Soft</div><div class="variant-spec">4dp corners · standard Material</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="field field-pill">M3U URL</div></div>
+      <div class="variant-meta"><div class="variant-name">Pill</div><div class="variant-spec">999dp · search-style · works for shorter fields</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="field field-stripe">M3U URL</div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Accent stripe (idle) <span class="check">PICK</span></div>
+        <div class="variant-spec">2dp corners + 4dp leading accent stripe · what's currently shipped</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="field field-stripe-focused">https://tv123.me/iptv/...</div></div>
+      <div class="variant-meta">
+        <div class="variant-name">Accent stripe (focused) <span class="check">PICK</span></div>
+        <div class="variant-spec">Stripe widens to 6dp + accent border + accent fill · focused state</div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="field field-underline">M3U URL</div></div>
+      <div class="variant-meta"><div class="variant-name">Underline only</div><div class="variant-spec">No background · 2dp bottom accent · very minimal · works on Pure Onyx</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="field field-double-line">M3U URL</div></div>
+      <div class="variant-meta"><div class="variant-name">Double line</div><div class="variant-spec">Thin top + thick bottom accent · spreadsheet vibe</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="field field-bracketed">M3U URL</div></div>
+      <div class="variant-meta"><div class="variant-name">Bracketed</div><div class="variant-spec">3dp accent on both edges · CLI / monospace energy</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="field-prefixed" style="width: 320px;"><div class="pre">URL</div><input value="https://tv123.me/iptv/..." style="width: 100%;"></div></div>
+      <div class="variant-meta"><div class="variant-name">Prefixed label</div><div class="variant-spec">Accent label block left of input · self-describing</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── CHANNEL ROWS ──────── -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-num">04</div>
+    <div class="section-title">Channel Rows</div>
+    <div class="section-tagline">The channel-list row in the side panel & EPG channel column</div>
+  </div>
+  <div class="variants">
+    <div class="variant">
+      <div class="variant-stage"><div class="row row-flat"><div class="num">102</div><div class="logo"></div><div class="col"><div class="name">CNN International</div><div class="sub">World Report</div></div></div></div>
+      <div class="variant-meta"><div class="variant-name">Flat</div><div class="variant-spec">0dp · no chrome · maximum density</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="row row-soft"><div class="num">102</div><div class="logo"></div><div class="col"><div class="name">CNN International</div><div class="sub">World Report</div></div></div></div>
+      <div class="variant-meta"><div class="variant-name">Soft</div><div class="variant-spec">4dp corners · gentle</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="row row-stripe"><div class="num">102</div><div class="logo"></div><div class="col"><div class="name">CNN International</div><div class="sub">World Report</div></div></div></div>
+      <div class="variant-meta"><div class="variant-name">Stripe (idle) <span class="check">PICK</span></div><div class="variant-spec">4dp accent stripe always-on · every channel wears the brand</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="row row-stripe-fill"><div class="num">102</div><div class="logo"></div><div class="col"><div class="name">CNN International</div><div class="sub">World Report</div></div></div></div>
+      <div class="variant-meta"><div class="variant-name">Stripe + fill (focused) <span class="check">PICK</span></div><div class="variant-spec">Stripe + accent-faint fill · focused state · matches text-field treatment</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="row row-bevel"><div class="num">102</div><div class="logo"></div><div class="col"><div class="name">CNN International</div><div class="sub">World Report</div></div></div></div>
+      <div class="variant-meta"><div class="variant-name">Beveled bottom-right</div><div class="variant-spec">Cut corner gives rows a distinct silhouette · ties to EPG cell bevel</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="row row-progressbar"><div class="num">102</div><div class="logo"></div><div class="col"><div class="name">CNN International</div><div class="sub">World Report · 21min / 60min</div></div></div></div>
+      <div class="variant-meta"><div class="variant-name">With now-progress <span class="check">PICK</span></div><div class="variant-spec">2dp progress bar pinned to bottom edge · how far into the current program · zero extra height cost</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="row row-bracketed"><div class="num">102</div><div class="logo"></div><div class="col"><div class="name">CNN International</div><div class="sub">World Report</div></div></div></div>
+      <div class="variant-meta"><div class="variant-name">Bracketed</div><div class="variant-spec">Both edges accented · CLI-style · pairs with bracketed field</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── PILLS / CHIPS ──────── -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-num">05</div>
+    <div class="section-title">Pills &amp; Chips</div>
+    <div class="section-tagline">Status badges — LIVE, REC, CATCH-UP, HD, 4K, AD, Subs, Premium</div>
+  </div>
+  <div class="variants">
+    <div class="variant">
+      <div class="variant-stage"><div class="pills"><span class="pill pill-round">HD</span><span class="pill pill-round">4K</span><span class="pill pill-round">Subs</span><span class="pill pill-round">Premium</span></div></div>
+      <div class="variant-meta"><div class="variant-name">Rounded</div><div class="variant-spec">999dp pills · friendly, approachable</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="pills"><span class="pill pill-square">HD</span><span class="pill pill-square">4K</span><span class="pill pill-square">Subs</span><span class="pill pill-square">Premium</span></div></div>
+      <div class="variant-meta"><div class="variant-name">Square</div><div class="variant-spec">0dp · terminal · matches Razor-sharp button</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="pills"><span class="pill pill-soft">HD</span><span class="pill pill-soft">4K</span><span class="pill pill-soft">Subs</span><span class="pill pill-soft">Premium</span></div></div>
+      <div class="variant-meta"><div class="variant-name">Soft</div><div class="variant-spec">2dp corners · most neutral</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="pills"><span class="pill pill-stripe">HD</span><span class="pill pill-stripe">4K</span><span class="pill pill-stripe">Subs</span><span class="pill pill-stripe">Premium</span></div></div>
+      <div class="variant-meta"><div class="variant-name">Striped <span class="check">PICK</span></div><div class="variant-spec">Mini accent stripe on every chip · ties to the whole system</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="pills"><span class="pill pill-bevel">HD</span><span class="pill pill-bevel">4K</span><span class="pill pill-bevel">Subs</span><span class="pill pill-bevel">Premium</span></div></div>
+      <div class="variant-meta"><div class="variant-name">Bevel-cut</div><div class="variant-spec">Parallelogram clip-path · most distinctive · 80s sci-fi vibe</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="pills"><span class="pill pill-live">LIVE</span><span class="pill pill-live">REC</span><span class="pill pill-solid">CATCH-UP</span></div></div>
+      <div class="variant-meta"><div class="variant-name">Solid + LIVE blink <span class="check">PICK</span></div><div class="variant-spec">LIVE pulses; solid for non-state pills · max attention on status</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── FOCUS INDICATORS ──────── -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-num">06</div>
+    <div class="section-title">Focus Indicators</div>
+    <div class="section-tagline">How a focused element wears its focus — applies to every interactive surface</div>
+  </div>
+  <div class="variants">
+    <div class="variant">
+      <div class="variant-stage"><div class="focus-target focus-border-only"><div class="ft-title">Live TV</div><div class="ft-sub">Channel 102</div></div></div>
+      <div class="variant-meta"><div class="variant-name">Border only</div><div class="variant-spec">3dp accent border, no fill · cheap to draw</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="focus-target focus-fill-only"><div class="ft-title">Live TV</div><div class="ft-sub">Channel 102</div></div></div>
+      <div class="variant-meta"><div class="variant-name">Fill only</div><div class="variant-spec">Accent-faint background · subtle</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="focus-target focus-stripe"><div class="ft-title">Live TV</div><div class="ft-sub">Channel 102</div></div></div>
+      <div class="variant-meta"><div class="variant-name">Stripe only</div><div class="variant-spec">6dp leading stripe · minimal visual weight</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="focus-target focus-stripe-fill"><div class="ft-title">Live TV</div><div class="ft-sub">Channel 102</div></div></div>
+      <div class="variant-meta"><div class="variant-name">Stripe + fill <span class="check">PICK</span></div><div class="variant-spec">Currently shipping · readable from couch · unifies with rows/fields/EPG cells</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="focus-target focus-glow"><div class="ft-title">Live TV</div><div class="ft-sub">Channel 102</div></div></div>
+      <div class="variant-meta"><div class="variant-name">Glow halo</div><div class="variant-spec">2dp border + 16dp outer accent glow · screams "focused" · GPU-heavier</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="focus-target focus-cut-corner"><div class="ft-title">Live TV</div><div class="ft-sub">Channel 102</div></div></div>
+      <div class="variant-meta"><div class="variant-name">Cut-corner outline</div><div class="variant-spec">2dp clip-path border · matches the cut-corner button</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="focus-target focus-double"><div class="ft-title">Live TV</div><div class="ft-sub">Channel 102</div></div></div>
+      <div class="variant-meta"><div class="variant-name">Double-ring</div><div class="variant-spec">1dp border + 4dp accent-faint ring · iOS focus look</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="focus-target focus-corner-marks"><div class="ft-title">Live TV</div><div class="ft-sub">Channel 102</div></div></div>
+      <div class="variant-meta"><div class="variant-name">Corner brackets</div><div class="variant-spec">4 L-shaped corner marks · viewfinder vibe · most distinctive</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── PROGRESS / SLIDER ──────── -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-num">07</div>
+    <div class="section-title">Progress &amp; Sliders</div>
+    <div class="section-tagline">Now-playing progress · seek bar · sync progress · channel-position dots</div>
+  </div>
+  <div class="variants">
+    <div class="variant">
+      <div class="variant-stage"><div class="progress-stage prog-flat"><span class="fill"></span></div></div>
+      <div class="variant-meta"><div class="variant-name">Flat</div><div class="variant-spec">0dp · simplest</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="progress-stage prog-soft"><span class="fill"></span></div></div>
+      <div class="variant-meta"><div class="variant-name">Pill</div><div class="variant-spec">999dp · standard Material</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage"><div class="progress-stage prog-thin"><span class="fill"></span></div></div>
+      <div class="variant-meta"><div class="variant-name">Hairline <span class="check">PICK</span></div><div class="variant-spec">2dp · unobtrusive · embeds in channel rows + cells without changing row height</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage">
+        <div class="progress-stage prog-segmented">
+          <div class="on"></div><div class="on"></div><div class="on"></div><div class="on"></div><div class="on"></div><div class="on"></div><div></div><div></div><div></div><div></div>
+        </div>
+      </div>
+      <div class="variant-meta"><div class="variant-name">Segmented</div><div class="variant-spec">10 ticks · "X out of N" reading · for chapters / episodes</div></div>
+    </div>
+    <div class="variant">
+      <div class="variant-stage">
+        <div class="prog-dots">
+          <div class="on"></div><div class="on"></div><div class="on"></div><div class="now"></div><div></div><div></div><div></div>
+        </div>
+      </div>
+      <div class="variant-meta"><div class="variant-name">Dots</div><div class="variant-spec">Discrete · with magenta now-dot · for category pagination / multi-view positions</div></div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width: 1600px; margin: 64px auto 0; padding: 24px 32px; background: #0e0e0e; border: 1px solid #222; border-radius: 8px; color: #999; font-size: 13px; line-height: 1.6;">
+  <strong style="color: #5EEAD4;">My recommendation for Afterglow's signature look:</strong>
+  <br><br>
+  <strong style="color: #fff;">Buttons:</strong> Cut-corner (sharp 0dp + 12dp clipped top-left & bottom-right) with optional inline D-pad key hint · <br>
+  <strong style="color: #fff;">EPG cells:</strong> Beveled corners (top-left + bottom-right clipped 10dp) · NOW cells get accent fill + stripe + top border + corner tag · <br>
+  <strong style="color: #fff;">Text fields:</strong> Already-shipped accent-stripe (2dp corners + 4dp leading stripe, expands to 6dp on focus + accent-faint fill) · <br>
+  <strong style="color: #fff;">Channel rows:</strong> Accent stripe + 2dp now-progress bar pinned to bottom edge · <br>
+  <strong style="color: #fff;">Pills:</strong> Striped (mini 3dp accent stripe per chip) · LIVE / REC use solid + blink animation · <br>
+  <strong style="color: #fff;">Focus:</strong> Stripe + fill (current shipping behaviour — covers rows, fields, cards, EPG cells, pills) · <br>
+  <strong style="color: #fff;">Progress:</strong> Hairline 2dp on every row · pill style on the player scrubber.
+  <br><br>
+  This combo gives Afterglow three signatures across <em>every</em> surface:
+  <span style="color: #A7F3E5;">accent stripe</span>, <span style="color: #A7F3E5;">beveled corners</span> (on cells &amp; primary buttons),
+  and the <span style="color: #A7F3E5;">2-dp hairline progress</span> on rows.
+  No other IPTV app does any of those, let alone all three.
+  Tell me which of these shapes feels right and I'll start wiring them in.
+</div>
+
+<div class="summary" id="summary">
+  <div class="summary-head" onclick="toggleSummary()">
+    <h3>Your picks</h3>
+    <span class="count" id="pickCount">0 / 7</span>
+    <span class="toggle" id="toggleArrow">▾</span>
+  </div>
+  <div class="summary-list" id="summaryList"></div>
+  <div class="summary-actions">
+    <button onclick="copyPicks()">Copy summary</button>
+    <button class="secondary" onclick="resetPicks()">Reset</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'afterglowtv-primitives-picks';
+const sections = Array.from(document.querySelectorAll('.section'));
+
+// Build a stable lookup of [category][variant] → variant element.
+const catalog = {};
+sections.forEach((sec) => {
+  const cat = sec.querySelector('.section-title')?.textContent?.trim();
+  if (!cat) return;
+  catalog[cat] = [];
+  sec.querySelectorAll('.variant').forEach((v) => {
+    const name = v.querySelector('.variant-name')?.childNodes?.[0]?.nodeValue?.trim();
+    if (!name) return;
+    v.dataset.category = cat;
+    v.dataset.variant = name;
+    catalog[cat].push(name);
+    v.addEventListener('click', () => selectVariant(cat, name));
+  });
+});
+
+let picks = loadPicks();
+renderSelections();
+renderSummary();
+
+function loadPicks() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function savePicks() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(picks));
+}
+
+function selectVariant(cat, name) {
+  if (picks[cat] === name) {
+    delete picks[cat];   // click again to deselect
+  } else {
+    picks[cat] = name;
+  }
+  savePicks();
+  renderSelections();
+  renderSummary();
+}
+
+function renderSelections() {
+  document.querySelectorAll('.variant').forEach((v) => {
+    const cat = v.dataset.category;
+    const name = v.dataset.variant;
+    if (picks[cat] === name) v.classList.add('selected');
+    else v.classList.remove('selected');
+  });
+}
+
+function renderSummary() {
+  const list = document.getElementById('summaryList');
+  const count = Object.keys(picks).length;
+  const total = Object.keys(catalog).length;
+  document.getElementById('pickCount').textContent = `${count} / ${total}`;
+  list.innerHTML = Object.keys(catalog).map((cat) => {
+    const v = picks[cat];
+    return `
+      <div class="summary-row">
+        <div class="cat">${cat}</div>
+        <div class="pick ${v ? '' : 'empty'}">${v || '— not picked —'}</div>
+      </div>`;
+  }).join('');
+}
+
+function copyPicks() {
+  const text = Object.keys(catalog).map((cat) =>
+    `${cat}: ${picks[cat] || '(none)'}`
+  ).join('\n');
+  const full = `Afterglow component picks\n--------------------------\n${text}`;
+  navigator.clipboard.writeText(full).then(() => toast('Copied to clipboard'));
+}
+
+function resetPicks() {
+  picks = {};
+  savePicks();
+  renderSelections();
+  renderSummary();
+  toast('Picks reset');
+}
+
+function toggleSummary() {
+  const s = document.getElementById('summary');
+  s.classList.toggle('collapsed');
+  document.getElementById('toggleArrow').textContent = s.classList.contains('collapsed') ? '▴' : '▾';
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'summary-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2400);
+}
+</script>
+
+</body>
+</html>

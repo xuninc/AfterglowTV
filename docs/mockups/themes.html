@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Afterglow TV — Theme Mockups</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #050505;
+    color: #ddd;
+    padding: 32px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+  .subtitle {
+    color: #888;
+    margin-bottom: 32px;
+    font-size: 14px;
+  }
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    max-width: 1800px;
+  }
+  .theme-card {
+    border: 1px solid #222;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0a0a0a;
+  }
+  .theme-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #222;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .theme-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .theme-desc {
+    font-size: 12px;
+    color: #888;
+  }
+  .theme-screens {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .screen {
+    aspect-ratio: 16/9;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    font-size: 11px;
+  }
+  .screen-label {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── Live TV with side panel ──────────────────────────────────────────── */
+  .screen-live { display: grid; grid-template-columns: 1fr 1.5fr; gap: 0; padding: 0; }
+  .live-panel { padding: 12px 10px; border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 4px; }
+  .live-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 2px; }
+  .live-row.focused { /* accent stripe + fill */
+    background: var(--focus-fill);
+    border-left: 4px solid var(--accent);
+    padding-left: 4px;
+  }
+  .live-row.current .ch-name { color: var(--accent-light); font-weight: 600; }
+  .ch-num { font-size: 10px; color: var(--text-tertiary); width: 18px; }
+  .ch-logo {
+    width: 18px; height: 18px; border-radius: 3px; background: var(--surface-accent);
+    flex-shrink: 0;
+  }
+  .ch-name { font-size: 11px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .live-stage { padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(180deg, transparent 50%, var(--surface-deep) 100%); position: relative; }
+  .live-stage::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top right, var(--accent-muted) 0%, transparent 60%);
+    opacity: 0.4;
+  }
+  .osd-title { font-size: 14px; font-weight: 600; color: var(--text-primary); position: relative; z-index: 1; }
+  .osd-now { font-size: 11px; color: var(--text-secondary); margin-top: 4px; position: relative; z-index: 1; }
+  .osd-bar { height: 3px; background: var(--surface-accent); margin-top: 10px; border-radius: 2px; overflow: hidden; position: relative; z-index: 1; }
+  .osd-bar::after { content: ''; display: block; height: 100%; width: 45%; background: var(--accent); }
+
+  /* ─── EPG grid ────────────────────────────────────────────────────────── */
+  .screen-epg { display: grid; grid-template-columns: 90px 1fr; gap: 0; padding: 0; position: relative; }
+  .epg-channels { padding: 8px 6px; border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 4px; }
+  .epg-channels .ch-row { font-size: 9px; color: var(--text-secondary); padding: 4px; }
+  .epg-grid { padding: 8px 0; position: relative; overflow: hidden; }
+  .epg-row { display: flex; gap: 2px; height: 22px; margin-bottom: 4px; padding: 0 4px; }
+  .epg-block { background: var(--surface-cool); border-radius: 1px; padding: 2px 6px; font-size: 9px; color: var(--text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .epg-block.now { background: var(--now-fill); color: var(--text-primary); border-left: 2px solid var(--accent); }
+  .epg-block.focused { background: var(--focus-fill); border: 1px solid var(--accent); }
+  .now-line { position: absolute; top: 4px; bottom: 4px; left: 40%; width: 2px; background: var(--now-line); box-shadow: 0 0 8px var(--now-line); }
+  .epg-pip {
+    position: absolute; top: 8px; right: 8px; width: 64px; height: 36px;
+    border: 2px solid var(--pip-outline); border-radius: 4px;
+    background: linear-gradient(135deg, var(--surface-accent), var(--surface-base));
+  }
+
+  /* ─── Provider Setup form ─────────────────────────────────────────────── */
+  .screen-form { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .form-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .form-field {
+    position: relative;
+    padding: 8px 10px 8px 18px;
+    background: var(--surface-cool);
+    border-radius: 2px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+  }
+  .form-field::before {
+    content: '';
+    position: absolute; left: 0; top: 6px; bottom: 6px;
+    width: 4px; background: var(--accent);
+    border-radius: 2px 0 0 2px;
+  }
+  .form-field.focused {
+    background: var(--focus-fill);
+    color: var(--text-primary);
+  }
+  .form-field.focused::before { width: 6px; }
+  .form-field .placeholder { color: var(--text-tertiary); font-style: italic; }
+  .form-button {
+    background: var(--accent);
+    color: var(--surface-deep);
+    padding: 10px 12px;
+    border-radius: 2px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .paste-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent-muted);
+    color: var(--accent-light);
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 9px;
+    align-self: flex-start;
+    margin-bottom: -4px;
+  }
+
+  /* ─── Info OSD ────────────────────────────────────────────────────────── */
+  .screen-osd {
+    padding: 0;
+    display: flex; align-items: flex-end;
+    background: linear-gradient(135deg, var(--surface-accent) 0%, var(--surface-base) 50%, transparent 60%);
+    position: relative;
+  }
+  .osd-strip {
+    width: 100%;
+    background: linear-gradient(180deg, transparent 0%, var(--surface-deep) 90%);
+    padding: 12px;
+    display: flex; gap: 12px; align-items: flex-end;
+  }
+  .osd-logo {
+    width: 36px; height: 36px; border-radius: 4px;
+    background: var(--surface-accent);
+    flex-shrink: 0;
+  }
+  .osd-body { flex: 1; }
+  .osd-channel-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .osd-pill { background: var(--now-line); color: var(--text-primary); padding: 2px 6px; border-radius: 999px; font-size: 9px; font-weight: 700; display: inline-block; margin-left: 6px; vertical-align: middle; }
+  .osd-show { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
+  .osd-progressbar { height: 2px; background: var(--surface-accent); margin-top: 8px; }
+  .osd-progressbar::after { content: ''; display: block; width: 60%; height: 100%; background: var(--accent); }
+
+  /* ─── PALETTE DEFINITIONS ──────────────────────────────────────────── */
+  .neon-dusk        { --surface-deep:#0A0E16; --surface-base:#141A24; --surface-cool:#1F2735; --surface-accent:#2A3346; --accent:#5EEAD4; --accent-light:#A7F3E5; --accent-muted:#665EEAD4; --now-line:#FF3D7F; --now-fill:#335EEAD4; --pip-outline:#5EEAD4; --focus-fill:#335EEAD4; --text-primary:#FFFFFF; --text-secondary:#B3EEEEEE; --text-tertiary:#80EEEEEE; }
+  .synthwave        { --surface-deep:#0F0524; --surface-base:#1A0B33; --surface-cool:#261144; --surface-accent:#351C5C; --accent:#FF2A6D; --accent-light:#FF6EA0; --accent-muted:#66FF2A6D; --now-line:#FFD000; --now-fill:#3300F0FF; --pip-outline:#00F0FF; --focus-fill:#3300F0FF; --text-primary:#FFE9F8; --text-secondary:#CCFFCFE5; --text-tertiary:#99FFCFE5; }
+  .vaporwave        { --surface-deep:#160427; --surface-base:#2C0C4A; --surface-cool:#3D165F; --surface-accent:#5A2484; --accent:#FF7A38; --accent-light:#FFC44A; --accent-muted:#66FF7A38; --now-line:#FF3DAF; --now-fill:#33FF7A38; --pip-outline:#FF477E; --focus-fill:#40FF7A38; --text-primary:#FFF7E8; --text-secondary:#CCFFE8C7; --text-tertiary:#99FFE8C7; }
+  .cyber-punk       { --surface-deep:#000000; --surface-base:#0A0A0A; --surface-cool:#111111; --surface-accent:#1A1A1A; --accent:#00E5FF; --accent-light:#80F0FF; --accent-muted:#6600E5FF; --now-line:#FF00B3; --now-fill:#3300E5FF; --pip-outline:#FF00B3; --focus-fill:#3300E5FF; --text-primary:#FFFFFF; --text-secondary:#CCFFFFFF; --text-tertiary:#99FFFFFF; }
+  .sunset-aurora    { --surface-deep:#160A12; --surface-base:#22121A; --surface-cool:#301B26; --surface-accent:#402533; --accent:#FF8A4C; --accent-light:#FFC799; --accent-muted:#66FF8A4C; --now-line:#FFC83D; --now-fill:#33FF8A4C; --pip-outline:#FF8A4C; --focus-fill:#33FF8A4C; --text-primary:#FFF7ED; --text-secondary:#CCFFE8D6; --text-tertiary:#99FFE8D6; }
+  .forest-mist      { --surface-deep:#0A1310; --surface-base:#101F1A; --surface-cool:#182B25; --surface-accent:#223830; --accent:#8FCFA1; --accent-light:#C2E7CC; --accent-muted:#668FCFA1; --now-line:#FFD166; --now-fill:#338FCFA1; --pip-outline:#8FCFA1; --focus-fill:#338FCFA1; --text-primary:#F0FAF4; --text-secondary:#CCE3F0E7; --text-tertiary:#99E3F0E7; }
+  .pure-onyx        { --surface-deep:#050505; --surface-base:#0F0F0F; --surface-cool:#1A1A1A; --surface-accent:#252525; --accent:#E8E8E8; --accent-light:#FFFFFF; --accent-muted:#66E8E8E8; --now-line:#E5484D; --now-fill:#33FFFFFF; --pip-outline:#E8E8E8; --focus-fill:#33FFFFFF; --text-primary:#FFFFFF; --text-secondary:#CCFFFFFF; --text-tertiary:#99FFFFFF; }
+  .tivimate-classic { --surface-deep:#060606; --surface-base:#131313; --surface-cool:#1C232C; --surface-accent:#2C333C; --accent:#2196F3; --accent-light:#90CAF9; --accent-muted:#662196F3; --now-line:#F44336; --now-fill:#602196F3; --pip-outline:#2C333C; --focus-fill:#402196F3; --text-primary:#FFFFFF; --text-secondary:#B3EEEEEE; --text-tertiary:#80EEEEEE; }
+
+  .theme-card { color: var(--text-primary); }
+  .theme-card .screen { background: var(--surface-deep); }
+  .theme-card .live-panel { background: rgba(0,0,0,0.4); }
+
+  /* Layout view selectors */
+  .toolbar {
+    display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .toolbar button {
+    background: #1a1a1a; color: #aaa; border: 1px solid #333;
+    padding: 8px 16px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; font-family: inherit;
+  }
+  .toolbar button.active { background: #5EEAD4; color: #0a0e16; border-color: #5EEAD4; }
+  .toolbar button:hover:not(.active) { border-color: #5EEAD4; color: #fff; }
+</style>
+</head>
+<body>
+<h1>Afterglow TV — Theme Mockups</h1>
+<div class="subtitle">
+  8 bundled palettes. Each card shows four representative screens: Live TV with
+  channel panel · EPG grid with corner PiP · Provider setup form · Info OSD overlay.
+  All values match the in-app AppPalette definitions exactly.
+</div>
+
+<div class="toolbar">
+  <button class="active" onclick="setView('all')">All themes</button>
+  <button onclick="setView('neon-dusk')">Neon Dusk</button>
+  <button onclick="setView('synthwave')">Synthwave</button>
+  <button onclick="setView('vaporwave')">Vaporwave</button>
+  <button onclick="setView('cyber-punk')">Cyber Punk</button>
+  <button onclick="setView('sunset-aurora')">Sunset Aurora</button>
+  <button onclick="setView('forest-mist')">Forest Mist</button>
+  <button onclick="setView('pure-onyx')">Pure Onyx</button>
+  <button onclick="setView('tivimate-classic')">TiViMate Classic</button>
+</div>
+
+<div class="theme-grid" id="grid">
+  <!-- Generated by JS -->
+</div>
+
+<script>
+const PALETTES = [
+  { id: 'neon-dusk',        name: 'Neon Dusk',         desc: 'Default — violet darks + mint-teal + magenta now-line' },
+  { id: 'synthwave',        name: 'Synthwave',         desc: 'Indigo + hot magenta + neon cyan + sun-yellow now-line' },
+  { id: 'vaporwave',        name: 'Vaporwave',         desc: 'Deep purple + melting-sun neon orange + porange (hot pink/orange)' },
+  { id: 'cyber-punk',       name: 'Cyber Punk',        desc: 'Pitch black + electric cyan + hot pink now-line' },
+  { id: 'sunset-aurora',    name: 'Sunset Aurora',     desc: 'Warm maroon + amber-orange + gold now-line' },
+  { id: 'forest-mist',      name: 'Forest Mist',       desc: 'Teal-black + sage-green + amber now-line' },
+  { id: 'pure-onyx',        name: 'Pure Onyx',         desc: 'Mono on near-black; minimal & content-first' },
+  { id: 'tivimate-classic', name: 'TiViMate Classic',  desc: 'Decompiled v5.2.0 reference palette' },
+];
+
+function cardHtml(p) {
+  return `
+    <div class="theme-card ${p.id}" data-theme="${p.id}">
+      <div class="theme-header">
+        <div class="theme-name">${p.name}</div>
+        <div class="theme-desc">${p.desc}</div>
+      </div>
+      <div class="theme-screens">
+
+        <div class="screen screen-live">
+          <div class="live-panel">
+            <div class="live-row"><div class="ch-num">101</div><div class="ch-logo"></div><div class="ch-name">FOX News HD</div></div>
+            <div class="live-row focused current"><div class="ch-num">102</div><div class="ch-logo"></div><div class="ch-name">CNN International</div></div>
+            <div class="live-row"><div class="ch-num">103</div><div class="ch-logo"></div><div class="ch-name">MSNBC HD</div></div>
+            <div class="live-row"><div class="ch-num">104</div><div class="ch-logo"></div><div class="ch-name">BBC News</div></div>
+            <div class="live-row"><div class="ch-num">105</div><div class="ch-logo"></div><div class="ch-name">Al Jazeera English</div></div>
+            <div class="live-row"><div class="ch-num">106</div><div class="ch-logo"></div><div class="ch-name">RT America</div></div>
+          </div>
+          <div class="live-stage">
+            <div class="osd-title">CNN International</div>
+            <div class="osd-now">Now: World Report · 14:00–15:00</div>
+            <div class="osd-bar"></div>
+          </div>
+          <div class="screen-label">Live · Channel panel</div>
+        </div>
+
+        <div class="screen screen-epg">
+          <div class="epg-channels">
+            <div class="ch-row">FOX News</div>
+            <div class="ch-row">CNN Int'l</div>
+            <div class="ch-row">MSNBC HD</div>
+            <div class="ch-row">BBC News</div>
+            <div class="ch-row">Al Jazeera</div>
+          </div>
+          <div class="epg-grid">
+            <div class="epg-row"><div class="epg-block">FOX&nbsp;News&nbsp;Live</div><div class="epg-block now">Special&nbsp;Report</div><div class="epg-block">The&nbsp;Five</div></div>
+            <div class="epg-row"><div class="epg-block">World&nbsp;News</div><div class="epg-block now">World&nbsp;Report</div><div class="epg-block">Amanpour</div></div>
+            <div class="epg-row"><div class="epg-block">Morning&nbsp;Joe</div><div class="epg-block now">Andrea&nbsp;Mitchell</div><div class="epg-block focused">Deadline</div></div>
+            <div class="epg-row"><div class="epg-block">BBC&nbsp;World</div><div class="epg-block now">Newsday</div><div class="epg-block">HARDtalk</div></div>
+            <div class="epg-row"><div class="epg-block">Inside&nbsp;Story</div><div class="epg-block now">News&nbsp;Live</div><div class="epg-block">The&nbsp;Stream</div></div>
+            <div class="now-line"></div>
+            <div class="epg-pip"></div>
+          </div>
+          <div class="screen-label">Guide</div>
+        </div>
+
+        <div class="screen screen-form">
+          <div class="form-title">Add Provider · URL</div>
+          <div class="paste-pill">📋 Paste M3U URL</div>
+          <div class="form-field"><span class="placeholder">M3U URL</span></div>
+          <div class="paste-pill">📋 Paste EPG URL</div>
+          <div class="form-field focused">https://tv123.me/iptv/.../IPTV</div>
+          <div class="form-button">Add Playlist</div>
+          <div class="screen-label">Provider setup</div>
+        </div>
+
+        <div class="screen screen-osd">
+          <div class="osd-strip">
+            <div class="osd-logo"></div>
+            <div class="osd-body">
+              <span class="osd-channel-name">CNN International</span><span class="osd-pill">LIVE</span>
+              <div class="osd-show">14:00–15:00 · World Report</div>
+              <div class="osd-progressbar"></div>
+            </div>
+          </div>
+          <div class="screen-label">Info OSD</div>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+function render(view) {
+  const grid = document.getElementById('grid');
+  const filtered = view === 'all' ? PALETTES : PALETTES.filter(p => p.id === view);
+  grid.innerHTML = filtered.map(cardHtml).join('');
+  // Switch to single-column big preview when one theme is selected
+  if (view !== 'all') {
+    grid.style.gridTemplateColumns = '1fr';
+    grid.style.maxWidth = '1200px';
+  } else {
+    grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    grid.style.maxWidth = '1800px';
+  }
+}
+function setView(v) {
+  document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  render(v);
+}
+render('all');
+</script>
+</body>
+</html>
