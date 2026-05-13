@@ -8,19 +8,42 @@ internal data class PlaybackBufferPolicy(
     val rebufferMs: Int
 )
 
+/**
+ * Adaptive class chosen by [com.afterglowtv.player.adaptive.AdaptiveBufferController]
+ * based on observed rebuffer rate + network class. Each value maps to a
+ * different live-buffer policy below.
+ */
+enum class BufferClass {
+    /** Clean recent playback — go snappier: smaller buffer, faster zap. */
+    AGGRESSIVE,
+    /** Default — the policy that used to be hardcoded as "stable-live". */
+    STABLE,
+    /** Recent rebuffers observed — grow the buffer to absorb blips. */
+    COMPAT,
+}
+
 internal object PlaybackBufferPolicies {
-    // Live playback — generous max buffer (60s) absorbs transient network blips
-    // without the player having to interrupt. Min buffer (8s) keeps memory
-    // bounded; bufferForPlayback (2s) and rebuffer (8s) give enough margin that
-    // we don't immediately re-stall after a recovery event.
+    // AGGRESSIVE live — for clean networks where snappy zap is more
+    // valuable than 60s of headroom. Sized to feel close to instant.
+    private const val AGGRESSIVE_LIVE_MIN_BUFFER_MS = 5_000
+    private const val AGGRESSIVE_LIVE_MAX_BUFFER_MS = 30_000
+
+    // STABLE live — the previous hardcoded default. Generous max (60s)
+    // absorbs typical CDN hiccups without interrupting; modest min (8s)
+    // keeps memory bounded and start time short.
     private const val LIVE_MIN_BUFFER_MS = 8_000
     private const val LIVE_MAX_BUFFER_MS = 60_000
-    // Compat mode is for slow/flaky streams — even more headroom, slower start.
+
+    // COMPAT live — used when the controller has observed real
+    // rebuffers recently. Bigger headroom; player tolerates flakier
+    // upstream conditions before interrupting.
     private const val COMPAT_LIVE_MIN_BUFFER_MS = 15_000
     private const val COMPAT_LIVE_MAX_BUFFER_MS = 75_000
+
     // VOD can buffer aggressively because the source is seekable / non-realtime.
     private const val VOD_MIN_BUFFER_MS = 50_000
     private const val VOD_MAX_BUFFER_MS = 180_000
+
     // Time we wait before starting playback (cold start). Kept tight at 1.5s.
     // We lean on adaptive bitrate (track selector) and the larger max buffer
     // for resilience instead of padding the cold-start wait.
@@ -30,12 +53,48 @@ internal object PlaybackBufferPolicies {
     // recovery feel sluggish.
     private const val REBUFFER_MS = 5_000
 
+    /**
+     * Legacy entry point. Compatibility-mode flag is now a derived signal
+     * — the adaptive controller will call [forBufferClass] directly. This
+     * remains so existing callers (manual user toggle in settings) keep
+     * working.
+     */
     fun forPlayback(isLive: Boolean, compatibilityMode: Boolean): PlaybackBufferPolicy = when {
-        compatibilityMode && isLive ->
-            PlaybackBufferPolicy("compat-live", COMPAT_LIVE_MIN_BUFFER_MS, COMPAT_LIVE_MAX_BUFFER_MS, PLAYBACK_BUFFER_MS, REBUFFER_MS)
-        isLive ->
-            PlaybackBufferPolicy("stable-live", LIVE_MIN_BUFFER_MS, LIVE_MAX_BUFFER_MS, PLAYBACK_BUFFER_MS, REBUFFER_MS)
-        else ->
-            PlaybackBufferPolicy("stable-vod", VOD_MIN_BUFFER_MS, VOD_MAX_BUFFER_MS, PLAYBACK_BUFFER_MS, REBUFFER_MS)
+        compatibilityMode && isLive -> forBufferClass(BufferClass.COMPAT, isLive = true)
+        isLive -> forBufferClass(BufferClass.STABLE, isLive = true)
+        else -> PlaybackBufferPolicy("stable-vod", VOD_MIN_BUFFER_MS, VOD_MAX_BUFFER_MS, PLAYBACK_BUFFER_MS, REBUFFER_MS)
+    }
+
+    /**
+     * Adaptive entry point. Called by [com.afterglowtv.player.adaptive.AdaptiveBufferController]
+     * after it reads recent telemetry from [com.afterglowtv.player.adaptive.AdaptivePlaybackRecorder].
+     */
+    internal fun forBufferClass(bufferClass: BufferClass, isLive: Boolean): PlaybackBufferPolicy {
+        if (!isLive) {
+            return PlaybackBufferPolicy("stable-vod", VOD_MIN_BUFFER_MS, VOD_MAX_BUFFER_MS, PLAYBACK_BUFFER_MS, REBUFFER_MS)
+        }
+        return when (bufferClass) {
+            BufferClass.AGGRESSIVE -> PlaybackBufferPolicy(
+                label = "aggressive-live",
+                minBufferMs = AGGRESSIVE_LIVE_MIN_BUFFER_MS,
+                maxBufferMs = AGGRESSIVE_LIVE_MAX_BUFFER_MS,
+                playbackBufferMs = PLAYBACK_BUFFER_MS,
+                rebufferMs = REBUFFER_MS,
+            )
+            BufferClass.STABLE -> PlaybackBufferPolicy(
+                label = "stable-live",
+                minBufferMs = LIVE_MIN_BUFFER_MS,
+                maxBufferMs = LIVE_MAX_BUFFER_MS,
+                playbackBufferMs = PLAYBACK_BUFFER_MS,
+                rebufferMs = REBUFFER_MS,
+            )
+            BufferClass.COMPAT -> PlaybackBufferPolicy(
+                label = "compat-live",
+                minBufferMs = COMPAT_LIVE_MIN_BUFFER_MS,
+                maxBufferMs = COMPAT_LIVE_MAX_BUFFER_MS,
+                playbackBufferMs = PLAYBACK_BUFFER_MS,
+                rebufferMs = REBUFFER_MS,
+            )
+        }
     }
 }

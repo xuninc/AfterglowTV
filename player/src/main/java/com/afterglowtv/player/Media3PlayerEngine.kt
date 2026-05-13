@@ -63,6 +63,7 @@ import com.afterglowtv.player.timeshift.LiveTimeshiftState
 import com.afterglowtv.player.timeshift.LiveTimeshiftStatus
 import com.afterglowtv.player.timeshift.TimeshiftConfig
 import com.afterglowtv.player.adaptive.AdaptiveBandwidthMeter
+import com.afterglowtv.player.adaptive.AdaptiveBufferController
 import com.afterglowtv.player.adaptive.AdaptivePlaybackEvent
 import com.afterglowtv.player.adaptive.AdaptivePlaybackRecorder
 import com.afterglowtv.player.adaptive.ConnectionPrewarmer
@@ -97,6 +98,7 @@ class Media3PlayerEngine @Inject constructor(
     private val adaptiveRecorder: AdaptivePlaybackRecorder,
     private val networkClassDetector: NetworkClassDetector,
     private val connectionPrewarmer: ConnectionPrewarmer,
+    private val adaptiveBufferController: AdaptiveBufferController,
 ) : PlayerEngine {
 
     private val adaptiveBandwidthMeter = AdaptiveBandwidthMeter()
@@ -879,10 +881,28 @@ class Media3PlayerEngine @Inject constructor(
 
     private fun createPlayer(): ExoPlayer {
         val renderersFactory = buildRenderersFactory()
-        val bufferPolicy = PlaybackBufferPolicies.forPlayback(
-            isLive = currentBufferIsLive == true,
-            compatibilityMode = activeDecoderPolicy == ActiveDecoderPolicy.COMPATIBILITY
-        )
+        // Manual compatibility-mode toggle wins over the adaptive controller —
+        // if the user explicitly opted into the slow/large buffer, respect it.
+        val bufferPolicy = if (activeDecoderPolicy == ActiveDecoderPolicy.COMPATIBILITY) {
+            PlaybackBufferPolicies.forPlayback(
+                isLive = currentBufferIsLive == true,
+                compatibilityMode = true,
+            )
+        } else if (currentBufferIsLive == true) {
+            // Live playback: ask the controller for the right class based on
+            // recent telemetry + current network class. Bitrate selection
+            // stays with Media3's DefaultTrackSelector; we only pick the
+            // BUFFER SIZE class here.
+            PlaybackBufferPolicies.forBufferClass(
+                bufferClass = adaptiveBufferController.classify(),
+                isLive = true,
+            )
+        } else {
+            // VOD never adapts buffer size — the source is seekable and the
+            // big static VOD buffer is always the right choice.
+            PlaybackBufferPolicies.forPlayback(isLive = false, compatibilityMode = false)
+        }
+        Log.i(TAG, "load-control policy=${bufferPolicy.label} live=${currentBufferIsLive == true} network=${networkClassDetector.current().displayName}")
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 bufferPolicy.minBufferMs,

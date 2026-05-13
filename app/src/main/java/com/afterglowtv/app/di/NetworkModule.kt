@@ -18,6 +18,7 @@ import com.afterglowtv.data.remote.xtream.XtreamUrlFactory
 import com.afterglowtv.data.parser.XmltvParser
 import com.afterglowtv.player.Media3PlayerEngine
 import com.afterglowtv.player.PlayerEngine
+import com.afterglowtv.player.adaptive.AdaptiveBufferController
 import com.afterglowtv.player.adaptive.AdaptivePlaybackRecorder
 import com.afterglowtv.player.adaptive.ConnectionPrewarmer
 import com.afterglowtv.player.adaptive.NetworkClassDetector
@@ -127,6 +128,7 @@ object NetworkModule {
         adaptiveRecorder: AdaptivePlaybackRecorder,
         networkClassDetector: NetworkClassDetector,
         connectionPrewarmer: ConnectionPrewarmer,
+        adaptiveBufferController: AdaptiveBufferController,
     ): PlayerEngine = Media3PlayerEngine(
         context = context,
         okHttpClient = okHttpClient,
@@ -134,6 +136,7 @@ object NetworkModule {
         adaptiveRecorder = adaptiveRecorder,
         networkClassDetector = networkClassDetector,
         connectionPrewarmer = connectionPrewarmer,
+        adaptiveBufferController = adaptiveBufferController,
     )
 
     /**
@@ -149,6 +152,7 @@ object NetworkModule {
         adaptiveRecorder: AdaptivePlaybackRecorder,
         networkClassDetector: NetworkClassDetector,
         connectionPrewarmer: ConnectionPrewarmer,
+        adaptiveBufferController: AdaptiveBufferController,
     ): PlayerEngine = Media3PlayerEngine(
         context = context,
         okHttpClient = okHttpClient,
@@ -156,6 +160,7 @@ object NetworkModule {
         adaptiveRecorder = adaptiveRecorder,
         networkClassDetector = networkClassDetector,
         connectionPrewarmer = connectionPrewarmer,
+        adaptiveBufferController = adaptiveBufferController,
     ).apply {
         enableMediaSession = false
         bypassAudioFocus = true
