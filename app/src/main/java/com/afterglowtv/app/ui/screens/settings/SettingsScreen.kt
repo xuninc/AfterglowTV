@@ -22,6 +22,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.afterglowtv.app.backup.BackupFileBridge
 import com.afterglowtv.app.diagnostics.CrashReportStore
 import com.afterglowtv.app.util.OfficialBuildVerifier
+import com.afterglowtv.app.ui.components.shell.AfterglowBrandStrip
 import com.afterglowtv.app.ui.components.shell.AppNavigationChrome
 import com.afterglowtv.app.ui.components.shell.AppScreenScaffold
 import com.afterglowtv.app.ui.theme.*
@@ -153,7 +154,13 @@ fun SettingsScreen(
             compactHeader = true,
             showScreenHeader = false
         ) {
-            Row(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                AfterglowBrandStrip(
+                    wordmark = "Settings",
+                    tagline = "Providers, playback, themes, glow — all the knobs.",
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
+                )
+                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 SettingsNavigationRail(
                     selectedCategory = dialogState.selectedCategory,
                     focusRequester = settingsNavFocusRequester,
@@ -193,6 +200,7 @@ fun SettingsScreen(
                     onOpenUri = uriHandler::openUri,
                     modifier = Modifier.weight(1f)
                 )
+                }
             }
         }
 

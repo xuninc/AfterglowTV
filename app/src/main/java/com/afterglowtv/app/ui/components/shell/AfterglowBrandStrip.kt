@@ -1,0 +1,230 @@
+package com.afterglowtv.app.ui.components.shell
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
+import androidx.compose.ui.unit.dp
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Text
+import com.afterglowtv.app.R
+import com.afterglowtv.app.ui.design.AppColors
+import com.afterglowtv.app.ui.design.GlowSpec
+import com.afterglowtv.app.ui.design.afterglow
+
+/**
+ * Shared layered backdrop used by every Afterglow-branded screen:
+ * vertical surface gradient + warm radial melt (top-right) + cool radial
+ * melt (bottom-left). Lives behind the brand strip and screen content.
+ *
+ * Use as the first child inside a `Box(Modifier.fillMaxSize())`.
+ */
+@Composable
+fun AfterglowBackdrop(modifier: Modifier = Modifier) {
+    Box(modifier = modifier) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(
+                        AppColors.TiviSurfaceDeep,
+                        AppColors.TiviSurfaceBase,
+                        AppColors.TiviSurfaceCool,
+                    ),
+                )
+            )
+        )
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        AppColors.TiviAccent.copy(alpha = 0.28f),
+                        AppColors.TiviAccent.copy(alpha = 0f),
+                    ),
+                    center = Offset(2400f, -200f),
+                    radius = 1400f,
+                )
+            )
+        )
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        AppColors.EpgNowLine.copy(alpha = 0.22f),
+                        AppColors.EpgNowLine.copy(alpha = 0f),
+                    ),
+                    center = Offset(300f, 1900f),
+                    radius = 1100f,
+                )
+            )
+        )
+    }
+}
+
+/**
+ * Compact horizontal brand strip — logo + "Afterglow / [wordmark]" + tagline.
+ *
+ * Use at the top of a screen's content area to anchor the Afterglow identity
+ * without consuming much vertical space. ~88dp tall.
+ *
+ * For full-screen splash/settings hero, use [AfterglowHero] instead.
+ *
+ * @param wordmark The accent half of the title (e.g. "Themes", "Movies",
+ *     "Series", "Live TV", "Guide", "Settings"). Rendered in accent color
+ *     beside "Afterglow".
+ * @param tagline One-line subtitle in Afterglow voice.
+ * @param logoSize 40-64dp. Defaults to 48dp for compact use.
+ */
+@Composable
+fun AfterglowBrandStrip(
+    wordmark: String,
+    tagline: String,
+    modifier: Modifier = Modifier,
+    logoSize: Dp = 48.dp,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.afterglow_logo),
+            contentDescription = "Afterglow TV",
+            modifier = Modifier
+                .size(logoSize)
+                .afterglow(
+                    specs = listOf(
+                        GlowSpec(AppColors.TiviAccent, 14.dp, 0.50f),
+                        GlowSpec(AppColors.EpgNowLine, 24.dp, 0.28f),
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                )
+                .clip(RoundedCornerShape(12.dp)),
+        )
+        Column {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "Afterglow",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = TextUnit(28f, TextUnitType.Sp),
+                    ),
+                    color = AppColors.TextPrimary,
+                )
+                Spacer(Modifier.size(10.dp))
+                Text(
+                    text = wordmark,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = TextUnit(24f, TextUnitType.Sp),
+                    ),
+                    color = AppColors.TiviAccent,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .afterglow(
+                            specs = listOf(GlowSpec(AppColors.TiviAccent, 8.dp, 0.45f)),
+                        ),
+                )
+            }
+            Text(
+                text = tagline,
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.TiviAccentLight,
+            )
+        }
+    }
+}
+
+/**
+ * Full-screen hero block — [AfterglowBackdrop] + centered logo + large
+ * "Afterglow / [wordmark]" + tagline. For Welcome and major settings screens
+ * that should feel premium and identity-forward.
+ *
+ * Pass [content] to render slot children below the hero header (e.g. a
+ * progress indicator on Welcome).
+ */
+@Composable
+fun AfterglowHero(
+    wordmark: String,
+    tagline: String? = null,
+    modifier: Modifier = Modifier,
+    logoSize: Dp = 96.dp,
+    content: @Composable ColumnScope.() -> Unit = {},
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        AfterglowBackdrop()
+        Column(
+            modifier = Modifier.fillMaxSize().padding(32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.afterglow_logo),
+                contentDescription = "Afterglow TV",
+                modifier = Modifier
+                    .size(logoSize)
+                    .afterglow(
+                        specs = listOf(
+                            GlowSpec(AppColors.TiviAccent, 28.dp, 0.60f),
+                            GlowSpec(AppColors.EpgNowLine, 48.dp, 0.36f),
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                    )
+                    .clip(RoundedCornerShape(24.dp)),
+            )
+            Spacer(Modifier.size(20.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "Afterglow",
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = TextUnit(52f, TextUnitType.Sp),
+                    ),
+                    color = AppColors.TextPrimary,
+                )
+                Spacer(Modifier.size(12.dp))
+                Text(
+                    text = wordmark,
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = TextUnit(44f, TextUnitType.Sp),
+                    ),
+                    color = AppColors.TiviAccent,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .afterglow(
+                            specs = listOf(GlowSpec(AppColors.TiviAccent, 12.dp, 0.55f)),
+                        ),
+                )
+            }
+            if (!tagline.isNullOrBlank()) {
+                Spacer(Modifier.size(10.dp))
+                Text(
+                    text = tagline,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AppColors.TiviAccentLight,
+                )
+            }
+            content()
+        }
+    }
+}

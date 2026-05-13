@@ -65,6 +65,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.afterglowtv.app.ui.components.shell.AfterglowBrandStrip
 import com.afterglowtv.app.ui.components.shell.BrowseSearchLaunchCard
 import com.afterglowtv.app.ui.components.shell.LoadMoreCard
 import com.afterglowtv.app.ui.components.shell.InfiniteScrollEffect
@@ -162,6 +163,11 @@ fun MoviesScreen(
             compactHeader = true,
             showScreenHeader = false
         ) {
+        AfterglowBrandStrip(
+            wordmark = "Movies",
+            tagline = "Your VOD library, sorted and ready.",
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
+        )
         if (uiState.isReorderMode && uiState.reorderCategory != null) {
             ReorderTopBar(
                 categoryName = uiState.reorderCategory!!.name,

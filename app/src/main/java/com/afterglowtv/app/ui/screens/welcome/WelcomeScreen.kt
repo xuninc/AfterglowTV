@@ -32,6 +32,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.afterglowtv.app.R
+import com.afterglowtv.app.ui.components.shell.AfterglowHero
 import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.app.ui.design.GlowSpec
 import com.afterglowtv.app.ui.design.afterglow
@@ -77,106 +78,18 @@ fun WelcomeScreen(
         }
     }
 
-    // ── Branded loading splash ───────────────────────────────────────────
-    // This usually flashes for ~100 ms while the provider count loads.
-    // Even at that duration it's worth making the first thing users see feel
-    // like the product they downloaded.
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Vertical surface gradient + two radial accent melts (matching the
-        // rest of the Afterglow brand language).
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    listOf(
-                        AppColors.TiviSurfaceDeep,
-                        AppColors.TiviSurfaceBase,
-                        AppColors.TiviSurfaceCool,
-                    ),
-                )
-            )
+    // Branded loading splash — usually flashes for ~100 ms while the provider
+    // count loads, but worth making the first thing users see feel like the
+    // product they downloaded.
+    AfterglowHero(
+        wordmark = "TV",
+        logoSize = 120.dp,
+    ) {
+        Spacer(Modifier.height(28.dp))
+        CircularProgressIndicator(
+            color = AppColors.TiviAccent,
+            strokeWidth = 3.dp,
+            modifier = Modifier.size(36.dp),
         )
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.TiviAccent.copy(alpha = 0.30f),
-                        AppColors.TiviAccent.copy(alpha = 0f),
-                    ),
-                    center = Offset(2400f, -200f),
-                    radius = 1400f,
-                )
-            )
-        )
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.EpgNowLine.copy(alpha = 0.22f),
-                        AppColors.EpgNowLine.copy(alpha = 0f),
-                    ),
-                    center = Offset(400f, 1900f),
-                    radius = 1200f,
-                )
-            )
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Logo with stacked teal + porange glow halo
-            Image(
-                painter = painterResource(id = R.drawable.afterglow_logo),
-                contentDescription = "Afterglow TV",
-                modifier = Modifier
-                    .size(120.dp)
-                    .afterglow(
-                        specs = listOf(
-                            GlowSpec(AppColors.TiviAccent, 32.dp, 0.65f),
-                            GlowSpec(AppColors.EpgNowLine, 56.dp, 0.40f),
-                        ),
-                        shape = RoundedCornerShape(28.dp),
-                    )
-                    .clip(RoundedCornerShape(28.dp)),
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // "Afterglow TV" wordmark inline — same composition as provider hero
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = "Afterglow",
-                    style = MaterialTheme.typography.displayMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = TextUnit(56f, TextUnitType.Sp),
-                    ),
-                    color = AppColors.TextPrimary,
-                )
-                Spacer(Modifier.size(14.dp))
-                Text(
-                    text = "TV",
-                    style = MaterialTheme.typography.displayMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = TextUnit(48f, TextUnitType.Sp),
-                    ),
-                    color = AppColors.TiviAccent,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(2.dp))
-                        .afterglow(
-                            specs = listOf(GlowSpec(AppColors.TiviAccent, 12.dp, 0.55f)),
-                        ),
-                )
-            }
-
-            Spacer(Modifier.height(28.dp))
-
-            CircularProgressIndicator(
-                color = AppColors.TiviAccent,
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(36.dp),
-            )
-        }
     }
 }

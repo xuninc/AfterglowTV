@@ -58,6 +58,7 @@ import com.afterglowtv.app.ui.components.ContinueWatchingRow
 import com.afterglowtv.app.ui.components.MovieCard
 import com.afterglowtv.app.ui.components.rememberCrossfadeImageModel
 import com.afterglowtv.app.ui.components.SeriesCard
+import com.afterglowtv.app.ui.components.shell.AfterglowBrandStrip
 import com.afterglowtv.app.ui.components.shell.AppNavigationChrome
 import com.afterglowtv.app.ui.components.shell.AppHeroHeader
 import com.afterglowtv.app.ui.components.shell.AppScreenScaffold
@@ -134,6 +135,14 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 28.dp)
             ) {
+                item(key = "afterglow_brand_strip") {
+                    AfterglowBrandStrip(
+                        wordmark = "Home",
+                        tagline = provider?.name?.let { "Connected to $it." }
+                            ?: "Pick up where you left off.",
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                    )
+                }
                 if (uiState.isLoading && orderedSections.isEmpty()) {
                     item(key = "dashboard_loading") {
                         Box(

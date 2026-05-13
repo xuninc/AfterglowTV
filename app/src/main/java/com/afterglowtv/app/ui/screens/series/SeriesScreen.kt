@@ -66,6 +66,7 @@ import androidx.compose.material3.SnackbarHostState
 import com.afterglowtv.app.ui.components.ReorderTopBar
 import com.afterglowtv.app.ui.components.dialogs.DeleteGroupDialog
 import com.afterglowtv.app.ui.components.dialogs.RenameGroupDialog
+import com.afterglowtv.app.ui.components.shell.AfterglowBrandStrip
 import com.afterglowtv.app.ui.components.shell.BrowseHeroPanel
 import com.afterglowtv.app.ui.components.shell.BrowseSearchLaunchCard
 import com.afterglowtv.app.ui.components.shell.LoadMoreCard
@@ -161,6 +162,11 @@ fun SeriesScreen(
             compactHeader = true,
             showScreenHeader = false
         ) {
+        AfterglowBrandStrip(
+            wordmark = "Series",
+            tagline = "Shows, seasons, and what's still on the queue.",
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
+        )
         if (uiState.isReorderMode && uiState.reorderCategory != null) {
             ReorderTopBar(
                 categoryName = uiState.reorderCategory!!.name,
