@@ -21,14 +21,14 @@ internal object PlaybackBufferPolicies {
     // VOD can buffer aggressively because the source is seekable / non-realtime.
     private const val VOD_MIN_BUFFER_MS = 50_000
     private const val VOD_MAX_BUFFER_MS = 180_000
-    // Time we wait before starting playback (cold start) — 2.0s is the sweet
-    // spot: faster than the Media3 default (2.5s) but with enough margin to
-    // avoid first-frame stutter on weak Wi-Fi.
-    private const val PLAYBACK_BUFFER_MS = 2_000
-    // Time we wait after a rebuffer before resuming — bigger than playback
-    // buffer because, if we just stalled, the network is probably still flaky
-    // and a small resume buffer means we'll just immediately re-stall.
-    private const val REBUFFER_MS = 8_000
+    // Time we wait before starting playback (cold start). Kept tight at 1.5s.
+    // We lean on adaptive bitrate (track selector) and the larger max buffer
+    // for resilience instead of padding the cold-start wait.
+    private const val PLAYBACK_BUFFER_MS = 1_500
+    // Time we wait after a rebuffer before resuming. 5s gives enough margin
+    // to avoid immediate re-stall on the same network blip without making
+    // recovery feel sluggish.
+    private const val REBUFFER_MS = 5_000
 
     fun forPlayback(isLive: Boolean, compatibilityMode: Boolean): PlaybackBufferPolicy = when {
         compatibilityMode && isLive ->

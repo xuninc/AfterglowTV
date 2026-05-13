@@ -4,14 +4,8 @@ import com.afterglowtv.player.PlaybackState
 
 class VideoStallDetector(
     private val nowMs: () -> Long = System::currentTimeMillis,
-    // Cold-start window where we ignore stalls — HLS / MPEG-TS often take
-    // 8-12s to deliver the first segment on weak Wi-Fi. Reporting a stall
-    // during the warmup just triggers a redundant retry.
-    private val initialGraceMs: Long = 12_000L,
-    // How long the player can sit on a buffer-loading state before we flag a
-    // real stall. Bumped from 5s — at 5s, transient HLS-segment fetches that
-    // exceed a few seconds got misclassified as stalls.
-    private val stallThresholdMs: Long = 7_000L,
+    private val initialGraceMs: Long = 8_000L,
+    private val stallThresholdMs: Long = 5_000L,
     private val minPositionAdvanceMs: Long = 1_500L
 ) {
     private var startedAtMs: Long = 0L
