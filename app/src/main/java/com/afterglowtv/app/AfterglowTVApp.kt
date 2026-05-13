@@ -56,9 +56,25 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
         }
         applicationScope.launch {
             // Load the user's saved theme palette ASAP so first-frame composition
-            // renders in the chosen palette rather than the default Neon Dusk.
+            // renders in the chosen palette rather than the default Vaporwave.
             val storedId = preferencesRepository.themePalette.first()
             AppColors.applyPalette(AppPalette.byId(storedId))
+        }
+        applicationScope.launch {
+            // Load saved Glow customization — intensity + per-role specs.
+            // Empty serialized strings mean "use the in-code defaults".
+            val intensity = preferencesRepository.glowIntensity.first()
+            com.afterglowtv.app.ui.design.Glows.applyIntensity(intensity)
+
+            preferencesRepository.glowFocusSpecs.first()
+                .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
+                ?.let { com.afterglowtv.app.ui.design.Glows.overrideFocus(it) }
+            preferencesRepository.glowLiveSpecs.first()
+                .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
+                ?.let { com.afterglowtv.app.ui.design.Glows.overrideLive(it) }
+            preferencesRepository.glowAmbientSpecs.first()
+                .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
+                ?.let { com.afterglowtv.app.ui.design.Glows.overrideAmbient(it) }
         }
         applicationScope.launch {
             refreshCachedAppUpdateIfNeeded()

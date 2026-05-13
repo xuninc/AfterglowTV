@@ -88,6 +88,10 @@ class PreferencesRepository @Inject constructor(
         val DEFAULT_CATEGORY_ID = longPreferencesKey("default_category_id")
         val THEME_PALETTE = stringPreferencesKey("theme_palette")
         val THEME_SHAPE_SET = stringPreferencesKey("theme_shape_set")
+        val GLOW_INTENSITY = stringPreferencesKey("glow_intensity")
+        val GLOW_FOCUS_SPECS = stringPreferencesKey("glow_focus_specs")
+        val GLOW_LIVE_SPECS = stringPreferencesKey("glow_live_specs")
+        val GLOW_AMBIENT_SPECS = stringPreferencesKey("glow_ambient_specs")
         val APP_LANGUAGE = stringPreferencesKey("app_language")
         val APP_TIME_FORMAT = stringPreferencesKey("app_time_format")
         val LIVE_TV_CHANNEL_MODE = stringPreferencesKey("live_tv_channel_mode")
@@ -1113,15 +1117,51 @@ class PreferencesRepository @Inject constructor(
         }
     }
 
-    /** AfterglowTV component shape-set id (see `AppShapeSet.ALL`). Defaults to "glass_cathedral". */
+    /** AfterglowTV component shape-set id (see `AppShapeSet.ALL`). Defaults to "halo". */
     val themeShapeSet: Flow<String> = context.dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.THEME_SHAPE_SET] ?: "glass_cathedral"
+        preferences[PreferencesKeys.THEME_SHAPE_SET] ?: "halo"
     }
 
     suspend fun setThemeShapeSet(shapeSetId: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_SHAPE_SET] = shapeSetId
         }
+    }
+
+    /** Global glow intensity multiplier (0.0 = off, 1.0 = baseline, 2.0 = punch). */
+    val glowIntensity: Flow<Float> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.GLOW_INTENSITY]?.toFloatOrNull() ?: 1f
+    }
+
+    suspend fun setGlowIntensity(value: Float) {
+        context.dataStore.edit { it[PreferencesKeys.GLOW_INTENSITY] = value.toString() }
+    }
+
+    /** Glow spec layers for each role, serialized as
+     *  `"AARRGGBB|radiusDp|opacity;AARRGGBB|radiusDp|opacity"`.
+     *  An empty string means "use the in-code default for that role". */
+    val glowFocusSpecs: Flow<String> = context.dataStore.data.map {
+        it[PreferencesKeys.GLOW_FOCUS_SPECS] ?: ""
+    }
+
+    val glowLiveSpecs: Flow<String> = context.dataStore.data.map {
+        it[PreferencesKeys.GLOW_LIVE_SPECS] ?: ""
+    }
+
+    val glowAmbientSpecs: Flow<String> = context.dataStore.data.map {
+        it[PreferencesKeys.GLOW_AMBIENT_SPECS] ?: ""
+    }
+
+    suspend fun setGlowFocusSpecs(serialized: String) {
+        context.dataStore.edit { it[PreferencesKeys.GLOW_FOCUS_SPECS] = serialized }
+    }
+
+    suspend fun setGlowLiveSpecs(serialized: String) {
+        context.dataStore.edit { it[PreferencesKeys.GLOW_LIVE_SPECS] = serialized }
+    }
+
+    suspend fun setGlowAmbientSpecs(serialized: String) {
+        context.dataStore.edit { it[PreferencesKeys.GLOW_AMBIENT_SPECS] = serialized }
     }
 
     val appTimeFormat: Flow<AppTimeFormat> = context.dataStore.data.map { preferences ->

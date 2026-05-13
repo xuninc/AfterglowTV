@@ -32,19 +32,50 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.afterglowtv.app.ui.design.AppColors
+import com.afterglowtv.app.ui.design.GlowSerialization
 import com.afterglowtv.app.ui.design.GlowSpec
 import com.afterglowtv.app.ui.design.Glows
 import com.afterglowtv.app.ui.design.afterglow
+import com.afterglowtv.data.preferences.PreferencesRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/** Persists Glow customizations on every slider tick / swatch tap. */
+@HiltViewModel
+class GlowSettingsViewModel @Inject constructor(
+    private val preferences: PreferencesRepository,
+) : ViewModel() {
+    fun saveIntensity(value: Float) {
+        viewModelScope.launch { preferences.setGlowIntensity(value) }
+    }
+    fun saveFocus(specs: List<GlowSpec>) {
+        viewModelScope.launch { preferences.setGlowFocusSpecs(GlowSerialization.serialize(specs)) }
+    }
+    fun saveLive(specs: List<GlowSpec>) {
+        viewModelScope.launch { preferences.setGlowLiveSpecs(GlowSerialization.serialize(specs)) }
+    }
+    fun saveAmbient(specs: List<GlowSpec>) {
+        viewModelScope.launch { preferences.setGlowAmbientSpecs(GlowSerialization.serialize(specs)) }
+    }
+}
 
 /**
  * Glow customization. Live preview tile reacts to every slider tick — same
  * pattern as the YouTube tweak. Per-role: color (preset chips), radius
  * (sliders), opacity (sliders). Plus a master intensity multiplier that
- * scales everything together (set to 0 to disable all glows).
+ * scales everything together (set to 0 to disable all glows). All changes
+ * persist via [GlowSettingsViewModel] -> [PreferencesRepository].
  */
 @Composable
-fun GlowSettingsScreen(onBack: () -> Unit = {}) {
+fun GlowSettingsScreen(
+    onBack: () -> Unit = {},
+    viewModel: GlowSettingsViewModel = hiltViewModel(),
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -70,14 +101,17 @@ fun GlowSettingsScreen(onBack: () -> Unit = {}) {
                 )
             }
 
-            item { MasterIntensityCard() }
+            item { MasterIntensityCard(onPersist = viewModel::saveIntensity) }
 
             item {
                 GlowRoleCard(
                     label = "Focus halo",
                     description = "The glow on focused rows, cards, and pills.",
                     specs = Glows.focus,
-                    onChange = { Glows.overrideFocus(it) },
+                    onChange = {
+                        Glows.overrideFocus(it)
+                        viewModel.saveFocus(it)
+                    },
                 )
             }
             item {
@@ -85,7 +119,10 @@ fun GlowSettingsScreen(onBack: () -> Unit = {}) {
                     label = "Live & now-line",
                     description = "Pulse around the LIVE pill, recording indicator, and EPG now-line.",
                     specs = Glows.live,
-                    onChange = { Glows.overrideLive(it) },
+                    onChange = {
+                        Glows.overrideLive(it)
+                        viewModel.saveLive(it)
+                    },
                 )
             }
             item {
@@ -93,7 +130,10 @@ fun GlowSettingsScreen(onBack: () -> Unit = {}) {
                     label = "Ambient",
                     description = "Subtle halo on cards, posters, and hero blocks.",
                     specs = Glows.ambient,
-                    onChange = { Glows.overrideAmbient(it) },
+                    onChange = {
+                        Glows.overrideAmbient(it)
+                        viewModel.saveAmbient(it)
+                    },
                 )
             }
         }
@@ -101,7 +141,7 @@ fun GlowSettingsScreen(onBack: () -> Unit = {}) {
 }
 
 @Composable
-private fun MasterIntensityCard() {
+private fun MasterIntensityCard(onPersist: (Float) -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -131,7 +171,10 @@ private fun MasterIntensityCard() {
         )
         Slider(
             value = Glows.intensity,
-            onValueChange = { Glows.applyIntensity(it) },
+            onValueChange = {
+                Glows.applyIntensity(it)
+                onPersist(it)
+            },
             valueRange = 0f..2f,
             colors = sliderColors(),
         )
