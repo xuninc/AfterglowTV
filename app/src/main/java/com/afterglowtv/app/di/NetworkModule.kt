@@ -68,11 +68,18 @@ object NetworkModule {
             .addInterceptor(httpLogger)
             .followRedirects(true)
             .followSslRedirects(true)
-            .connectionPool(okhttp3.ConnectionPool(10, 5, java.util.concurrent.TimeUnit.MINUTES)) // Allow more idle connections
+            // 20 idle / 10-min keep-alive — sized for Multi-View and parallel
+            // EPG / catalog fetches that all hit the same IPTV host. The default
+            // (5/5min) churns connections on every channel switch; reusing
+            // pooled connections cuts handshake latency by 100-300 ms.
+            .connectionPool(okhttp3.ConnectionPool(20, 10, java.util.concurrent.TimeUnit.MINUTES))
             .dispatcher(okhttp3.Dispatcher().apply {
                 maxRequests = 64
-                maxRequestsPerHost = 10 // Increase host limit for Multi-View
+                // Per-host cap raised to 16 — Multi-View can open up to 9
+                // streams in parallel plus catalog/EPG fetches.
+                maxRequestsPerHost = 16
             })
+            .retryOnConnectionFailure(true)
             .build()
     }
 
