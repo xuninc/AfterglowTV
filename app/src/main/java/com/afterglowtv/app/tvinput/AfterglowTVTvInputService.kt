@@ -134,11 +134,22 @@ class AfterglowTVTvInputService : TvInputService() {
         private fun inferStreamType(streamInfo: StreamInfo): StreamType {
             if (streamInfo.streamType != StreamType.UNKNOWN) return streamInfo.streamType
             val url = streamInfo.url.lowercase()
+            // Strip query / fragment before extension check — most IPTV URLs
+            // carry an auth token (e.g. `playlist.m3u8?token=...`) and the
+            // strict `endsWith(".m3u8")` check missed all of them, routing
+            // valid HLS streams into ProgressiveMediaSource which fails.
+            val path = url.substringBefore('?').substringBefore('#')
+            val query = url.substringAfter('?', "")
             return when {
-                url.endsWith(".m3u8") -> StreamType.HLS
-                url.endsWith(".mpd") -> StreamType.DASH
                 url.startsWith("rtsp") -> StreamType.RTSP
-                url.endsWith(".ts") -> StreamType.MPEG_TS
+                path.endsWith(".m3u8") -> StreamType.HLS
+                path.endsWith(".mpd") -> StreamType.DASH
+                path.endsWith(".ts") -> StreamType.MPEG_TS
+                // Path / query hints — common Xtream / Stalker URL shapes.
+                path.contains("/hls/") || query.contains("type=m3u8") ||
+                    query.contains("output=m3u8") -> StreamType.HLS
+                path.contains("/dash/") -> StreamType.DASH
+                path.contains("/live/") -> StreamType.MPEG_TS
                 else -> StreamType.PROGRESSIVE
             }
         }

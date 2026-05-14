@@ -434,13 +434,29 @@ class M3uParser {
             val url = entry.url.lowercase()
             val group = entry.groupTitle.lowercase()
 
-            return url.endsWith(".mp4") ||
-                    url.endsWith(".mkv") ||
-                    url.endsWith(".avi") ||
+            // Path-only check tolerant of tokenized URLs like:
+            //   https://host/movie.mp4?token=abc
+            //   https://host/path/movie.mkv?session=xyz
+            // The old `endsWith(".mp4")` etc. missed everything with a query
+            // string, which is basically every IPTV-hosted movie URL.
+            val path = url.substringBefore('?').substringBefore('#')
+            val hasVodExtension = path.endsWith(".mp4") ||
+                    path.endsWith(".mkv") ||
+                    path.endsWith(".avi") ||
+                    path.endsWith(".mov") ||
+                    path.endsWith(".m4v") ||
+                    path.endsWith(".webm")
+
+            return hasVodExtension ||
                     url.contains("/movie/") ||
+                    url.contains("/movies/") ||
+                    url.contains("/vod/") ||
+                    url.contains("/series/") ||
                     group.contains("movie") ||
                     group.contains("vod") ||
-                    group.contains("film")
+                    group.contains("film") ||
+                    group.contains("series") ||
+                    group.contains("season")
         }
 
         val knownAttributes = setOf(

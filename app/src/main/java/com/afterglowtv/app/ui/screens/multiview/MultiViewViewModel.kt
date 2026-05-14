@@ -387,9 +387,11 @@ class MultiViewViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(pinnedAudioSlotIndex = pinnedAudioSlotIndex)
     }
 
-    /** Clear all slots */
+    /** Clear all slots — fully releases every active player too, otherwise
+     *  network streams + audio engines survive past the visual clear and
+     *  keep eating bandwidth until something else disposes them. */
     fun clearAll() {
-        cancelSlotStartupJobs()
+        releaseActivePlayers()
         multiViewManager.clearAll()
         pinnedAudioSlotIndex = null
         _uiState.value = _uiState.value.copy(pinnedAudioSlotIndex = null)
@@ -487,9 +489,15 @@ class MultiViewViewModel @Inject constructor(
     }
 
     private fun buildCenteredTwoSlotPlan(slots: List<Channel?>): List<Channel?> {
-        val firstTwoPopulated = slots.filterNotNull().take(2)
+        // The "centered two-slot" UI is meaningless when more than two slots
+        // are populated — and applying it would silently drop the extras.
+        // If the user has 3 or 4 channels loaded, leave the layout alone:
+        // they'll see the regular 4-up layout and can clear slots manually
+        // if they want centered mode to engage.
+        val populated = slots.filterNotNull()
+        if (populated.size > 2) return slots
         return List(MultiViewManager.MAX_SLOTS) { index ->
-            firstTwoPopulated.getOrNull(index)
+            populated.getOrNull(index)
         }
     }
 

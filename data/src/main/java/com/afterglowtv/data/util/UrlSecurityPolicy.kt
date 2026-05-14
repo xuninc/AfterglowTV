@@ -96,6 +96,31 @@ object UrlSecurityPolicy {
         return value.takeIf { it.isNotEmpty() && isAllowedStreamEntryUrl(it) }
     }
 
+    /**
+     * Like [sanitizeImportedAssetUrl] but tolerates `{utc}` / `{utcend}` /
+     * `{Y}-{m}-{d}-{H}-{M}-{S}` style placeholders found in M3U
+     * `catchup-source` URLs. The strict sanitizer rejects these because
+     * `URI("http://x/{utc}.ts")` fails to parse — which silently breaks
+     * catchup (the import keeps `catchUpSupported = true` but nulls the
+     * source URL).
+     *
+     * We substitute every `{...}` token with a digit, run the resulting
+     * concrete URL through the strict validator, and on success return the
+     * ORIGINAL template string so runtime substitution still works.
+     */
+    fun sanitizeImportedTemplateUrl(url: String?): String? {
+        val value = url?.trim().orEmpty()
+        if (value.isEmpty()) return null
+        // Cheap path — no placeholders, defer to strict sanitization.
+        if (!value.contains('{')) {
+            return value.takeIf { isAllowedStreamEntryUrl(it) }
+        }
+        // Replace every `{...}` (non-greedy) with "1" to produce a URL the
+        // strict scheme/structure check can parse.
+        val concrete = value.replace(Regex("\\{[^{}]*\\}"), "1")
+        return value.takeIf { isAllowedStreamEntryUrl(concrete) }
+    }
+
     private fun hasAllowedScheme(url: String, allowedSchemes: Set<String>): Boolean {
         val scheme = parseScheme(url) ?: return false
         return scheme in allowedSchemes

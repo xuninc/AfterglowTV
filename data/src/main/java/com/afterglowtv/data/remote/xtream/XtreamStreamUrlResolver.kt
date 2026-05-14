@@ -87,9 +87,17 @@ class XtreamStreamUrlResolver @Inject constructor(
                     fallbackContainerExtension = fallbackContainerExtension
                 )?.let { return it }
             }
+            // Thread provider-level User-Agent + custom headers through every
+            // direct-URL path (M3U passthrough is the common case, but Xtream
+            // / Stalker fallbacks land here too when the URL isn't internal).
+            // Without this the M3U playback path stripped the auth/UA headers
+            // the user configured, causing CDNs that gate on UA to reject
+            // playback requests.
             return ResolvedStreamUrl(
                 url = url,
-                expirationTime = extractStreamExpirationTime(url)
+                expirationTime = extractStreamExpirationTime(url),
+                headers = providerHttpHeaders(provider),
+                userAgent = providerHttpUserAgent(provider),
             )
         }
 
@@ -142,12 +150,47 @@ class XtreamStreamUrlResolver @Inject constructor(
                 )
             }
             ProviderType.M3U -> url.takeIf { it.isNotBlank() }?.let { passthroughUrl ->
+                // M3U streams use whatever headers + User-Agent the user
+                // configured at provider setup. Until v0.1.17 this branch
+                // returned a bare URL with empty headers, so providers that
+                // gate on UA (basically anything with a CDN) silently rejected
+                // playback.
                 ResolvedStreamUrl(
                     url = passthroughUrl,
-                    expirationTime = extractStreamExpirationTime(passthroughUrl)
+                    expirationTime = extractStreamExpirationTime(passthroughUrl),
+                    headers = providerHttpHeaders(resolvedProvider),
+                    userAgent = providerHttpUserAgent(resolvedProvider),
                 )
             }
         }
+    }
+
+    /** Provider's configured User-Agent, or null when blank. */
+    private fun providerHttpUserAgent(provider: ProviderEntity?): String? =
+        provider?.httpUserAgent?.takeIf { it.isNotBlank() }
+
+    /**
+     * Parse the provider's pipe-separated `Header-Name: value|Name2: value2`
+     * format into a Map. Same format the [ProviderSetupInputValidator]
+     * accepts, so what the user typed at setup time round-trips correctly.
+     * Returns an empty map (not null) when blank so callers don't have to
+     * null-check before merging.
+     */
+    private fun providerHttpHeaders(provider: ProviderEntity?): Map<String, String> {
+        val raw = provider?.httpHeaders?.takeIf { it.isNotBlank() } ?: return emptyMap()
+        val out = linkedMapOf<String, String>()
+        for (entry in raw.split('|')) {
+            val trimmed = entry.trim()
+            if (trimmed.isEmpty()) continue
+            val colon = trimmed.indexOf(':')
+            if (colon <= 0 || colon == trimmed.lastIndex) continue
+            val name = trimmed.substring(0, colon).trim()
+            val value = trimmed.substring(colon + 1).trim()
+            if (name.isNotEmpty() && value.isNotEmpty()) {
+                out[name] = value
+            }
+        }
+        return out
     }
 
     private suspend fun resolveDirectStalkerUrl(

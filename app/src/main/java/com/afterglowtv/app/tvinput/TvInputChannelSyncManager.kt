@@ -81,18 +81,45 @@ class TvInputChannelSyncManager @Inject constructor(
     }
 
     private suspend fun loadPrograms(providerId: Long, channels: List<Channel>): Map<String, List<Program>> {
-        val epgIds = channels.mapNotNull { it.epgChannelId?.takeIf(String::isNotBlank) }
-        if (epgIds.isEmpty()) return emptyMap()
-
         val now = System.currentTimeMillis()
         val start = now - PROGRAM_LOOKBACK_MS
         val end = now + PROGRAM_LOOKAHEAD_MS
-        val merged = mutableMapOf<String, List<Program>>()
 
-        epgIds.distinct().chunked(EPG_QUERY_CHUNK_SIZE).forEach { chunk ->
-            merged += epgRepository.getProgramsForChannelsSnapshot(providerId, chunk, start, end)
+        // Native path keyed by epgChannelId — matches the consumer at the
+        // call site which does `programsByEpgId[channel.epgChannelId]`.
+        val epgIds = channels.mapNotNull { it.epgChannelId?.takeIf(String::isNotBlank) }
+        val nativeMerged = mutableMapOf<String, List<Program>>()
+        if (epgIds.isNotEmpty()) {
+            epgIds.distinct().chunked(EPG_QUERY_CHUNK_SIZE).forEach { chunk ->
+                nativeMerged += epgRepository.getProgramsForChannelsSnapshot(providerId, chunk, start, end)
+            }
         }
-        return merged
+
+        // Also pull resolved external-EPG mappings by internal channel id and
+        // re-key by epgChannelId so the consumer can look them up the same
+        // way. Resolved entries WIN over native when both exist — that's the
+        // user-configured external XMLTV taking precedence over the native
+        // provider feed.
+        val channelIds = channels.map { it.id }.filter { it > 0L }
+        if (channelIds.isNotEmpty()) {
+            val resolvedById = mutableMapOf<String, List<Program>>()
+            channelIds.distinct().chunked(EPG_QUERY_CHUNK_SIZE).forEach { chunk ->
+                resolvedById += epgRepository.getResolvedProgramsForChannels(providerId, chunk, start, end)
+            }
+            // Re-key resolved results from lookup-key to epgChannelId for
+            // channels that have one. lookupKey == epgChannelId when set,
+            // streamId.toString() otherwise — so a direct epgChannelId
+            // lookup is correct for the common case.
+            channels.forEach { ch ->
+                val epgId = ch.epgChannelId?.takeIf(String::isNotBlank) ?: return@forEach
+                val resolvedKey = epgId
+                resolvedById[resolvedKey]?.takeIf { it.isNotEmpty() }?.let {
+                    nativeMerged[epgId] = it
+                }
+            }
+        }
+
+        return nativeMerged
     }
 
     private fun loadExistingChannels(): Map<String, Long> {

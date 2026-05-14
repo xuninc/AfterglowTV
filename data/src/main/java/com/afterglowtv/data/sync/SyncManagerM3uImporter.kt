@@ -84,7 +84,10 @@ internal class SyncManagerM3uImporter(
                         }
 
                         val safeLogoUrl = UrlSecurityPolicy.sanitizeImportedAssetUrl(entry.tvgLogo)
-                        val safeCatchUpSource = UrlSecurityPolicy.sanitizeImportedAssetUrl(entry.catchUpSource)
+                        // Catchup sources almost always contain `{utc}` / `{Y}-{m}-{d}-...`
+                        // placeholders. The template-tolerant sanitizer keeps the
+                        // placeholders intact so runtime substitution can fill them in.
+                        val safeCatchUpSource = UrlSecurityPolicy.sanitizeImportedTemplateUrl(entry.catchUpSource)
 
                         if (provider.m3uVodClassificationEnabled && M3uParser.isVodEntry(entry)) {
                             if (!includeMovies) return@parseStreaming
