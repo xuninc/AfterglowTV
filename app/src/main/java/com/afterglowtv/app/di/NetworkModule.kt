@@ -70,6 +70,12 @@ object NetworkModule {
             // a single connection (no head-of-line blocking when one segment
             // is slow). Origins that don't support H2 fall back to HTTP/1.1.
             .protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
+            // App-level DNS cache wraps the system resolver. The system
+            // cache TTL is ~30s on most Android builds, which is shorter
+            // than a typical IPTV session — every channel switch beyond
+            // that window pays a fresh DNS round-trip. Our 5-minute TTL
+            // turns that into a no-op for the steady-state user.
+            .dns(CachingDns())
             .connectTimeout(NetworkTimeoutConfig.CONNECT_TIMEOUT_SECONDS, SECONDS)
             .readTimeout(NetworkTimeoutConfig.READ_TIMEOUT_SECONDS, SECONDS)
             .writeTimeout(NetworkTimeoutConfig.WRITE_TIMEOUT_SECONDS, SECONDS)

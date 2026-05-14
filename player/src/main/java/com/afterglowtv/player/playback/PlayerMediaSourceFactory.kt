@@ -10,6 +10,7 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.exoplayer.dash.DashMediaSource
+import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -48,6 +49,11 @@ class PlayerMediaSourceFactory(
                 // segment — meaningful on flaky networks where each request
                 // can take 1-3s. Safe to leave on for unencrypted streams.
                 .setUseSessionKeys(true)
+                // Surface CEA-608 captions even when the manifest doesn't
+                // declare them — many IPTV providers ship CC inside the
+                // MPEG-TS payload without advertising in #EXT-X-MEDIA. Without
+                // this flag, those captions silently never appear.
+                .setExtractorFactory(DefaultHlsExtractorFactory(0, true))
                 .setLoadErrorHandlingPolicy(retryPolicy)
                 .createMediaSource(mediaItem)
 
