@@ -42,7 +42,7 @@ class PlayerTrackController(
     }
 
     fun applyInitialParameters(player: ExoPlayer, constrainResolutionForMultiView: Boolean) {
-        player.trackSelectionParameters = player.trackSelectionParameters
+        val baseParams = player.trackSelectionParameters
             .buildUpon()
             .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
             .clearOverridesOfType(C.TRACK_TYPE_TEXT)
@@ -57,6 +57,20 @@ class PlayerTrackController(
                 } ?: clearVideoSizeConstraints()
             }
             .build()
+        // Request tunneled MediaCodec playback. On Android TV / Fire TV
+        // this lets the audio+video decoders run on a dedicated tunnel
+        // that bypasses the SoC's CPU — frames go straight from the
+        // hardware decoder to the HDMI output. Lower CPU, lower power,
+        // and avoids the A/V sync drift that pure-CPU pipelines can
+        // accumulate. setTunnelingEnabled lives on DefaultTrackSelector's
+        // Parameters.Builder specifically (not the base interface), so we
+        // only layer it on when the underlying selector is the default —
+        // safe on phones and older devices (falls back to non-tunneled).
+        player.trackSelectionParameters = if (baseParams is androidx.media3.exoplayer.trackselection.DefaultTrackSelector.Parameters) {
+            baseParams.buildUpon().setTunnelingEnabled(true).build()
+        } else {
+            baseParams
+        }
     }
 
     fun setPreferredAudioLanguage(player: ExoPlayer?, languageTag: String?) {

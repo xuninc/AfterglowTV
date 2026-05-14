@@ -970,6 +970,16 @@ class Media3PlayerEngine @Inject constructor(
             .setBandwidthMeter(bandwidthMeter)
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(10_000)
+            // Frame-rate matching. On Android 11+ / Fire TV, when content
+            // metadata exposes a frame rate, ExoPlayer asks the platform
+            // to switch the display refresh rate to match (24 Hz for 24 fps
+            // film, 50 Hz for PAL, 60 Hz for sports). Without this, 24 fps
+            // film on a 60 Hz panel gets a 3:2 pulldown that causes
+            // microscopic but visible judder during pans. ONLY_IF_SEAMLESS
+            // ensures we never blank the screen for the switch — the panel
+            // either supports the rate seamlessly or we keep the current
+            // refresh rate.
+            .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS)
             // Turn off Media3's anonymous Google diagnostics reporter — it
             // wakes a worker thread and a JNI call on every player start to
             // upload a small device fingerprint. We don't need it; the
