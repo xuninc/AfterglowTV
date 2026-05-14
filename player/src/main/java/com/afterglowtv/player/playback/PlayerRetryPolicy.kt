@@ -9,8 +9,11 @@ import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import kotlin.random.Random
 
 private const val LIVE_WINDOW_RETRY_DELAY_MS = 500L
+private const val RETRY_BASE_MS = 1_000L
+private const val RETRY_CAP_MS = 5_000L
 
 data class PlaybackRetryContext(
     val resolvedStreamType: ResolvedStreamType,
@@ -47,11 +50,15 @@ class PlayerRetryPolicy(
         if (PlayerErrorClassifier.classify(error) == PlaybackErrorCategory.LIVE_WINDOW) {
             return LIVE_WINDOW_RETRY_DELAY_MS
         }
-        return when (attempt) {
-            1 -> 1_000L
-            2 -> 2_500L
-            else -> 5_000L
-        }.coerceAtMost(5_000L)
+        // AWS-style exponential backoff with FULL JITTER. The base value
+        // doubles each attempt up to a cap, then we pick a uniformly
+        // random delay in [0, ceiling]. Two playback engines (e.g. Multi-View)
+        // hitting the same flaky origin no longer wake up in lockstep.
+        //
+        // Reference: AWS Architecture Blog — "Exponential Backoff And Jitter".
+        // attempt=1 -> ceiling 2s, attempt=2 -> ceiling 4s, attempt=3+ -> ceiling 5s.
+        val ceiling = (RETRY_BASE_MS shl attempt.coerceIn(0, 4)).coerceAtMost(RETRY_CAP_MS)
+        return Random.nextLong(0, ceiling.coerceAtLeast(1L) + 1)
     }
 
     fun retryReason(error: Throwable): String {

@@ -43,6 +43,11 @@ class PlayerMediaSourceFactory(
                 RtspMediaSource.Factory().createMediaSource(mediaItem)
             resolvedStreamType == ResolvedStreamType.HLS -> HlsMediaSource.Factory(dataSourceFactory)
                 .setAllowChunklessPreparation(true)
+                // Share AES-128 session keys across segments. For encrypted HLS
+                // (common in protected providers) this saves one key fetch per
+                // segment — meaningful on flaky networks where each request
+                // can take 1-3s. Safe to leave on for unencrypted streams.
+                .setUseSessionKeys(true)
                 .setLoadErrorHandlingPolicy(retryPolicy)
                 .createMediaSource(mediaItem)
 

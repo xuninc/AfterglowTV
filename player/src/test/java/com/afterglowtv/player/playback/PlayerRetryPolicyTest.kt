@@ -16,15 +16,23 @@ class PlayerRetryPolicyTest {
     private val policy = PlayerRetryPolicy(liveContext) { false }
 
     @Test
-    fun `500 before first frame retries 3 times with expected backoff`() {
+    fun `500 before first frame retries 3 times with jittered backoff`() {
         val error = IOException("HTTP 500")
         assertThat(policy.shouldRetry(error, liveContext, playbackStarted = false, attempt = 1)).isTrue()
         assertThat(policy.shouldRetry(error, liveContext, playbackStarted = false, attempt = 2)).isTrue()
         assertThat(policy.shouldRetry(error, liveContext, playbackStarted = false, attempt = 3)).isTrue()
         assertThat(policy.shouldRetry(error, liveContext, playbackStarted = false, attempt = 4)).isFalse()
-        assertThat(policy.retryDelayMs(error, 1)).isEqualTo(1000L)
-        assertThat(policy.retryDelayMs(error, 2)).isEqualTo(2500L)
-        assertThat(policy.retryDelayMs(error, 3)).isEqualTo(5000L)
+        // AWS-style full jitter: each delay is uniform in [0, ceiling].
+        // Sample 50 times per attempt and assert the spread is bounded by
+        // the expected ceiling for that attempt.
+        repeat(50) {
+            assertThat(policy.retryDelayMs(error, 1)).isAtMost(2_000L)
+            assertThat(policy.retryDelayMs(error, 2)).isAtMost(4_000L)
+            assertThat(policy.retryDelayMs(error, 3)).isAtMost(5_000L)
+        }
+        // Sanity: at least one sample exceeds 0 — otherwise the jitter is broken.
+        val anyNonZeroAt2 = (1..50).any { policy.retryDelayMs(error, 2) > 0L }
+        assertThat(anyNonZeroAt2).isTrue()
     }
 
     @Test

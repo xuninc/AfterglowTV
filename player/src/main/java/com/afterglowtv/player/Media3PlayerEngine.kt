@@ -67,6 +67,7 @@ import com.afterglowtv.player.adaptive.AdaptiveBufferController
 import com.afterglowtv.player.adaptive.AdaptivePlaybackEvent
 import com.afterglowtv.player.adaptive.AdaptivePlaybackRecorder
 import com.afterglowtv.player.adaptive.ConnectionPrewarmer
+import com.afterglowtv.player.adaptive.NetworkClass
 import com.afterglowtv.player.adaptive.NetworkClassDetector
 import com.afterglowtv.player.tracks.PlayerTrackController
 import com.afterglowtv.player.ui.PlayerViewBinder
@@ -271,11 +272,45 @@ class Media3PlayerEngine @Inject constructor(
         startEngineCollectors()
     }
 
+    private var lastSeenNetworkClass: NetworkClass = networkClassDetector.current()
+
     private fun startEngineCollectors() {
         if (isDisposed) return
         scope.launch {
             liveTimeshiftManager.state.collectLatest {
                 syncTimeshiftState()
+            }
+        }
+        // React to transport class changes mid-playback. When the user goes
+        // from a stable transport (Wi-Fi / Ethernet) to a cellular tier, the
+        // bandwidth meter's optimistic prior (Wi-Fi = 6 Mbps) is now wrong
+        // and the track selector may have picked a variant the network can't
+        // sustain. Re-prepare with a fresh meter so the new prior lands
+        // immediately instead of waiting 5-10s for the EMA to converge.
+        scope.launch {
+            networkClassDetector.networkClass.collectLatest { newClass ->
+                val previous = lastSeenNetworkClass
+                lastSeenNetworkClass = newClass
+                if (previous == newClass) return@collectLatest
+                val wasStable = previous in setOf(NetworkClass.WIFI, NetworkClass.ETHERNET)
+                val isCellular = newClass in setOf(
+                    NetworkClass.CELLULAR_5G, NetworkClass.CELLULAR_4G,
+                    NetworkClass.CELLULAR_3G, NetworkClass.CELLULAR_2G,
+                )
+                if (wasStable && isCellular && playbackStarted) {
+                    val currentInfo = lastStreamInfo ?: return@collectLatest
+                    val resumePosition = exoPlayer?.currentPosition?.takeIf { it > 0L }
+                    Log.i(
+                        TAG,
+                        "network-handoff from=${previous.displayName} to=${newClass.displayName} resume=$resumePosition",
+                    )
+                    prepareInternal(
+                        streamInfo = currentInfo,
+                        preserveRetryState = false,
+                        seekPositionMs = resumePosition,
+                        autoPlay = true,
+                    )
+                }
             }
         }
         scope.launch {

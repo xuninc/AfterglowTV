@@ -65,6 +65,11 @@ object NetworkModule {
                     maxSize = 256L * 1024 * 1024
                 )
             )
+            // Explicitly prefer HTTP/2. OkHttp negotiates via ALPN — IPTV
+            // origins that support H2 get multiplexed segment fetches over
+            // a single connection (no head-of-line blocking when one segment
+            // is slow). Origins that don't support H2 fall back to HTTP/1.1.
+            .protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
             .connectTimeout(NetworkTimeoutConfig.CONNECT_TIMEOUT_SECONDS, SECONDS)
             .readTimeout(NetworkTimeoutConfig.READ_TIMEOUT_SECONDS, SECONDS)
             .writeTimeout(NetworkTimeoutConfig.WRITE_TIMEOUT_SECONDS, SECONDS)
