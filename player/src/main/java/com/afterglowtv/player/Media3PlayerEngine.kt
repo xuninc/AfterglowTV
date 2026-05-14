@@ -947,9 +947,17 @@ class Media3PlayerEngine @Inject constructor(
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
+        // Live catchup. After a rebuffer the player would normally stay 1-2s
+        // behind the live edge forever — that distance is exactly the
+        // rebuffer recovery cost. With a 1.04× max speed, the player
+        // imperceptibly accelerates until back at the live edge, then
+        // returns to normal. Pacing is from Twitch's published LL-HLS guide
+        // (they use 1.05× max, 0.97× min; we go slightly conservative
+        // because IPTV providers don't always advertise a `target-latency`
+        // and we don't want to outrun the buffer).
         val livePlaybackSpeedControl = DefaultLivePlaybackSpeedControl.Builder()
-            .setFallbackMinPlaybackSpeed(1.0f)
-            .setFallbackMaxPlaybackSpeed(1.0f)
+            .setFallbackMinPlaybackSpeed(0.97f)
+            .setFallbackMaxPlaybackSpeed(1.04f)
             .build()
 
         // Adaptive bandwidth meter — per-transport priors (Shaka-style)
@@ -962,6 +970,12 @@ class Media3PlayerEngine @Inject constructor(
             .setBandwidthMeter(bandwidthMeter)
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(10_000)
+            // Turn off Media3's anonymous Google diagnostics reporter — it
+            // wakes a worker thread and a JNI call on every player start to
+            // upload a small device fingerprint. We don't need it; the
+            // wakeup adds ~5-30ms to cold-start on slow devices for zero
+            // user benefit.
+            .setUsePlatformDiagnostics(false)
             .setAudioAttributes(
                 Media3AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -970,6 +984,23 @@ class Media3PlayerEngine @Inject constructor(
                 false
             )
             .build()
+            .apply {
+                // Audio offload — let the device's audio DSP decode AAC/AC3/
+                // EAC3 directly instead of the SoC's CPU. On Fire TV this
+                // halves audio-decode power and frees CPU for the video
+                // decoder. Falls back silently to CPU decode on devices
+                // that don't support it.
+                trackSelectionParameters = trackSelectionParameters
+                    .buildUpon()
+                    .setAudioOffloadPreferences(
+                        androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                            .setAudioOffloadMode(androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
+                            .setIsGaplessSupportRequired(false)
+                            .setIsSpeedChangeSupportRequired(true) // need playback-speed adjustment for live catchup
+                            .build()
+                    )
+                    .build()
+            }
             .apply {
                 videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
                 playbackParameters = PlaybackParameters(_playbackSpeed.value)
