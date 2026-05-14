@@ -59,6 +59,15 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
             // renders in the chosen palette rather than the default Vaporwave.
             val storedId = preferencesRepository.themePalette.first()
             AppColors.applyPalette(AppPalette.byId(storedId))
+
+            // Apply the bundled shape-set first, then layer any per-axis
+            // overrides on top. Per-axis prefs are cleared whenever the user
+            // switches the bundled set, so this composition order is right.
+            val shapeSetId = preferencesRepository.themeShapeSet.first()
+            com.afterglowtv.app.ui.design.AppStyles.apply(
+                com.afterglowtv.app.ui.design.AppShapeSet.byId(shapeSetId)
+            )
+            applyPerAxisStyleOverrides()
         }
         applicationScope.launch {
             // Load saved Glow customization — intensity + per-role specs.
@@ -109,6 +118,41 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
     override fun onTerminate() {
         runtimeDiagnosticsManager.stop()
         super.onTerminate()
+    }
+
+    private suspend fun applyPerAxisStyleOverrides() {
+        preferencesRepository.styleButton.first()?.let { saved ->
+            runCatching { com.afterglowtv.app.ui.design.AppShapeSet.ButtonStyle.valueOf(saved) }
+                .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setButton)
+        }
+        preferencesRepository.styleEpgCell.first()?.let { saved ->
+            runCatching { com.afterglowtv.app.ui.design.AppShapeSet.EpgCellStyle.valueOf(saved) }
+                .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setEpgCell)
+        }
+        preferencesRepository.styleEpgLiveCell.first()?.let { saved ->
+            runCatching { com.afterglowtv.app.ui.design.AppShapeSet.EpgLiveCellStyle.valueOf(saved) }
+                .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setEpgLiveCell)
+        }
+        preferencesRepository.styleTextField.first()?.let { saved ->
+            runCatching { com.afterglowtv.app.ui.design.AppShapeSet.TextFieldStyle.valueOf(saved) }
+                .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setTextField)
+        }
+        preferencesRepository.styleChannelRow.first()?.let { saved ->
+            runCatching { com.afterglowtv.app.ui.design.AppShapeSet.ChannelRowStyle.valueOf(saved) }
+                .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setChannelRow)
+        }
+        preferencesRepository.stylePill.first()?.let { saved ->
+            runCatching { com.afterglowtv.app.ui.design.AppShapeSet.PillStyle.valueOf(saved) }
+                .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setPill)
+        }
+        preferencesRepository.styleFocus.first()?.let { saved ->
+            runCatching { com.afterglowtv.app.ui.design.AppShapeSet.FocusStyle.valueOf(saved) }
+                .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setFocus)
+        }
+        preferencesRepository.styleProgress.first()?.let { saved ->
+            runCatching { com.afterglowtv.app.ui.design.AppShapeSet.ProgressStyle.valueOf(saved) }
+                .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setProgress)
+        }
     }
 
     private suspend fun refreshCachedAppUpdateIfNeeded() {

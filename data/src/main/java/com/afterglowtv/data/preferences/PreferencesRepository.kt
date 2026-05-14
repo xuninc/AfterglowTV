@@ -88,6 +88,17 @@ class PreferencesRepository @Inject constructor(
         val DEFAULT_CATEGORY_ID = longPreferencesKey("default_category_id")
         val THEME_PALETTE = stringPreferencesKey("theme_palette")
         val THEME_SHAPE_SET = stringPreferencesKey("theme_shape_set")
+        // Per-axis style overrides — null when the user hasn't deviated from
+        // the shape-set defaults. When set, the per-axis value wins over the
+        // shape-set value at apply time.
+        val STYLE_BUTTON = stringPreferencesKey("style_button")
+        val STYLE_EPG_CELL = stringPreferencesKey("style_epg_cell")
+        val STYLE_EPG_LIVE_CELL = stringPreferencesKey("style_epg_live_cell")
+        val STYLE_TEXT_FIELD = stringPreferencesKey("style_text_field")
+        val STYLE_CHANNEL_ROW = stringPreferencesKey("style_channel_row")
+        val STYLE_PILL = stringPreferencesKey("style_pill")
+        val STYLE_FOCUS = stringPreferencesKey("style_focus")
+        val STYLE_PROGRESS = stringPreferencesKey("style_progress")
         val GLOW_INTENSITY = stringPreferencesKey("glow_intensity")
         val GLOW_FOCUS_SPECS = stringPreferencesKey("glow_focus_specs")
         val GLOW_LIVE_SPECS = stringPreferencesKey("glow_live_specs")
@@ -1106,9 +1117,9 @@ class PreferencesRepository @Inject constructor(
         }
     }
 
-    /** AfterglowTV theme palette id (see `AppPalette.ALL`). Defaults to "vaporwave". */
+    /** AfterglowTV theme palette id (see `AppPalette.ALL`). Defaults to "afterglow_sunset" (Peach). */
     val themePalette: Flow<String> = context.dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.THEME_PALETTE] ?: "vaporwave"
+        preferences[PreferencesKeys.THEME_PALETTE] ?: "afterglow_sunset"
     }
 
     suspend fun setThemePalette(paletteId: String) {
@@ -1125,7 +1136,39 @@ class PreferencesRepository @Inject constructor(
     suspend fun setThemeShapeSet(shapeSetId: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_SHAPE_SET] = shapeSetId
+            // Switching the entire shape set wipes per-axis overrides so the
+            // user can start from a clean slate.
+            preferences.remove(PreferencesKeys.STYLE_BUTTON)
+            preferences.remove(PreferencesKeys.STYLE_EPG_CELL)
+            preferences.remove(PreferencesKeys.STYLE_EPG_LIVE_CELL)
+            preferences.remove(PreferencesKeys.STYLE_TEXT_FIELD)
+            preferences.remove(PreferencesKeys.STYLE_CHANNEL_ROW)
+            preferences.remove(PreferencesKeys.STYLE_PILL)
+            preferences.remove(PreferencesKeys.STYLE_FOCUS)
+            preferences.remove(PreferencesKeys.STYLE_PROGRESS)
         }
+    }
+
+    val styleButton: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_BUTTON] }
+    val styleEpgCell: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_EPG_CELL] }
+    val styleEpgLiveCell: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_EPG_LIVE_CELL] }
+    val styleTextField: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_TEXT_FIELD] }
+    val styleChannelRow: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_CHANNEL_ROW] }
+    val stylePill: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_PILL] }
+    val styleFocus: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_FOCUS] }
+    val styleProgress: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_PROGRESS] }
+
+    suspend fun setStyleButton(value: String) = setStringPref(PreferencesKeys.STYLE_BUTTON, value)
+    suspend fun setStyleEpgCell(value: String) = setStringPref(PreferencesKeys.STYLE_EPG_CELL, value)
+    suspend fun setStyleEpgLiveCell(value: String) = setStringPref(PreferencesKeys.STYLE_EPG_LIVE_CELL, value)
+    suspend fun setStyleTextField(value: String) = setStringPref(PreferencesKeys.STYLE_TEXT_FIELD, value)
+    suspend fun setStyleChannelRow(value: String) = setStringPref(PreferencesKeys.STYLE_CHANNEL_ROW, value)
+    suspend fun setStylePill(value: String) = setStringPref(PreferencesKeys.STYLE_PILL, value)
+    suspend fun setStyleFocus(value: String) = setStringPref(PreferencesKeys.STYLE_FOCUS, value)
+    suspend fun setStyleProgress(value: String) = setStringPref(PreferencesKeys.STYLE_PROGRESS, value)
+
+    private suspend fun setStringPref(key: androidx.datastore.preferences.core.Preferences.Key<String>, value: String) {
+        context.dataStore.edit { preferences -> preferences[key] = value }
     }
 
     /** Global glow intensity multiplier (0.0 = off, 1.0 = baseline, 2.0 = punch). */

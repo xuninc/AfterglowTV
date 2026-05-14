@@ -252,8 +252,18 @@ class EpgViewModel @Inject constructor(
     private val programReminderManager: ProgramReminderManager,
     private val getCustomCategories: GetCustomCategories,
     private val scheduleRecording: ScheduleRecording,
-    private val recordingManager: RecordingManager
+    private val recordingManager: RecordingManager,
+    private val positionMemo: EpgPositionMemo,
 ) : ViewModel() {
+
+    /** Read by [FullEpgScreen] at first composition to restore the user's last
+     *  spot in the guide. Returns null on first launch / after [positionMemo.clear]. */
+    fun lastPosition(): EpgPositionMemo.Snapshot? = positionMemo.snapshot()
+
+    /** Called by [FullEpgScreen] from `onChannelFocused` / `onProgramFocused`. */
+    fun rememberPosition(channelId: Long, programStartMs: Long, categoryId: Long?) {
+        positionMemo.remember(channelId, programStartMs, categoryId)
+    }
 
     companion object {
         const val MAX_CHANNELS = 60

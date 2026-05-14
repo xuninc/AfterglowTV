@@ -58,7 +58,7 @@ class ThemePickerViewModel @Inject constructor(
     val activePaletteId = preferences.themePalette.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
-        "vaporwave",
+        "afterglow_sunset",
     )
 
     fun select(palette: AppPalette) {

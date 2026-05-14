@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.focusable
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
@@ -231,13 +235,14 @@ private fun MasterIntensityCard(onPersist: (Float) -> Unit = {}) {
             style = MaterialTheme.typography.bodySmall,
             color = AppColors.TextTertiary,
         )
-        Slider(
+        DpadSlider(
             value = Glows.intensity,
             onValueChange = {
                 Glows.applyIntensity(it)
                 onPersist(it)
             },
             valueRange = 0f..2f,
+            step = 0.1f,
             colors = sliderColors(),
         )
     }
@@ -351,10 +356,11 @@ private fun GlowLayerControls(
                 color = AppColors.TextSecondary,
                 modifier = Modifier.width(72.dp),
             )
-            Slider(
+            DpadSlider(
                 value = spec.radius.value,
                 onValueChange = { onChange(spec.copy(radius = it.dp)) },
                 valueRange = 0f..48f,
+                step = 2f,
                 colors = sliderColors(),
                 modifier = Modifier.weight(1f),
             )
@@ -374,10 +380,11 @@ private fun GlowLayerControls(
                 color = AppColors.TextSecondary,
                 modifier = Modifier.width(72.dp),
             )
-            Slider(
+            DpadSlider(
                 value = spec.opacity,
                 onValueChange = { onChange(spec.copy(opacity = it)) },
                 valueRange = 0f..1f,
+                step = 0.05f,
                 colors = sliderColors(),
                 modifier = Modifier.weight(1f),
             )
@@ -426,3 +433,58 @@ private fun sliderColors() = SliderDefaults.colors(
     activeTrackColor = AppColors.TiviAccent,
     inactiveTrackColor = AppColors.TiviSurfaceAccent,
 )
+
+/**
+ * D-pad-friendly slider for Fire TV / Android TV. Wraps a Material [Slider]
+ * in a focusable [Box] that intercepts DPAD_LEFT / DPAD_RIGHT and steps the
+ * value by [step]. Without this wrapper, Fire TV remotes can FOCUS a Material
+ * slider but can't ADJUST it — the standard slider responds only to gesture
+ * drags / keyboard arrows (which Fire TV remotes don't emit).
+ *
+ * A subtle accent-colored border appears on the wrapper when focused so the
+ * user can see which slider they're currently controlling.
+ */
+@Composable
+private fun DpadSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
+    colors: SliderColors,
+    modifier: Modifier = Modifier,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(8.dp)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .border(
+                width = if (isFocused) 2.dp else 1.dp,
+                color = if (isFocused) AppColors.TiviAccent else Color.Transparent,
+                shape = shape,
+            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .focusable()
+            .onFocusChanged { isFocused = it.isFocused }
+            .onPreviewKeyEvent { event ->
+                if (event.nativeKeyEvent.action != android.view.KeyEvent.ACTION_DOWN) {
+                    return@onPreviewKeyEvent false
+                }
+                val newValue = when (event.nativeKeyEvent.keyCode) {
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT -> value - step
+                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> value + step
+                    else -> return@onPreviewKeyEvent false
+                }
+                onValueChange(newValue.coerceIn(valueRange.start, valueRange.endInclusive))
+                true
+            },
+    ) {
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            colors = colors,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}

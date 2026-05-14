@@ -148,7 +148,14 @@ fun FullEpgScreen(
     var selectedProgram by remember { mutableStateOf<Pair<Channel, Program>?>(null) }
     var focusedChannel by remember { mutableStateOf<Channel?>(null) }
     var focusedProgram by remember { mutableStateOf<Program?>(null) }
-    var topNavVisible by rememberSaveable { mutableStateOf(true) }
+    // Snapshot captured at composition time — used once, by the grid's
+    // first-resolve effect below, to restore the user's last spot in the
+    // guide after they navigate away and come back.
+    val savedPosition = remember { viewModel.lastPosition() }
+    // Default to hidden so the guide fills the entire screen. The existing
+    // onShowAppNavigation handler can flip this back to true on demand, and
+    // onGuideInteract surfaces it briefly during interactions.
+    var topNavVisible by rememberSaveable { mutableStateOf(false) }
     var showCategoryPicker by rememberSaveable { mutableStateOf(false) }
     var showGuideOptions by rememberSaveable { mutableStateOf(false) }
     var showSearchOverlay by rememberSaveable { mutableStateOf(false) }
@@ -282,8 +289,14 @@ fun FullEpgScreen(
             focusedProgram = null
             return@LaunchedEffect
         }
+        // Resolve focused channel:
+        //   1. If we already have one in local state (config change recomposition), keep it.
+        //   2. Else if the user has a saved position from a prior visit, restore it.
+        //   3. Else fall back to the first channel in the list.
         val resolvedChannel = focusedChannel?.let { current ->
             uiState.channels.firstOrNull { it.id == current.id }
+        } ?: savedPosition?.let { saved ->
+            uiState.channels.firstOrNull { it.id == saved.channelId }
         } ?: uiState.channels.firstOrNull()
         focusedChannel = resolvedChannel
         val resolvedPrograms = resolvedChannel?.let { channel ->
@@ -291,12 +304,16 @@ fun FullEpgScreen(
                 uiState.programsByChannel[lookupKey].orEmpty()
             }.orEmpty()
         }.orEmpty()
+        // Resolve focused program with the same precedence order — local
+        // state, then saved snapshot, then the current-time program.
         focusedProgram = focusedProgram?.let { focused ->
             resolvedPrograms.firstOrNull {
                 it.startTime == focused.startTime &&
                     it.endTime == focused.endTime &&
                     it.title == focused.title
             }
+        } ?: savedPosition?.let { saved ->
+            resolvedPrograms.firstOrNull { it.startTime == saved.programStartMs }
         } ?: resolvedPrograms.firstOrNull {
             System.currentTimeMillis() in it.startTime until it.endTime
         }
@@ -310,7 +327,8 @@ fun FullEpgScreen(
         navigationChrome = AppNavigationChrome.TopBar,
         topBarVisible = topNavVisible,
         compactHeader = true,
-        showScreenHeader = false
+        showScreenHeader = false,
+        fullBleed = true,   // EPG wants every pixel for the program grid
     ) {
         Column(
             modifier = Modifier
@@ -460,11 +478,23 @@ fun FullEpgScreen(
                                 topNavVisible = isFirstRow
                                 focusedChannel = channel
                                 focusedProgram = currentProgram
+                                currentProgram?.let {
+                                    viewModel.rememberPosition(
+                                        channelId = channel.id,
+                                        programStartMs = it.startTime,
+                                        categoryId = uiState.selectedCategoryId,
+                                    )
+                                }
                             },
                             onProgramFocused = { channel, program, isFirstRow ->
                                 topNavVisible = isFirstRow
                                 focusedChannel = channel
                                 focusedProgram = program
+                                viewModel.rememberPosition(
+                                    channelId = channel.id,
+                                    programStartMs = program.startTime,
+                                    categoryId = uiState.selectedCategoryId,
+                                )
                             },
                             onRequestMoreChannels = viewModel::requestMoreChannels
                         )

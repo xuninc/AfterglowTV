@@ -93,6 +93,11 @@ fun AppScreenScaffold(
     showScreenHeader: Boolean = true,
     header: (@Composable ColumnScope.() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(),
+    /** When true, the scaffold renders edge-to-edge — no safe-area padding,
+     *  no horizontal/vertical chrome insets. Used by the EPG which wants
+     *  every pixel for the program grid. Caller's [content] is expected to
+     *  handle its own insets if any are needed. */
+    fullBleed: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val spacing = LocalAppSpacing.current
@@ -110,7 +115,7 @@ fun AppScreenScaffold(
                     )
                 )
             )
-            .padding(safeArea)
+            .let { if (fullBleed) it else it.padding(safeArea) }
     ) {
         if (navigationChrome == AppNavigationChrome.Rail) {
             Row(modifier = Modifier.fillMaxSize()) {
@@ -160,10 +165,10 @@ fun AppScreenScaffold(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(
-                        horizontal = 14.dp,
-                        vertical = 10.dp
-                    )
+                    .let {
+                        if (fullBleed) it
+                        else it.padding(horizontal = 14.dp, vertical = 10.dp)
+                    }
             ) {
                 if (topBarVisible) {
                     TopNavigationBar(

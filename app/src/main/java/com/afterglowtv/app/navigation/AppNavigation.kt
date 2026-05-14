@@ -68,6 +68,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val THEMES = "themes"
     const val GLOW_SETTINGS = "glow_settings"
+    const val STYLE_CUSTOMIZER = "style_customizer"
     const val SETTINGS_DESTINATION = "settings?backupUri={backupUri}"
     const val PLAYER = "player"
     const val SEARCH = "search"
@@ -557,6 +558,12 @@ fun AppNavigation(mainActivity: MainActivity) {
 
         composable(Routes.GLOW_SETTINGS) {
             com.afterglowtv.app.ui.screens.settings.GlowSettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.STYLE_CUSTOMIZER) {
+            com.afterglowtv.app.ui.screens.settings.StyleCustomizerScreen(
                 onBack = { navController.popBackStack() }
             )
         }

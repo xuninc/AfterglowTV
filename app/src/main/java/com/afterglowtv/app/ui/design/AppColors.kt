@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
  */
 object AppColors {
     /** The active theme. Mutate via [applyPalette]. */
-    var palette: AppPalette by mutableStateOf(AppPalette.Vaporwave)
+    var palette: AppPalette by mutableStateOf(AppPalette.AfterglowSunset)
         private set
 
     /** Swap the active palette. Triggers a Compose recomposition. */

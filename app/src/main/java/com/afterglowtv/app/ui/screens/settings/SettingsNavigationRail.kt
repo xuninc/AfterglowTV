@@ -109,5 +109,14 @@ internal fun SettingsNavigationRail(
                 onClick = { onNavigate(com.afterglowtv.app.navigation.Routes.GLOW_SETTINGS) },
             )
         }
+        item {
+            SettingsNavItem(
+                label = "Customize",
+                badgeChar = "C",
+                accentColor = Color(0xFFFF7A38),
+                isSelected = false,
+                onClick = { onNavigate(com.afterglowtv.app.navigation.Routes.STYLE_CUSTOMIZER) },
+            )
+        }
     }
 }
