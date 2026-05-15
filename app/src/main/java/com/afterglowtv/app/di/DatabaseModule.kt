@@ -90,7 +90,8 @@ object DatabaseModule {
                 AfterglowTVDatabase.MIGRATION_48_49,
                 AfterglowTVDatabase.MIGRATION_49_50,
                 AfterglowTVDatabase.MIGRATION_50_51,
-                AfterglowTVDatabase.MIGRATION_51_52
+                AfterglowTVDatabase.MIGRATION_51_52,
+                AfterglowTVDatabase.MIGRATION_52_53
             )
             // NOTE: fallbackToDestructiveMigration() intentionally removed.
             // All future schema changes MUST add a corresponding Migration in AfterglowTVDatabase.

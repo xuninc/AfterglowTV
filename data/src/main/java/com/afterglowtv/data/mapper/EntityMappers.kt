@@ -423,7 +423,9 @@ fun ProgramEntity.toDomain() = Program(
     genre = genre,
     category = category,
     hasArchive = hasArchive,
-    providerId = providerId
+    providerId = providerId,
+    subtitle = subtitle,
+    episodeInfo = episodeInfo
 )
 
 fun ProgramBrowseEntity.toDomain() = Program(
@@ -439,7 +441,9 @@ fun ProgramBrowseEntity.toDomain() = Program(
     genre = genre,
     category = category,
     hasArchive = hasArchive,
-    providerId = providerId
+    providerId = providerId,
+    subtitle = subtitle,
+    episodeInfo = episodeInfo
 )
 
 fun Program.toEntity() = ProgramEntity(
@@ -455,7 +459,9 @@ fun Program.toEntity() = ProgramEntity(
     genre = genre,
     category = category,
     hasArchive = hasArchive,
-    providerId = providerId
+    providerId = providerId,
+    subtitle = subtitle,
+    episodeInfo = episodeInfo
 )
 
 // ── Favorite ───────────────────────────────────────────────────────
@@ -743,7 +749,9 @@ fun EpgProgrammeEntity.toDomainProgram(providerId: Long = 0L) = Program(
     rating = rating,
     imageUrl = imageUrl,
     category = category,
-    providerId = providerId
+    providerId = providerId,
+    subtitle = subtitle,
+    episodeInfo = episodeInfo
 )
 
 // ── Channel EPG Mapping ────────────────────────────────────────────

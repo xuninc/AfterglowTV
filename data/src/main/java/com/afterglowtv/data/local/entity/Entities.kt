@@ -593,7 +593,9 @@ data class ProgramEntity(
     @ColumnInfo(name = "image_url") val imageUrl: String? = null,
     val genre: String? = null,
     val category: String? = null,
-    @ColumnInfo(name = "has_archive") val hasArchive: Boolean = false
+    @ColumnInfo(name = "has_archive") val hasArchive: Boolean = false,
+    val subtitle: String? = null,
+    @ColumnInfo(name = "episode_info") val episodeInfo: String? = null
 )
 
 data class ProgramBrowseEntity(
@@ -609,7 +611,9 @@ data class ProgramBrowseEntity(
     @ColumnInfo(name = "image_url") val imageUrl: String? = null,
     val genre: String? = null,
     val category: String? = null,
-    @ColumnInfo(name = "has_archive") val hasArchive: Boolean = false
+    @ColumnInfo(name = "has_archive") val hasArchive: Boolean = false,
+    val subtitle: String? = null,
+    @ColumnInfo(name = "episode_info") val episodeInfo: String? = null
 )
 
 @Entity(

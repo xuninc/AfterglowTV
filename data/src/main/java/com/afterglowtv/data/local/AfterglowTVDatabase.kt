@@ -49,7 +49,7 @@ import com.afterglowtv.data.local.entity.*
         XtreamIndexJobEntity::class,
         XtreamLiveOnboardingStateEntity::class
     ],
-    version = 52,
+    version = 53,
     exportSchema = true   // ← was false; schema JSON now tracked in version control
 )
 @TypeConverters(RoomEnumConverters::class)
@@ -2524,6 +2524,14 @@ abstract class AfterglowTVDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE providers ADD COLUMN xtream_live_sync_mode TEXT NOT NULL DEFAULT 'AUTO'")
                 validateForeignKeys(database, "providers")
+            }
+        }
+
+        val MIGRATION_52_53 = object : Migration(52, 53) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE programs ADD COLUMN subtitle TEXT")
+                database.execSQL("ALTER TABLE programs ADD COLUMN episode_info TEXT")
+                validateForeignKeys(database, "programs")
             }
         }
     }

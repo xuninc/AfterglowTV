@@ -130,6 +130,28 @@ class XmltvParserTest {
     }
 
     @Test
+    fun `parseStreaming_preservesSubtitleAndEpisodeInfo`() = runTest {
+        val xml = """
+            <?xml version="1.0"?>
+            <tv>
+              <programme start="20250101120000 +0000" stop="20250101130000 +0000" channel="ch1">
+                <title>Drama Hour</title>
+                <sub-title>Opening Night</sub-title>
+                <desc>The first episode.</desc>
+                <episode-num system="xmltv_ns">0.0/1</episode-num>
+              </programme>
+            </tv>
+        """.trimIndent()
+
+        val programs = mutableListOf<com.afterglowtv.domain.model.Program>()
+        parser.parseStreaming(xml.byteInputStream()) { programs.add(it) }
+
+        val program = programs.single()
+        assertThat(program.subtitle).isEqualTo("Opening Night")
+        assertThat(program.episodeInfo).isEqualTo("0.0/1")
+    }
+
+    @Test
     fun `parse_timezoneOffset_correctUtc`() {
         // 2025-01-01 12:00:00 +03:00 == 2025-01-01 09:00:00 UTC
         val xml = """
@@ -499,4 +521,5 @@ class XmltvParserTest {
       GZIPOutputStream(output).use { it.write(bytes) }
       return output.toByteArray()
     }
+
 }

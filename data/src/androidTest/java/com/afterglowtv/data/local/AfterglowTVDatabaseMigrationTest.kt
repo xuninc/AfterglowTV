@@ -138,8 +138,8 @@ class AfterglowTVDatabaseMigrationTest {
     }
 
     @Test
-    fun migrate44To51_publicMasterUpgradeValidatesLatestSchema() {
-        migrationTestHelper.createDatabase("afterglowtv-public-master-44-51-test", 44).apply {
+    fun migrate44To53_publicMasterUpgradeValidatesLatestSchema() {
+        migrationTestHelper.createDatabase("afterglowtv-public-master-44-53-test", 44).apply {
             execSQL(
                 """
                 INSERT INTO providers (
@@ -154,8 +154,8 @@ class AfterglowTVDatabaseMigrationTest {
         }
 
         val migratedDb = migrationTestHelper.runMigrationsAndValidate(
-            "afterglowtv-public-master-44-51-test",
-            52,
+            "afterglowtv-public-master-44-53-test",
+            53,
             true,
             AfterglowTVDatabase.MIGRATION_44_45,
             AfterglowTVDatabase.MIGRATION_45_46,
@@ -164,7 +164,8 @@ class AfterglowTVDatabaseMigrationTest {
             AfterglowTVDatabase.MIGRATION_48_49,
             AfterglowTVDatabase.MIGRATION_49_50,
             AfterglowTVDatabase.MIGRATION_50_51,
-            AfterglowTVDatabase.MIGRATION_51_52
+            AfterglowTVDatabase.MIGRATION_51_52,
+            AfterglowTVDatabase.MIGRATION_52_53
         )
 
         assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM providers WHERE id = 1 AND name = 'Public Master Provider'"))
@@ -174,6 +175,8 @@ class AfterglowTVDatabaseMigrationTest {
         assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM pragma_table_info('xtream_live_onboarding_state') WHERE name = 'sync_profile_available_mem_mb'"))
         assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM pragma_table_info('providers') WHERE name = 'xtream_live_sync_mode'"))
         assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM providers WHERE id = 1 AND xtream_live_sync_mode = 'AUTO'"))
+        assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM pragma_table_info('programs') WHERE name = 'subtitle'"))
+        assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM pragma_table_info('programs') WHERE name = 'episode_info'"))
 
         migratedDb.close()
     }
@@ -264,6 +267,23 @@ class AfterglowTVDatabaseMigrationTest {
         )
 
         assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM pragma_table_info('providers') WHERE name = 'xtream_live_sync_mode'"))
+
+        migratedDb.close()
+    }
+
+    @Test
+    fun migrate52To53_addsNativeXmltvProgrammeMetadataColumns() {
+        migrationTestHelper.createDatabase("afterglowtv-52-53-test", 52).close()
+
+        val migratedDb = migrationTestHelper.runMigrationsAndValidate(
+            "afterglowtv-52-53-test",
+            53,
+            true,
+            AfterglowTVDatabase.MIGRATION_52_53
+        )
+
+        assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM pragma_table_info('programs') WHERE name = 'subtitle'"))
+        assertEquals(1, countRows(migratedDb, "SELECT COUNT(*) FROM pragma_table_info('programs') WHERE name = 'episode_info'"))
 
         migratedDb.close()
     }

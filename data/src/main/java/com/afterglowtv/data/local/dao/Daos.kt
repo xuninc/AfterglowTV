@@ -2670,6 +2670,8 @@ interface ProgramDao {
                 WHEN LENGTH(description) > 600 THEN SUBSTR(description, 1, 600) || '...'
                 ELSE description
             END AS description,
+            subtitle,
+            episode_info,
             start_time,
             end_time,
             lang,
@@ -2699,6 +2701,8 @@ interface ProgramDao {
                 WHEN LENGTH(description) > 600 THEN SUBSTR(description, 1, 600) || '...'
                 ELSE description
             END AS description,
+            subtitle,
+            episode_info,
             start_time,
             end_time,
             lang,
@@ -2728,6 +2732,8 @@ interface ProgramDao {
                 WHEN LENGTH(programs.description) > 600 THEN SUBSTR(programs.description, 1, 600) || '...'
                 ELSE programs.description
             END AS description,
+            programs.subtitle,
+            programs.episode_info,
             programs.start_time,
             programs.end_time,
             programs.lang,
@@ -2763,6 +2769,8 @@ interface ProgramDao {
                 WHEN LENGTH(programs.description) > 600 THEN SUBSTR(programs.description, 1, 600) || '...'
                 ELSE programs.description
             END AS description,
+            programs.subtitle,
+            programs.episode_info,
             programs.start_time,
             programs.end_time,
             programs.lang,
@@ -2778,6 +2786,8 @@ interface ProgramDao {
           AND (
               programs.title LIKE :queryPattern ESCAPE '\'
               OR programs.description LIKE :queryPattern ESCAPE '\'
+              OR programs.subtitle LIKE :queryPattern ESCAPE '\'
+              OR programs.episode_info LIKE :queryPattern ESCAPE '\'
           )
           AND (
               :categoryId IS NULL
@@ -2815,6 +2825,8 @@ interface ProgramDao {
                 WHEN LENGTH(description) > 600 THEN SUBSTR(description, 1, 600) || '...'
                 ELSE description
             END AS description,
+            subtitle,
+            episode_info,
             start_time,
             end_time,
             lang,
@@ -2844,6 +2856,8 @@ interface ProgramDao {
                 WHEN LENGTH(description) > 600 THEN SUBSTR(description, 1, 600) || '...'
                 ELSE description
             END AS description,
+            subtitle,
+            episode_info,
             start_time,
             end_time,
             lang,
@@ -2872,6 +2886,8 @@ interface ProgramDao {
                 WHEN LENGTH(description) > 600 THEN SUBSTR(description, 1, 600) || '...'
                 ELSE description
             END AS description,
+            subtitle,
+            episode_info,
             start_time,
             end_time,
             lang,
@@ -2900,6 +2916,8 @@ interface ProgramDao {
                 WHEN LENGTH(description) > 600 THEN SUBSTR(description, 1, 600) || '...'
                 ELSE description
             END AS description,
+            subtitle,
+            episode_info,
             start_time,
             end_time,
             lang,

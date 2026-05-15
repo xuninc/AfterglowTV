@@ -127,6 +127,8 @@ class XmltvParser {
             var currentDescription: String? = null
             var currentStart: Long = 0
             var currentEnd: Long = 0
+            var currentSubtitle: String? = null
+            var currentEpisodeNum: String? = null
             var currentLang: String = ""
             var currentImageUrl: String? = null
             val currentCategories = mutableListOf<String>()
@@ -146,6 +148,8 @@ class XmltvParser {
                                 currentEnd = parseDate(parser.getAttributeValue(null, "stop"), parsingZoneId)
                                 currentTitle = null
                                 currentDescription = null
+                                currentSubtitle = null
+                                currentEpisodeNum = null
                                 currentLang = ""
                                 currentImageUrl = null
                                 currentCategories.clear()
@@ -158,8 +162,14 @@ class XmltvParser {
                                     currentTag = "title"
                                 }
                             }
+                            "sub-title" -> {
+                                if (inProgramme) currentTag = "sub-title"
+                            }
                             "desc" -> {
                                 if (inProgramme) currentTag = "desc"
+                            }
+                            "episode-num" -> {
+                                if (inProgramme) currentTag = "episode-num"
                             }
                             "icon" -> {
                                 if (inProgramme) {
@@ -181,7 +191,9 @@ class XmltvParser {
                         if (inProgramme) {
                             when (currentTag) {
                                 "title" -> currentTitle = parser.text
+                                "sub-title" -> currentSubtitle = parser.text?.trim()?.takeIf { it.isNotEmpty() }
                                 "desc" -> currentDescription = parser.text
+                                "episode-num" -> currentEpisodeNum = parser.text?.trim()?.takeIf { it.isNotEmpty() }
                                 "category" -> parser.text?.trim()?.takeIf { it.isNotEmpty() }?.let(currentCategories::add)
                                 "rating" -> currentRating = parser.text?.trim()?.takeIf { it.isNotEmpty() }
                             }
@@ -205,7 +217,9 @@ class XmltvParser {
                                         rating = currentRating,
                                         imageUrl = currentImageUrl,
                                         genre = currentCategories.distinct().joinToString(" / ").takeIf { it.isNotBlank() },
-                                        category = currentCategories.firstOrNull()
+                                        category = currentCategories.firstOrNull(),
+                                        subtitle = currentSubtitle,
+                                        episodeInfo = currentEpisodeNum
                                     )
                                 )
                             }
@@ -240,6 +254,8 @@ class XmltvParser {
         var currentDescription: String? = null
         var currentStart: Long = 0
         var currentEnd: Long = 0
+        var currentSubtitle: String? = null
+        var currentEpisodeNum: String? = null
         var currentLang: String = ""
         var currentImageUrl: String? = null
         val currentCategories = mutableListOf<String>()
@@ -261,6 +277,8 @@ class XmltvParser {
                                 currentEnd = parseDate(parser.getAttributeValue(null, "stop"), parsingZoneId)
                                 currentTitle = null
                                 currentDescription = null
+                                currentSubtitle = null
+                                currentEpisodeNum = null
                                 currentLang = ""
                                 currentImageUrl = null
                                 currentCategories.clear()
@@ -273,8 +291,14 @@ class XmltvParser {
                                     currentTag = "title"
                                 }
                             }
+                            "sub-title" -> {
+                                if (inProgramme) currentTag = "sub-title"
+                            }
                             "desc" -> {
                                 if (inProgramme) currentTag = "desc"
+                            }
+                            "episode-num" -> {
+                                if (inProgramme) currentTag = "episode-num"
                             }
                             "icon" -> {
                                 if (inProgramme) {
@@ -296,7 +320,9 @@ class XmltvParser {
                         if (inProgramme) {
                             when (currentTag) {
                                 "title" -> currentTitle = parser.text
+                                "sub-title" -> currentSubtitle = parser.text?.trim()?.takeIf { it.isNotEmpty() }
                                 "desc" -> currentDescription = parser.text
+                                "episode-num" -> currentEpisodeNum = parser.text?.trim()?.takeIf { it.isNotEmpty() }
                                 "category" -> parser.text?.trim()?.takeIf { it.isNotEmpty() }?.let(currentCategories::add)
                                 "rating" -> currentRating = parser.text?.trim()?.takeIf { it.isNotEmpty() }
                             }
@@ -320,7 +346,9 @@ class XmltvParser {
                                         rating = currentRating,
                                         imageUrl = currentImageUrl,
                                         genre = currentCategories.distinct().joinToString(" / ").takeIf { it.isNotBlank() },
-                                        category = currentCategories.firstOrNull()
+                                        category = currentCategories.firstOrNull(),
+                                        subtitle = currentSubtitle,
+                                        episodeInfo = currentEpisodeNum
                                     )
                                 )
                                 parsedCount++
