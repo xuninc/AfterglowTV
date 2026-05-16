@@ -312,7 +312,10 @@ fun FullEpgScreen(
                     it.endTime == focused.endTime &&
                     it.title == focused.title
             }
-        } ?: savedPosition?.let { saved ->
+        } ?: savedPosition?.takeIf { it.programStartMs > 0L }?.let { saved ->
+            // Sentinel 0L means "channel only, no specific program saved";
+            // skip the exact-match lookup and fall through to the
+            // current-time program below.
             resolvedPrograms.firstOrNull { it.startTime == saved.programStartMs }
         } ?: resolvedPrograms.firstOrNull {
             System.currentTimeMillis() in it.startTime until it.endTime
@@ -478,13 +481,20 @@ fun FullEpgScreen(
                                 topNavVisible = isFirstRow
                                 focusedChannel = channel
                                 focusedProgram = currentProgram
-                                currentProgram?.let {
-                                    viewModel.rememberPosition(
-                                        channelId = channel.id,
-                                        programStartMs = it.startTime,
-                                        categoryId = uiState.selectedCategoryId,
-                                    )
-                                }
+                                // Always save the channel ID on focus, even when
+                                // there's no current program. Channels with no
+                                // EPG data previously had their focus dropped
+                                // from the position memo entirely, which is why
+                                // re-entering the EPG landed on the first
+                                // channel instead of the user's last spot.
+                                // programStartMs=0L is a sentinel for
+                                // "channel-only position"; the restore path
+                                // falls back to the current-time program.
+                                viewModel.rememberPosition(
+                                    channelId = channel.id,
+                                    programStartMs = currentProgram?.startTime ?: 0L,
+                                    categoryId = uiState.selectedCategoryId,
+                                )
                             },
                             onProgramFocused = { channel, program, isFirstRow ->
                                 topNavVisible = isFirstRow

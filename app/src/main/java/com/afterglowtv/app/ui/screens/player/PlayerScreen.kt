@@ -227,6 +227,10 @@ fun PlayerScreen(
     var showSplitDialog by remember { mutableStateOf(false) }
     var showEpisodePicker by remember { mutableStateOf(false) }
     var channelInfoSubPanelOpen by remember { mutableStateOf(false) }
+    // On-screen numeric-keypad dialog for users without a numpad remote.
+    // The same buffer + commit pipeline that hardware numpad remotes use
+    // (PlayerViewModel.appendNumericChannelDigit / commitNumericChannelInput).
+    var showChannelNumberDialog by remember { mutableStateOf(false) }
     
     val focusRequester = remember { FocusRequester() }
     val channelListFocusRequester = remember { FocusRequester() }
@@ -699,7 +703,25 @@ fun PlayerScreen(
                         }
                     }
                     when (event.nativeKeyEvent.keyCode) {
+                        // MENU button (or long-press OK on remotes that lack a
+                        // dedicated menu key) opens the on-screen channel-number
+                        // keypad for users without a numpad on their remote.
+                        // Hardware-numpad users keep using KEYCODE_0..9 directly
+                        // — both paths feed the same buffer + commit pipeline
+                        // in PlayerViewModel.
+                        KeyEvent.KEYCODE_MENU -> {
+                            if (contentType == "LIVE" && !isCatchUpPlayback) {
+                                showChannelNumberDialog = true
+                                true
+                            } else false
+                        }
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                            // Long-press OK is the universal fallback trigger for
+                            // the keypad on remotes that don't expose KEYCODE_MENU.
+                            if (event.nativeKeyEvent.isLongPress && contentType == "LIVE" && !isCatchUpPlayback) {
+                                showChannelNumberDialog = true
+                                return@onKeyEvent true
+                            }
                             if (showChannelListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics) {
                                 viewModel.onLiveOverlayInteraction()
                             }
@@ -1117,6 +1139,27 @@ fun PlayerScreen(
             )
         }
         
+        // Channel-number input keypad (for remotes without a numpad).
+        // Wires into the same buffer + commit pipeline as hardware numpad
+        // input — see PlayerViewModel.{inputNumericChannelDigit, commitNumericChannelInput}.
+        if (showChannelNumberDialog && !isInPictureInPictureMode) {
+            val numericState by viewModel.numericChannelInput.collectAsStateWithLifecycle()
+            com.afterglowtv.app.ui.screens.player.overlay.ChannelNumberInputDialog(
+                currentBuffer = numericState?.input.orEmpty(),
+                previewChannelName = numericState?.matchedChannelName,
+                onDigitPressed = { digit -> viewModel.inputNumericChannelDigit(digit) },
+                onClear = { viewModel.clearNumericChannelInput() },
+                onCommit = {
+                    viewModel.commitNumericChannelInput()
+                    showChannelNumberDialog = false
+                },
+                onDismiss = {
+                    viewModel.clearNumericChannelInput()
+                    showChannelNumberDialog = false
+                },
+            )
+        }
+
         // Track Selection Dialog
         if (!isInPictureInPictureMode) {
             PlayerTrackSelectionDialog(

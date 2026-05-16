@@ -1,9 +1,25 @@
 package com.afterglowtv.app.ui.screens.player
 
+import android.util.Log
+
+private const val TAG = "PlaybackProbe"
+
 internal data class PlaybackProbeFailure(
     val message: String,
     val recoveryType: PlayerRecoveryType
 )
+
+/**
+ * Record an advisory probe failure to logcat without blocking playback.
+ * Use this for response codes we INTENTIONALLY don't hard-fail on (404,
+ * 5xx) so the diagnostic info isn't entirely lost. If Media3 later fails
+ * playback we have a paper trail of "the probe got a 404 first."
+ */
+internal fun logAdvisoryProbeResult(responseCode: Int, hostHint: String? = null) {
+    if (responseCode in 200..299) return
+    val host = hostHint?.takeIf { it.isNotBlank() } ?: "<unknown>"
+    Log.i(TAG, "advisory-probe-result code=$responseCode host=$host (letting Media3 try anyway)")
+}
 
 /**
  * Map a `Range: bytes=0-0` probe response into a hard playback failure.

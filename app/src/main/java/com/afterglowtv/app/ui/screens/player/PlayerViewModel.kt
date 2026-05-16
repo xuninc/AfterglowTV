@@ -1138,7 +1138,14 @@ class PlayerViewModel @Inject constructor(
                     }
                     .build()
                 okHttpClient.newCall(request).execute().use { response ->
-                    resolvePlaybackProbeFailure(response.code)
+                    val failure = resolvePlaybackProbeFailure(response.code)
+                    // Record advisory (non-blocking) probe results to logcat
+                    // so we still have a diagnostic trail when Media3 later
+                    // surfaces its own playback error.
+                    if (failure == null && response.code !in 200..299) {
+                        logAdvisoryProbeResult(response.code, hostHint = response.request.url.host)
+                    }
+                    failure
                 }
             }
         }.getOrNull()

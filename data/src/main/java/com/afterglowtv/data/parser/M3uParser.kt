@@ -434,6 +434,13 @@ class M3uParser {
             val url = entry.url.lowercase()
             val group = entry.groupTitle.lowercase()
 
+            // Live always wins over VOD. Some Xtream / M3U setups serve
+            // transmuxed live in MP4 / MKV containers on `/live/...` paths;
+            // without this exclusion the extension match below would
+            // misclassify them as movies.
+            if (url.contains("/live/")) return false
+            if (group.contains("live tv") || group.contains("live channel")) return false
+
             // Path-only check tolerant of tokenized URLs like:
             //   https://host/movie.mp4?token=abc
             //   https://host/path/movie.mkv?session=xyz
