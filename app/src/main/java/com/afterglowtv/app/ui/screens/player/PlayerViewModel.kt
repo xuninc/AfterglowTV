@@ -9,6 +9,8 @@ import com.afterglowtv.app.cast.CastMediaRequest
 import com.afterglowtv.app.cast.CastStartResult
 import com.afterglowtv.app.di.MainPlayerEngine
 import com.afterglowtv.app.player.LivePreviewHandoffManager
+import com.afterglowtv.app.player.PlayerNowPlayingState
+import com.afterglowtv.app.player.PlayerNowPlayingStore
 import com.afterglowtv.app.util.isPlaybackComplete
 import com.afterglowtv.app.tv.LauncherRecommendationsManager
 import com.afterglowtv.app.tv.WatchNextManager
@@ -95,6 +97,7 @@ class PlayerViewModel @Inject constructor(
     internal val xtreamStreamUrlResolver: XtreamStreamUrlResolver,
     internal val seekThumbnailProvider: SeekThumbnailProvider,
     internal val livePreviewHandoffManager: LivePreviewHandoffManager,
+    private val nowPlayingStore: PlayerNowPlayingStore,
     private val okHttpClient: OkHttpClient,
 ) : ViewModel() {
     companion object {
@@ -358,6 +361,35 @@ class PlayerViewModel @Inject constructor(
     ): StateFlow<T> = activePlayerEngineFlow
         .flatMapLatest(selector)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initialValue)
+
+    fun publishNowPlayingState(
+        active: Boolean,
+        contentType: String,
+        title: String,
+        channelName: String?,
+        channelNumber: Int,
+        programTitle: String?,
+        mediaTitle: String?
+    ) {
+        val isLive = contentType == ContentType.LIVE.name
+        val primaryTitle = channelName?.takeIf { it.isNotBlank() }
+            ?: title.takeIf { it.isNotBlank() }
+            ?: "Live TV"
+        val subtitle = mediaTitle
+            ?.takeIf { it.isNotBlank() && it != primaryTitle }
+            ?: programTitle?.takeIf { it.isNotBlank() }
+            ?: if (isLive) "Live TV" else contentType.replace('_', ' ')
+
+        nowPlayingStore.update(
+            PlayerNowPlayingState(
+                active = active,
+                isLive = isLive,
+                title = primaryTitle,
+                subtitle = subtitle,
+                channelNumber = channelNumber.takeIf { it > 0 }
+            )
+        )
+    }
 
     internal fun logRepositoryFailure(operation: String, result: com.afterglowtv.domain.model.Result<Unit>) {
         if (result is com.afterglowtv.domain.model.Result.Error) {
@@ -1195,6 +1227,23 @@ class PlayerViewModel @Inject constructor(
             archiveStartMs = archiveStartMs,
             archiveEndMs = archiveEndMs
         )
+        if (shouldReuseActivePlaybackForRoute(
+                hasArchiveRequest = hasArchiveRequest,
+                prepareRequestVersion = prepareRequestVersion,
+                playbackState = playerEngine.playbackState.value,
+                currentContentType = currentContentType,
+                requestedContentType = contentType,
+                currentContentId = currentContentId,
+                requestedContentId = internalChannelId,
+                currentProviderId = currentProviderId,
+                requestedProviderId = providerId,
+                currentStreamUrl = currentStreamUrl,
+                currentResolvedPlaybackUrl = currentResolvedPlaybackUrl,
+                requestedStreamUrl = streamUrl
+            )
+        ) {
+            return
+        }
         val requestVersion = beginPlaybackSession()
         val shouldReloadPlaylist = applyPrepareSessionState(
             streamUrl = streamUrl,

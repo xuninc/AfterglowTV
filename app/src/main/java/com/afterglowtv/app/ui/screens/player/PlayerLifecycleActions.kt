@@ -122,6 +122,15 @@ fun PlayerViewModel.handOffPlaybackToMultiView() {
 
 internal fun PlayerViewModel.cleanupAfterCleared(mainPlayerEngine: PlayerEngine) {
     onPlayerScreenDisposed()
+    publishNowPlayingState(
+        active = false,
+        contentType = currentContentType.name,
+        title = currentTitle,
+        channelName = currentChannelFlow.value?.name,
+        channelNumber = -1,
+        programTitle = null,
+        mediaTitle = null
+    )
     channelInfoHideJob?.cancel()
     liveOverlayHideJob?.cancel()
     diagnosticsHideJob?.cancel()

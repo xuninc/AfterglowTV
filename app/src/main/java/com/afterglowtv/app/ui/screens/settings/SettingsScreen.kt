@@ -39,6 +39,7 @@ fun SettingsScreen(
     onAddProvider: () -> Unit = {},
     onEditProvider: (Provider) -> Unit = {},
     onNavigateToParentalControl: (Long) -> Unit = {},
+    onReturnToPlayer: () -> Unit = {},
     currentRoute: String,
     initialBackupImportUri: String? = null,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -161,60 +162,65 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
                 )
                 Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                SettingsNavigationRail(
-                    selectedCategory = dialogState.selectedCategory,
-                    focusRequester = settingsNavFocusRequester,
-                    onCategorySelected = { dialogState.selectedCategory = it },
-                    onNavigate = onNavigate,
-                )
+                    SettingsNavigationRail(
+                        selectedCategory = dialogState.selectedCategory,
+                        focusRequester = settingsNavFocusRequester,
+                        onCategorySelected = { dialogState.selectedCategory = it },
+                        onNavigate = onNavigate,
+                    )
 
-                // Thin vertical separator
-                Box(
-                    Modifier
-                        .width(1.dp)
-                        .fillMaxHeight()
-                        .background(Color.White.copy(alpha = 0.07f))
-                )
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .background(Color.White.copy(alpha = 0.07f))
+                    )
 
-                SettingsContentPane(
-                    uiState = uiState,
-                    viewModel = viewModel,
-                    context = context,
-                    screenLabels = screenLabels,
-                    dialogState = dialogState,
-                    providerState = providerState,
-                    onAddProvider = onAddProvider,
-                    onEditProvider = onEditProvider,
-                    onNavigateToParentalControl = onNavigateToParentalControl,
-                    onChooseRecordingFolder = { recordingFolderLauncher.launch(null) },
-                    onCreateBackup = { createDocumentLauncher.launch("afterglowtv_backup.json") },
-                    onShareBackup = ::shareBackup,
-                    onViewCrashReport = viewModel::viewCrashReport,
-                    onShareCrashReport = ::shareCrashReport,
-                    onDeleteCrashReport = viewModel::deleteCrashReport,
-                    onRestoreBackup = {
-                        openDocumentLauncher.launch(
-                            arrayOf("application/json", "text/json", "application/x-json", "application/octet-stream", "*/*")
-                        )
-                    },
-                    onOpenUri = uriHandler::openUri,
-                    modifier = Modifier.weight(1f)
-                )
+                    SettingsContentPane(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        context = context,
+                        screenLabels = screenLabels,
+                        dialogState = dialogState,
+                        providerState = providerState,
+                        onAddProvider = onAddProvider,
+                        onEditProvider = onEditProvider,
+                        onNavigateToParentalControl = onNavigateToParentalControl,
+                        onChooseRecordingFolder = { recordingFolderLauncher.launch(null) },
+                        onCreateBackup = { createDocumentLauncher.launch("afterglowtv_backup.json") },
+                        onShareBackup = ::shareBackup,
+                        onViewCrashReport = viewModel::viewCrashReport,
+                        onShareCrashReport = ::shareCrashReport,
+                        onDeleteCrashReport = viewModel::deleteCrashReport,
+                        onRestoreBackup = {
+                            openDocumentLauncher.launch(
+                                arrayOf("application/json", "text/json", "application/x-json", "application/octet-stream", "*/*")
+                            )
+                        },
+                        onOpenUri = uriHandler::openUri,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SettingsNowPlayingSidecar(
+                        onReturnToPlayer = onReturnToPlayer,
+                        onEnterPictureInPicture = {
+                            mainActivity?.enterPlayerPictureInPictureModeFromPlayer()
+                            Unit
+                        }
+                    )
                 }
             }
         }
 
-    SettingsScreenOverlays(
-        snackbarHostState = snackbarHostState,
-        uiState = uiState,
-        viewModel = viewModel,
-        context = context,
-        scope = scope,
-        dialogState = dialogState,
-        mainActivity = mainActivity,
-        currentRoute = currentRoute,
-        modifier = Modifier
-    )
+        SettingsScreenOverlays(
+            snackbarHostState = snackbarHostState,
+            uiState = uiState,
+            viewModel = viewModel,
+            context = context,
+            scope = scope,
+            dialogState = dialogState,
+            mainActivity = mainActivity,
+            currentRoute = currentRoute,
+            modifier = Modifier
+        )
+    }
 }
-}
-

@@ -1,7 +1,9 @@
 package com.afterglowtv.app.ui.screens.player
 
 import com.google.common.truth.Truth.assertThat
+import com.afterglowtv.domain.model.ContentType
 import com.afterglowtv.domain.model.StreamInfo
+import com.afterglowtv.player.PlaybackState
 import org.junit.Test
 
 class PlayerPlaybackUrlSupportTest {
@@ -48,5 +50,45 @@ class PlayerPlaybackUrlSupportTest {
                 title = "Fallback title"
             )
         )
+    }
+
+    @Test
+    fun `shouldReuseActivePlaybackForRoute keeps active live player for same route`() {
+        val result = shouldReuseActivePlaybackForRoute(
+            hasArchiveRequest = false,
+            prepareRequestVersion = 3L,
+            playbackState = PlaybackState.READY,
+            currentContentType = ContentType.LIVE,
+            requestedContentType = ContentType.LIVE.name,
+            currentContentId = 230L,
+            requestedContentId = 230L,
+            currentProviderId = 7L,
+            requestedProviderId = 7L,
+            currentStreamUrl = "xtream://live/230",
+            currentResolvedPlaybackUrl = "https://cdn.example/live/230.m3u8",
+            requestedStreamUrl = "xtream://live/230"
+        )
+
+        assertThat(result).isTrue()
+    }
+
+    @Test
+    fun `shouldReuseActivePlaybackForRoute rejects stale or different route`() {
+        val result = shouldReuseActivePlaybackForRoute(
+            hasArchiveRequest = false,
+            prepareRequestVersion = 3L,
+            playbackState = PlaybackState.READY,
+            currentContentType = ContentType.LIVE,
+            requestedContentType = ContentType.LIVE.name,
+            currentContentId = 230L,
+            requestedContentId = 231L,
+            currentProviderId = 7L,
+            requestedProviderId = 7L,
+            currentStreamUrl = "xtream://live/230",
+            currentResolvedPlaybackUrl = "https://cdn.example/live/230.m3u8",
+            requestedStreamUrl = "xtream://live/231"
+        )
+
+        assertThat(result).isFalse()
     }
 }

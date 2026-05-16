@@ -1,6 +1,8 @@
 package com.afterglowtv.app.ui.screens.player
 
+import com.afterglowtv.domain.model.ContentType
 import com.afterglowtv.domain.model.StreamInfo
+import com.afterglowtv.player.PlaybackState
 
 internal fun String?.safeTrimmedOrNull(): String? {
     val value = this ?: return null
@@ -58,4 +60,32 @@ internal fun matchesActivePlaybackSession(
         currentStreamUrl = currentStreamUrl
     )
     return activeUrl.isBlank() || activeUrl == expectedUrl || currentStreamUrl == expectedUrl
+}
+
+internal fun shouldReuseActivePlaybackForRoute(
+    hasArchiveRequest: Boolean,
+    prepareRequestVersion: Long,
+    playbackState: PlaybackState,
+    currentContentType: ContentType,
+    requestedContentType: String,
+    currentContentId: Long,
+    requestedContentId: Long,
+    currentProviderId: Long,
+    requestedProviderId: Long,
+    currentStreamUrl: String,
+    currentResolvedPlaybackUrl: String,
+    requestedStreamUrl: String
+): Boolean {
+    if (hasArchiveRequest || prepareRequestVersion <= 0L) return false
+    if (playbackState != PlaybackState.READY && playbackState != PlaybackState.BUFFERING) return false
+    val requestedType = runCatching { ContentType.valueOf(requestedContentType) }
+        .getOrDefault(ContentType.LIVE)
+    if (currentContentType != requestedType) return false
+    if (currentContentId != requestedContentId) return false
+    if (currentProviderId != requestedProviderId) return false
+    val activeUrl = resolvePlaybackIdentityUrl(
+        currentResolvedPlaybackUrl = currentResolvedPlaybackUrl,
+        currentStreamUrl = currentStreamUrl
+    )
+    return activeUrl == requestedStreamUrl || currentStreamUrl == requestedStreamUrl
 }

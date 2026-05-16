@@ -15,16 +15,20 @@ import com.afterglowtv.app.cast.CastManager
 import com.afterglowtv.app.cast.CastRouteChooserActivity
 import com.afterglowtv.app.backup.BackupFileBridge
 import com.afterglowtv.app.device.isTelevisionDevice
+import com.afterglowtv.app.di.MainPlayerEngine
 import com.afterglowtv.app.localization.resolveAppLocale
 import com.afterglowtv.app.navigation.AppNavigation
 import com.afterglowtv.app.navigation.ExternalDestination
 import com.afterglowtv.app.navigation.ExternalNavigationRequest
 import com.afterglowtv.app.navigation.PlayerNavigationRequest
+import com.afterglowtv.app.player.PlayerNowPlayingStore
 import com.afterglowtv.app.tv.LauncherRecommendationsManager
 import com.afterglowtv.app.tv.WatchNextManager
 import com.afterglowtv.app.tvinput.TvInputChannelSyncManager
 import com.afterglowtv.app.ui.theme.AfterglowTVTheme
 import com.afterglowtv.app.ui.time.LocalAppTimeFormat
+import com.afterglowtv.player.PlaybackState
+import com.afterglowtv.player.PlayerEngine
 import dagger.hilt.android.AndroidEntryPoint
 
 import javax.inject.Inject
@@ -50,6 +54,7 @@ import android.speech.RecognizerIntent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -84,6 +89,13 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var castManager: CastManager
 
+    @Inject
+    @MainPlayerEngine
+    lateinit var mainPlayerEngine: PlayerEngine
+
+    @Inject
+    lateinit var playerNowPlayingStore: PlayerNowPlayingStore
+
     private val _pictureInPictureModeFlow = MutableStateFlow(false)
     val pictureInPictureModeFlow: StateFlow<Boolean> = _pictureInPictureModeFlow.asStateFlow()
 
@@ -92,6 +104,7 @@ class MainActivity : ComponentActivity() {
         _externalNavigationRequestFlow.asStateFlow()
 
     private var playerPictureInPictureState = PlayerPictureInPictureState()
+    private var resumePlayerAfterActivityStop = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (BuildConfig.DEBUG) {
@@ -108,6 +121,7 @@ class MainActivity : ComponentActivity() {
         // ignored when the theme sets windowFullscreen=true.
         WindowCompat.setDecorFitsSystemWindows(window, false)
         _pictureInPictureModeFlow.value = isInPictureInPictureMode
+        observePlayerPictureInPictureState()
         handleExternalIntent(intent)
         if (isTelevisionDevice()) {
             lifecycleScope.launch {
@@ -171,6 +185,24 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleExternalIntent(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (resumePlayerAfterActivityStop) {
+            resumePlayerAfterActivityStop = false
+            mainPlayerEngine.play()
+        }
+    }
+
+    override fun onStop() {
+        val keepingPlaybackForPictureInPicture = supportsPictureInPicture() &&
+            playerPictureInPictureState.enabled
+        if (!isInPictureInPictureMode && !keepingPlaybackForPictureInPicture && mainPlayerEngine.isPlaying.value) {
+            resumePlayerAfterActivityStop = true
+            mainPlayerEngine.pause()
+        }
+        super.onStop()
     }
 
     override fun onUserLeaveHint() {
@@ -243,6 +275,32 @@ class MainActivity : ComponentActivity() {
         if (!supportsPictureInPicture()) return
         runCatching {
             setPictureInPictureParams(buildPlayerPictureInPictureParams(playerPictureInPictureState))
+        }
+    }
+
+    private fun observePlayerPictureInPictureState() {
+        lifecycleScope.launch {
+            combine(
+                playerNowPlayingStore.state,
+                mainPlayerEngine.playbackState,
+                mainPlayerEngine.isPlaying,
+                mainPlayerEngine.videoFormat
+            ) { nowPlaying, playbackState, isPlaying, videoFormat ->
+                val hasRenderablePlayback = playbackState == PlaybackState.READY ||
+                    playbackState == PlaybackState.BUFFERING
+                PlayerPictureInPictureState(
+                    enabled = nowPlaying.active && nowPlaying.isLive && hasRenderablePlayback,
+                    isPlaying = isPlaying,
+                    aspectRatio = videoAspectRatioOrNull(
+                        videoWidth = videoFormat.width,
+                        videoHeight = videoFormat.height,
+                        pixelWidthHeightRatio = videoFormat.pixelWidthHeightRatio
+                    )
+                )
+            }.collect { state ->
+                playerPictureInPictureState = state
+                applyPlayerPictureInPictureParams()
+            }
         }
     }
 

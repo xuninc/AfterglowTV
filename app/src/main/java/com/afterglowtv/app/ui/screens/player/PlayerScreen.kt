@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -73,7 +72,6 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import com.afterglowtv.app.ui.components.dialogs.ProgramHistoryDialog
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.Lifecycle
 import com.afterglowtv.app.R
 import com.afterglowtv.app.MainActivity
 import com.afterglowtv.app.cast.CastConnectionState
@@ -241,28 +239,50 @@ fun PlayerScreen(
     val channelInfoFocusRequester = remember { FocusRequester() }
     val layoutDirection = LocalLayoutDirection.current
     val isRtl = layoutDirection == LayoutDirection.Rtl
-    val currentPictureInPictureMode by rememberUpdatedState(isInPictureInPictureMode)
     val enterPictureInPicture = remember(mainActivity) {
         {
             mainActivity?.enterPlayerPictureInPictureModeFromPlayer()
             Unit
         }
     }
+    var showBufferingIndicator by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
-    LaunchedEffect(mainActivity, streamUrl, playbackState, isPlaying, videoFormat.width, videoFormat.height, videoFormat.pixelWidthHeightRatio) {
-        mainActivity?.updatePlayerPictureInPictureState(
-            enabled = streamUrl.isNotBlank()
-                && playbackState != PlaybackState.ERROR
-                && (isPlaying || playbackState == PlaybackState.READY || playbackState == PlaybackState.BUFFERING),
-            isPlaying = isPlaying,
-            videoWidth = videoFormat.width,
-            videoHeight = videoFormat.height,
-            pixelWidthHeightRatio = videoFormat.pixelWidthHeightRatio
+    LaunchedEffect(
+        streamUrl,
+        contentType,
+        playbackState,
+        playbackTitle,
+        currentChannel?.id,
+        currentChannel?.name,
+        displayChannelNumber,
+        currentProgram?.title,
+        mediaTitle
+    ) {
+        viewModel.publishNowPlayingState(
+            active = streamUrl.isNotBlank() &&
+                playbackState != PlaybackState.IDLE &&
+                playbackState != PlaybackState.ERROR &&
+                playbackState != PlaybackState.ENDED,
+            contentType = contentType,
+            title = playbackTitle,
+            channelName = currentChannel?.name,
+            channelNumber = displayChannelNumber,
+            programTitle = currentProgram?.title,
+            mediaTitle = mediaTitle
         )
+    }
+
+    LaunchedEffect(playbackState) {
+        if (playbackState == PlaybackState.BUFFERING) {
+            delay(650)
+            showBufferingIndicator = true
+        } else {
+            showBufferingIndicator = false
+        }
     }
 
     LaunchedEffect(sleepTimerExitEvent) {
@@ -288,21 +308,8 @@ fun PlayerScreen(
         }
     }
 
-    LifecycleEventEffect(Lifecycle.Event.ON_START) {
-        viewModel.onAppForegrounded()
-    }
-
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
-        if (currentPictureInPictureMode) {
-            viewModel.closeOverlays()
-        } else {
-            viewModel.onAppBackgrounded()
-        }
-    }
-
     DisposableEffect(mainActivity) {
         onDispose {
-            mainActivity?.clearPlayerPictureInPictureState()
             viewModel.onPlayerScreenDisposed()
         }
     }
@@ -915,7 +922,7 @@ fun PlayerScreen(
         )
 
         // Buffering indicator
-        if (playbackState == PlaybackState.BUFFERING) {
+        if (showBufferingIndicator) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

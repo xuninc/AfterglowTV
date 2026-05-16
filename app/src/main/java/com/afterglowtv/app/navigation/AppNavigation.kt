@@ -545,6 +545,9 @@ fun AppNavigation(mainActivity: MainActivity) {
                 onNavigateToParentalControl = { providerId ->
                     navController.navigateIfResumed(Routes.parentalControlGroups(providerId))
                 },
+                onReturnToPlayer = {
+                    navController.popBackStack(Routes.PLAYER, false)
+                },
                 currentRoute = Routes.SETTINGS,
                 initialBackupImportUri = backupUri
             )

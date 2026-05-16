@@ -293,6 +293,10 @@
 
     
     <string name="settings_title">Settings</string>
+    <string name="settings_now_playing_title">Now playing</string>
+    <string name="settings_now_playing_live">LIVE</string>
+    <string name="settings_now_playing_return">Return to Player</string>
+    <string name="settings_now_playing_pip">Open PiP</string>
     <string name="settings_providers">Providers</string>
     <string name="settings_no_providers">No providers configured</string>
     <string name="settings_add_provider">Add Provider</string>
