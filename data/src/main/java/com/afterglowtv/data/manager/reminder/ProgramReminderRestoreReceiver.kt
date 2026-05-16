@@ -23,8 +23,7 @@ class ProgramReminderRestoreReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED,
-            Intent.ACTION_MY_PACKAGE_REPLACED -> {
+            Intent.ACTION_BOOT_COMPLETED -> {
                 val pendingResult = goAsync()
                 val appContext = context.applicationContext
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {

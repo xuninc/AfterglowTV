@@ -172,7 +172,7 @@ private fun buildCapabilitySummary(application: Application, provider: Provider)
 private fun Provider.sourceLabel(): String = when (type) {
     ProviderType.XTREAM_CODES -> "Xtream Codes"
     ProviderType.M3U -> "M3U Playlist"
-    ProviderType.STALKER_PORTAL -> "Stalker/MAG Portal"
+    ProviderType.STALKER_PORTAL -> "Portal/MAG Login"
 }
 
 private fun Provider.expirySummary(): String {
@@ -199,9 +199,9 @@ private fun Provider.archiveSummary(): String = when (type) {
     }
     ProviderType.STALKER_PORTAL -> {
         if (epgUrl.isBlank()) {
-            "Stalker replay depends on portal support; guide falls back to portal data."
+            "Portal replay depends on provider support; guide falls back to portal data."
         } else {
-            "Stalker replay depends on portal support with optional XMLTV coverage."
+            "Portal replay depends on provider support with optional XMLTV coverage."
         }
     }
 }

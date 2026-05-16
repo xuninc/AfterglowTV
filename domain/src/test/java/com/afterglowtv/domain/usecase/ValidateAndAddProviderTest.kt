@@ -360,7 +360,7 @@ class ValidateAndAddProviderTest {
                 name = "Imported Playlist",
                 httpUserAgent = "PlaylistAgent/2.0",
                 httpHeaders = "Referer: https://example.com",
-                xtreamFastSyncEnabled = false,
+                xtreamFastSyncEnabled = true,
                 epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
                 xtreamLiveSyncMode = ProviderXtreamLiveSyncMode.AUTO,
                 id = 19L

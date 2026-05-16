@@ -18,12 +18,34 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.util.concurrent.TimeUnit
 
 class ProviderSyncWorkerTest {
     private val providerDao: ProviderDao = mock()
     private val channelDao: ChannelDao = mock()
     private val xtreamLiveOnboardingDao: XtreamLiveOnboardingDao = mock()
     private val syncManager: SyncManager = mock()
+
+    @Test
+    fun `periodic provider sync is delayed after app startup`() {
+        val request = ProviderSyncWorker.createPeriodicRequest()
+
+        assertThat(request.workSpec.initialDelay >= TimeUnit.MINUTES.toMillis(15)).isTrue()
+    }
+
+    @Test
+    fun `launch stale sync work is delayed so cold start can finish first`() {
+        val request = ProviderSyncWorker.createLaunchStaleCheckRequest()
+
+        assertThat(request.workSpec.initialDelay >= TimeUnit.MINUTES.toMillis(2)).isTrue()
+    }
+
+    @Test
+    fun `targeted provider sync stays immediate for user requested refreshes`() {
+        val request = ProviderSyncWorker.createProviderRequest(providerId = 42L)
+
+        assertThat(request.workSpec.initialDelay == 0L).isTrue()
+    }
 
     @Test
     fun `xtream provider with incomplete onboarding state is tracked for initial live resume`() = runTest {

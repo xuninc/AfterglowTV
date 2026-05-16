@@ -5,6 +5,5 @@ data class ParentalControlSessionState(
 )
 
 interface ParentalControlSessionStore {
-    fun readSessionState(): ParentalControlSessionState
     fun writeSessionState(state: ParentalControlSessionState)
 }

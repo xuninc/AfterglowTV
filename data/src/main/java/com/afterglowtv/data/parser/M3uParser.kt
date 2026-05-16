@@ -432,21 +432,28 @@ class M3uParser {
         /** Exposed for callers outside M3uParser (e.g. SyncManager) to avoid duplicate logic. */
         fun isVodEntry(entry: M3uEntry): Boolean {
             val url = entry.url.lowercase()
+            val path = url.substringBefore('?').substringBefore('#')
             val group = entry.groupTitle.lowercase()
 
             // Live always wins over VOD. Some Xtream / M3U setups serve
-            // transmuxed live in MP4 / MKV containers on `/live/...` paths;
+            // transmuxed live in MP4 / MKV containers on live paths;
             // without this exclusion the extension match below would
             // misclassify them as movies.
-            if (url.contains("/live/")) return false
-            if (group.contains("live tv") || group.contains("live channel")) return false
+            val livePathHint = path.contains("/live/") ||
+                    path.contains("/live.php") ||
+                    path.contains("/live-tv/") ||
+                    path.contains("/livetv/")
+            val liveGroupHint = group.contains("live tv") ||
+                    group.contains("live channel") ||
+                    group.contains("live channels") ||
+                    group.contains("linear tv")
+            if (livePathHint || liveGroupHint) return false
 
             // Path-only check tolerant of tokenized URLs like:
             //   https://host/movie.mp4?token=abc
             //   https://host/path/movie.mkv?session=xyz
             // The old `endsWith(".mp4")` etc. missed everything with a query
             // string, which is basically every IPTV-hosted movie URL.
-            val path = url.substringBefore('?').substringBefore('#')
             val hasVodExtension = path.endsWith(".mp4") ||
                     path.endsWith(".mkv") ||
                     path.endsWith(".avi") ||
@@ -455,10 +462,10 @@ class M3uParser {
                     path.endsWith(".webm")
 
             return hasVodExtension ||
-                    url.contains("/movie/") ||
-                    url.contains("/movies/") ||
-                    url.contains("/vod/") ||
-                    url.contains("/series/") ||
+                    path.contains("/movie/") ||
+                    path.contains("/movies/") ||
+                    path.contains("/vod/") ||
+                    path.contains("/series/") ||
                     group.contains("movie") ||
                     group.contains("vod") ||
                     group.contains("film") ||

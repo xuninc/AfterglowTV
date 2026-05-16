@@ -61,7 +61,7 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .cache(
                 Cache(
-                    directory = File(context.cacheDir, "afterglowtv_http_cache"),
+                    directory = httpCacheDirectory(context.applicationInfo.dataDir),
                     maxSize = 256L * 1024 * 1024
                 )
             )
@@ -177,3 +177,6 @@ object NetworkModule {
         bypassAudioFocus = true
     }
 }
+
+internal fun httpCacheDirectory(dataDir: String): File =
+    File(File(dataDir, "cache"), "afterglowtv_http_cache")

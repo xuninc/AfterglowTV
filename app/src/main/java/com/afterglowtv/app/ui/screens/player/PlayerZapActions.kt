@@ -22,6 +22,12 @@ internal fun appendNumericChannelDigit(currentBuffer: String, digit: Int): Strin
     }
 }
 
+internal fun isLinearLiveChannelZapAllowed(
+    currentContentType: ContentType,
+    isCatchUpPlayback: Boolean,
+    hasChannels: Boolean
+): Boolean = currentContentType == ContentType.LIVE && !isCatchUpPlayback && hasChannels
+
 internal data class LivePlaybackRecordCandidate(
     val playbackKey: Pair<Long, Long>,
     val history: PlaybackHistory
@@ -81,7 +87,7 @@ internal suspend fun <T> withScopedScrubbingMode(
 
 fun PlayerViewModel.playNext() {
     clearNumericChannelInput()
-    if (channelList.isEmpty()) return
+    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return
     val nextIndex = wrappedChannelIndex(1)
     if (nextIndex == -1) return
     changeChannel(nextIndex)
@@ -89,7 +95,7 @@ fun PlayerViewModel.playNext() {
 
 fun PlayerViewModel.playPrevious() {
     clearNumericChannelInput()
-    if (channelList.isEmpty()) return
+    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return
     val prevIndex = wrappedChannelIndex(-1)
     if (prevIndex == -1) return
     changeChannel(prevIndex)
@@ -97,7 +103,7 @@ fun PlayerViewModel.playPrevious() {
 
 fun PlayerViewModel.zapToChannel(channelId: Long) {
     clearNumericChannelInput()
-    if (currentContentType != ContentType.LIVE || channelList.isEmpty()) return
+    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return
     val index = channelList.indexOfFirst { it.id == channelId }
     if (index != -1) {
         changeChannel(index)
@@ -107,23 +113,22 @@ fun PlayerViewModel.zapToChannel(channelId: Long) {
 
 fun PlayerViewModel.zapToLastChannel() {
     clearNumericChannelInput()
-    if (currentContentType != ContentType.LIVE || channelList.isEmpty()) return
+    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return
     if (previousChannelIndex in channelList.indices && previousChannelIndex != currentChannelIndex) {
         changeChannel(previousChannelIndex)
     }
 }
 
 fun PlayerViewModel.hasLastChannel(): Boolean {
-    if (currentContentType != ContentType.LIVE) return false
+    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return false
     val channels = channelList
-    if (channels.isEmpty()) return false
     return previousChannelIndex in channels.indices && previousChannelIndex != currentChannelIndex
 }
 
 fun PlayerViewModel.hasPendingNumericChannelInput(): Boolean = numericInputBuffer.isNotBlank()
 
 fun PlayerViewModel.inputNumericChannelDigit(digit: Int) {
-    if (currentContentType != ContentType.LIVE || channelList.isEmpty()) return
+    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return
     if (digit !in 0..9) return
 
     numericInputBuffer = appendNumericChannelDigit(numericInputBuffer, digit)
@@ -143,7 +148,7 @@ fun PlayerViewModel.commitNumericChannelInput() {
     numericInputCommitJob?.cancel()
     if (numericInputBuffer.isBlank()) return
 
-    // "0" committed alone after timeout → zap to last channel (standard IPTV remote behaviour)
+    // "0" committed alone after timeout zaps to last channel.
     if (numericInputBuffer == "0" && hasLastChannel()) {
         clearNumericChannelInput()
         zapToLastChannel()

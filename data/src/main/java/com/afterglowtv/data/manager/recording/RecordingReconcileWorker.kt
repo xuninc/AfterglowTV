@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.Operation
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -40,24 +41,40 @@ class RecordingReconcileWorker(
     companion object {
         private const val PERIODIC_WORK_NAME = "RecordingReconcileWorker"
         private const val ONE_SHOT_WORK_NAME = "RecordingReconcileWorkerOneShot"
+        private const val PERIODIC_INITIAL_DELAY_MINUTES = 15L
+        private const val STARTUP_RECONCILE_DELAY_MINUTES = 3L
 
         fun enqueuePeriodic(context: Context) {
-            val request = PeriodicWorkRequestBuilder<RecordingReconcileWorker>(6, TimeUnit.HOURS)
-                .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 PERIODIC_WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
-                request
+                ExistingPeriodicWorkPolicy.KEEP,
+                createPeriodicRequest()
             )
         }
 
-        fun enqueueOneShot(context: Context) {
-            val request = OneTimeWorkRequestBuilder<RecordingReconcileWorker>().build()
+        fun enqueueOneShot(context: Context): Operation =
             WorkManager.getInstance(context).enqueueUniqueWork(
                 ONE_SHOT_WORK_NAME,
                 ExistingWorkPolicy.REPLACE,
-                request
+                createOneShotRequest()
+            )
+
+        fun cancelStartupMaintenance(context: Context): List<Operation> {
+            val workManager = WorkManager.getInstance(context)
+            return listOf(
+                workManager.cancelUniqueWork(PERIODIC_WORK_NAME),
+                workManager.cancelUniqueWork(ONE_SHOT_WORK_NAME)
             )
         }
+
+        internal fun createPeriodicRequest() =
+            PeriodicWorkRequestBuilder<RecordingReconcileWorker>(6, TimeUnit.HOURS)
+                .setInitialDelay(PERIODIC_INITIAL_DELAY_MINUTES, TimeUnit.MINUTES)
+                .build()
+
+        internal fun createOneShotRequest(initialDelayMinutes: Long = STARTUP_RECONCILE_DELAY_MINUTES) =
+            OneTimeWorkRequestBuilder<RecordingReconcileWorker>()
+                .setInitialDelay(initialDelayMinutes.coerceAtLeast(0L), TimeUnit.MINUTES)
+                .build()
     }
 }

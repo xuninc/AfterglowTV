@@ -195,11 +195,10 @@ class ProviderRepositoryImpl @Inject constructor(
                         password = effectivePassword,
                         httpUserAgent = httpUserAgent,
                         httpHeaders = httpHeaders,
+                        epgUrl = existingProvider.epgUrl,
                         epgSyncMode = epgSyncMode,
+                        xtreamFastSyncEnabled = xtreamFastSyncEnabled,
                         xtreamLiveSyncMode = xtreamLiveSyncMode,
-                        // xtreamFastSyncEnabled left as authResult.data set it
-                        // (defaults true in domain). Was hardcoded false here,
-                        // which made the SyncManager fast-sync code path dead.
                         isActive = false,
                         status = ProviderStatus.PARTIAL,
                         lastSyncedAt = 0,
@@ -213,8 +212,8 @@ class ProviderRepositoryImpl @Inject constructor(
                         httpUserAgent = httpUserAgent,
                         httpHeaders = httpHeaders,
                         epgSyncMode = epgSyncMode,
+                        xtreamFastSyncEnabled = xtreamFastSyncEnabled,
                         xtreamLiveSyncMode = xtreamLiveSyncMode,
-                        // xtreamFastSyncEnabled left as domain default (true).
                         isActive = false,
                         status = ProviderStatus.PARTIAL
                     )

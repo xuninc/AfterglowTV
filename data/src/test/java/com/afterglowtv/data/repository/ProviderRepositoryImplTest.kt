@@ -11,6 +11,9 @@ import com.afterglowtv.data.local.entity.ProviderEntity
 import com.afterglowtv.data.manager.recording.RecordingAlarmScheduler
 import com.afterglowtv.data.manager.reminder.ProgramReminderAlarmScheduler
 import com.afterglowtv.data.preferences.PreferencesRepository
+import com.afterglowtv.data.remote.dto.XtreamAuthResponse
+import com.afterglowtv.data.remote.dto.XtreamServerInfo
+import com.afterglowtv.data.remote.dto.XtreamUserInfo
 import com.afterglowtv.data.remote.stalker.StalkerApiService
 import com.afterglowtv.data.remote.xtream.XtreamApiService
 import com.afterglowtv.data.security.CredentialCrypto
@@ -21,6 +24,7 @@ import com.afterglowtv.domain.model.Result
 import com.afterglowtv.domain.model.SyncState
 import com.afterglowtv.domain.model.ProviderStatus
 import com.afterglowtv.domain.model.ProviderType
+import com.afterglowtv.domain.model.ProviderXtreamLiveSyncMode
 import com.afterglowtv.domain.repository.SyncMetadataRepository
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -153,6 +157,56 @@ class ProviderRepositoryImplTest {
         verify(recordingAlarmScheduler).cancel("run-1")
         verify(programReminderAlarmScheduler).cancel(11L)
         verify(syncManager).onProviderDeleted(7L)
+    }
+
+    @Test
+    fun `loginXtream persists requested fast sync flag`() = runTest {
+        whenever(providerDao.getByUrlAndUser("https://example.com", "alice", "")).thenReturn(null)
+        whenever(preferencesRepository.xtreamBase64TextCompatibility).thenReturn(flowOf(false))
+        whenever(credentialCrypto.encryptIfNeeded("secret")).thenReturn("encrypted-secret")
+        whenever(xtreamApiService.authenticate(any(), any())).thenReturn(
+            XtreamAuthResponse(
+                userInfo = XtreamUserInfo(auth = 1, status = "Active"),
+                serverInfo = XtreamServerInfo()
+            )
+        )
+        whenever(providerDao.insert(any())).thenReturn(11L)
+        whenever(providerDao.getById(11L)).thenReturn(
+            ProviderEntity(
+                id = 11L,
+                name = "Premium",
+                type = ProviderType.XTREAM_CODES,
+                serverUrl = "https://example.com",
+                username = "alice",
+                password = "encrypted-secret",
+                isActive = false,
+                status = ProviderStatus.PARTIAL,
+                xtreamFastSyncEnabled = false
+            )
+        )
+        whenever(syncManager.sync(eq(11L), eq(false), anyOrNull(), anyOrNull(), anyOrNull(), eq(true)))
+            .thenReturn(Result.success(Unit))
+        whenever(syncManager.currentSyncState(11L)).thenReturn(SyncState.Success(123L))
+        whenever(channelDao.getCount(11L)).thenReturn(flowOf(12))
+
+        val result = repository.loginXtream(
+            serverUrl = "https://example.com",
+            username = "alice",
+            password = "secret",
+            name = "Premium",
+            httpUserAgent = "",
+            httpHeaders = "",
+            xtreamFastSyncEnabled = false,
+            epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
+            xtreamLiveSyncMode = ProviderXtreamLiveSyncMode.AUTO,
+            onProgress = {},
+            id = null
+        )
+
+        assertThat(result.isSuccess).isTrue()
+        val insertedProviders = argumentCaptor<ProviderEntity>()
+        verify(providerDao).insert(insertedProviders.capture())
+        assertThat(insertedProviders.firstValue.xtreamFastSyncEnabled).isFalse()
     }
 
     @Test

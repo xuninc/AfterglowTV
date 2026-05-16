@@ -101,6 +101,7 @@ class ProviderSetupViewModel @Inject constructor(
                         username = provider.username,
                         password = "",
                         m3uUrl = provider.m3uUrl,
+                        m3uEpgUrl = provider.epgUrl,
                         httpUserAgent = provider.httpUserAgent,
                         httpHeaders = provider.httpHeaders,
                         stalkerMacAddress = provider.stalkerMacAddress,
@@ -108,6 +109,7 @@ class ProviderSetupViewModel @Inject constructor(
                         stalkerDeviceTimezone = provider.stalkerDeviceTimezone,
                         stalkerDeviceLocale = provider.stalkerDeviceLocale,
                         epgSyncMode = provider.epgSyncMode,
+                        xtreamFastSyncEnabled = provider.xtreamFastSyncEnabled,
                         xtreamLiveSyncMode = provider.xtreamLiveSyncMode,
                         hasCustomizedEpgSyncMode = true,
                         m3uVodClassificationEnabled = provider.m3uVodClassificationEnabled,
@@ -133,6 +135,10 @@ class ProviderSetupViewModel @Inject constructor(
 
     fun updateEpgSyncMode(mode: ProviderEpgSyncMode) {
         _uiState.update { it.copy(epgSyncMode = mode, hasCustomizedEpgSyncMode = true) }
+    }
+
+    fun updateXtreamFastSyncEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(xtreamFastSyncEnabled = enabled) }
     }
 
     fun updateXtreamLiveSyncMode(mode: ProviderXtreamLiveSyncMode) {
@@ -262,7 +268,7 @@ class ProviderSetupViewModel @Inject constructor(
                     name = name,
                     httpUserAgent = httpUserAgent,
                     httpHeaders = httpHeaders,
-                    xtreamFastSyncEnabled = false,
+                    xtreamFastSyncEnabled = _uiState.value.xtreamFastSyncEnabled,
                     epgSyncMode = _uiState.value.epgSyncMode,
                     xtreamLiveSyncMode = _uiState.value.xtreamLiveSyncMode,
                     existingProviderId = existingId
@@ -697,6 +703,7 @@ data class ProviderSetupState(
     val username: String = "",
     val password: String = "",
     val m3uUrl: String = "",
+    val m3uEpgUrl: String = "",
     val httpUserAgent: String = "",
     val httpHeaders: String = "",
     val stalkerMacAddress: String = "",
@@ -712,6 +719,7 @@ data class ProviderSetupState(
     val pendingBackupUri: String? = null,
     val backupImportPlan: BackupImportPlan = BackupImportPlan(),
     val epgSyncMode: ProviderEpgSyncMode = ProviderEpgSyncMode.BACKGROUND,
+    val xtreamFastSyncEnabled: Boolean = true,
     val xtreamLiveSyncMode: ProviderXtreamLiveSyncMode = ProviderXtreamLiveSyncMode.AUTO,
     val hasCustomizedEpgSyncMode: Boolean = false,
     // Default ON: most M3U IPTV providers (e.g. tv123.me /IPTV_VOD bouquets)

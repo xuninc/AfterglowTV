@@ -12,7 +12,7 @@
 
 Afterglow TV is a TV-first IPTV player for Android TV built with Kotlin, Jetpack Compose, Room, Hilt, and Media3.
 
-It is designed for large playlists, remote-friendly browsing, fast provider switching, and a polished living-room playback experience. Afterglow TV supports `M3U` playlists, `Xtream Codes`, and `Stalker Portal` providers, with dedicated flows for `Live TV`, `Movies`, and `Series`.
+It is designed for large playlists, remote-friendly browsing, fast provider switching, and a polished living-room playback experience. Afterglow TV supports `M3U` playlists, `Xtream Codes`, and `Portal/MAG` providers, with dedicated flows for `Live TV`, `Movies`, and `Series`.
 
 Built for Android TV first, Afterglow TV focuses on the things generic IPTV apps usually get wrong: D-pad navigation, quick channel movement, large-library organization, and a player that still feels good to use from the couch. Phone and tablet installs are also supported, but the primary UX target is TV.
 
@@ -41,7 +41,7 @@ Built for Android TV first, Afterglow TV focuses on the things generic IPTV apps
 ## Highlights
 
 - Android TV-first interface with D-pad-friendly focus, navigation, and playback flows
-- Playlist support for `Xtream Codes`, `Stalker Portal`, and `M3U` sources, including local playlist files
+- Playlist support for `Xtream Codes`, `Portal/MAG`, and `M3U` sources, including local playlist files
 - Combined M3U live-source support with optional in-browser source switching for merged Live TV setups
 - Fast live-TV browsing with preview mode, favorites, recent channels, custom groups, and pinned categories
 - Movie and series libraries with detailed info pages, resume support, episode switching, and auto-play for next episodes
@@ -56,7 +56,7 @@ Built for Android TV first, Afterglow TV focuses on the things generic IPTV apps
 ### Playlist Support
 
 - `Xtream Codes`
-- `Stalker Portal`
+- `Portal/MAG`
 - `M3U` playlists from URLs plus local files
 - Separate onboarding and sync flows for live channels, movies, series, and guide data
 - Fast switching between providers with provider-scoped settings

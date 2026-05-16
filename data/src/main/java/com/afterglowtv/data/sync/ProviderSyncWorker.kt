@@ -10,6 +10,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.Operation
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkRequest
@@ -165,21 +166,11 @@ class ProviderSyncWorker(
         private const val UNIQUE_PROVIDER_WORK_PREFIX = "provider-sync-provider-"
         private const val KEY_PROVIDER_ID = "provider_id"
         private const val INVALID_PROVIDER_ID = -1L
+        private const val PERIODIC_INITIAL_DELAY_MINUTES = 15L
+        private const val LAUNCH_STALE_CHECK_DELAY_MINUTES = 3L
 
         fun enqueuePeriodic(context: Context) {
-            val request = PeriodicWorkRequestBuilder<ProviderSyncWorker>(6, TimeUnit.HOURS)
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .setRequiresBatteryNotLow(true)
-                        .build()
-                )
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    10,
-                    TimeUnit.MINUTES
-                )
-                .build()
+            val request = createPeriodicRequest()
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 UNIQUE_WORK_NAME,
@@ -189,14 +180,54 @@ class ProviderSyncWorker(
         }
 
         fun enqueueLaunchStaleCheck(context: Context) {
-            val request = OneTimeWorkRequestBuilder<ProviderSyncWorker>()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                UNIQUE_LAUNCH_STALE_WORK_NAME,
+                ExistingWorkPolicy.KEEP,
+                createLaunchStaleCheckRequest()
+            )
+        }
+
+        fun enqueueProvider(context: Context, providerId: Long) {
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                UNIQUE_PROVIDER_WORK_PREFIX + providerId,
+                ExistingWorkPolicy.REPLACE,
+                createProviderRequest(providerId)
+            )
+        }
+
+        fun cancelStartupMaintenance(context: Context): List<Operation> {
+            val workManager = WorkManager.getInstance(context)
+            return listOf(
+                workManager.cancelUniqueWork(UNIQUE_WORK_NAME),
+                workManager.cancelUniqueWork(UNIQUE_LAUNCH_STALE_WORK_NAME)
+            )
+        }
+
+        internal fun createPeriodicRequest() =
+            PeriodicWorkRequestBuilder<ProviderSyncWorker>(6, TimeUnit.HOURS)
                 .setConstraints(
                     Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .setRequiresBatteryNotLow(true)
                         .build()
                 )
-                .setInitialDelay(10, TimeUnit.SECONDS)
+                .setInitialDelay(PERIODIC_INITIAL_DELAY_MINUTES, TimeUnit.MINUTES)
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    10,
+                    TimeUnit.MINUTES
+                )
+                .build()
+
+        internal fun createLaunchStaleCheckRequest() =
+            OneTimeWorkRequestBuilder<ProviderSyncWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .setRequiresBatteryNotLow(true)
+                        .build()
+                )
+                .setInitialDelay(LAUNCH_STALE_CHECK_DELAY_MINUTES, TimeUnit.MINUTES)
                 .setBackoffCriteria(
                     BackoffPolicy.EXPONENTIAL,
                     WorkRequest.MIN_BACKOFF_MILLIS,
@@ -204,15 +235,8 @@ class ProviderSyncWorker(
                 )
                 .build()
 
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                UNIQUE_LAUNCH_STALE_WORK_NAME,
-                ExistingWorkPolicy.KEEP,
-                request
-            )
-        }
-
-        fun enqueueProvider(context: Context, providerId: Long) {
-            val request = OneTimeWorkRequestBuilder<ProviderSyncWorker>()
+        internal fun createProviderRequest(providerId: Long) =
+            OneTimeWorkRequestBuilder<ProviderSyncWorker>()
                 .setInputData(workDataOf(KEY_PROVIDER_ID to providerId))
                 .setConstraints(
                     Constraints.Builder()
@@ -226,13 +250,6 @@ class ProviderSyncWorker(
                     TimeUnit.MILLISECONDS
                 )
                 .build()
-
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                UNIQUE_PROVIDER_WORK_PREFIX + providerId,
-                ExistingWorkPolicy.REPLACE,
-                request
-            )
-        }
     }
 
     private suspend fun syncXtreamProviderIfStale(

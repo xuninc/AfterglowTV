@@ -20,7 +20,7 @@ data class XtreamProviderSetupCommand(
     val name: String,
     val httpUserAgent: String = "",
     val httpHeaders: String = "",
-    val xtreamFastSyncEnabled: Boolean = false,
+    val xtreamFastSyncEnabled: Boolean = true,
     val epgSyncMode: ProviderEpgSyncMode = ProviderEpgSyncMode.BACKGROUND,
     val xtreamLiveSyncMode: ProviderXtreamLiveSyncMode = ProviderXtreamLiveSyncMode.AUTO,
     val existingProviderId: Long? = null
@@ -188,7 +188,7 @@ class ValidateAndAddProvider @Inject constructor(
                             name = validatedInput.name,
                             httpUserAgent = validatedInput.httpUserAgent,
                             httpHeaders = validatedInput.httpHeaders,
-                            xtreamFastSyncEnabled = false,
+                            xtreamFastSyncEnabled = true,
                             epgSyncMode = command.epgSyncMode,
                             xtreamLiveSyncMode = ProviderXtreamLiveSyncMode.AUTO,
                             onProgress = onProgress,

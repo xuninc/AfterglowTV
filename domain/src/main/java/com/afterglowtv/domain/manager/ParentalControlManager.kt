@@ -16,12 +16,6 @@ class ParentalControlManager @Inject constructor(
     val unlockedCategoriesByProvider: StateFlow<Map<Long, Set<Long>>> =
         _unlockedCategoriesByProvider.asStateFlow()
 
-    init {
-        if (sessionStore.readSessionState().unlockedCategoryIdsByProvider.isNotEmpty()) {
-            sessionStore.writeSessionState(ParentalControlSessionState())
-        }
-    }
-
     fun unlockedCategoriesForProvider(providerId: Long) =
         unlockedCategoriesByProvider.map { it[providerId] ?: emptySet() }
 

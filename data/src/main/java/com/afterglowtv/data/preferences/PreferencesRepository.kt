@@ -1062,14 +1062,6 @@ class PreferencesRepository @Inject constructor(
         }
     }
 
-    override fun readSessionState(): ParentalControlSessionState {
-        return ParentalControlSessionState(
-            unlockedCategoryIdsByProvider = decodeUnlockEntries(
-                parentalSessionPreferences.getString(ParentalSessionKeys.UNLOCK_ENTRIES, null)
-            )
-        )
-    }
-
     override fun writeSessionState(state: ParentalControlSessionState) {
         parentalSessionPreferences.edit().apply {
             remove(ParentalSessionKeys.UNLOCK_TIMEOUT_MS)
@@ -1117,7 +1109,7 @@ class PreferencesRepository @Inject constructor(
         }
     }
 
-    /** AfterglowTV theme palette id (see `AppPalette.ALL`). Defaults to "afterglow_sunset" (Peach). */
+    /** AfterglowTV theme palette id (see `AppPalette.ALL`). Defaults to "afterglow_sunset" (purple/orange). */
     val themePalette: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[PreferencesKeys.THEME_PALETTE] ?: "afterglow_sunset"
     }
@@ -1813,22 +1805,6 @@ class PreferencesRepository @Inject constructor(
             editor.putInt(ParentalSessionKeys.PIN_FAILED_ATTEMPTS, failedAttempts)
         }
         editor.apply()
-    }
-
-    private fun decodeUnlockEntries(encoded: String?): Map<Long, Set<Long>> {
-        return encoded
-            .orEmpty()
-            .split(',')
-            .asSequence()
-            .mapNotNull { token ->
-                val parts = token.split(':')
-                if (parts.size < 2) return@mapNotNull null
-                val providerId = parts[0].toLongOrNull() ?: return@mapNotNull null
-                val categoryId = parts[1].toLongOrNull() ?: return@mapNotNull null
-                providerId to categoryId
-            }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { (_, categoryIds) -> categoryIds.toSet() }
     }
 
     private fun hasStoredParentalPin(preferences: Preferences): Boolean {

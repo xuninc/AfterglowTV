@@ -273,7 +273,7 @@ class PremiumRouteGoldenTest {
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             AppScreenScaffold(
-                                currentRoute = Routes.FAVORITES,
+                                currentRoute = Routes.HOME,
                                 onNavigate = {},
                                 title = "Saved",
                                 subtitle = "Manage favorite channels, movies, and series from one premium hub."

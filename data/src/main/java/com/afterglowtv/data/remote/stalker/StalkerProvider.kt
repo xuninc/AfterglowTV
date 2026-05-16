@@ -77,7 +77,7 @@ class StalkerProvider(
                         stalkerDeviceLocale = normalizedLocale(),
                         maxConnections = profile.maxConnections ?: 1,
                         expirationDate = profile.expirationDate,
-                        apiVersion = "Stalker/MAG Portal",
+                        apiVersion = "Portal/MAG Login",
                         status = when (profile.statusLabel?.trim()?.lowercase(Locale.ROOT)) {
                             "active", "enabled", "1" -> ProviderStatus.ACTIVE
                             "expired", "0" -> ProviderStatus.EXPIRED

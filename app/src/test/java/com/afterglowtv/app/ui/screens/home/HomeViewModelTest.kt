@@ -23,6 +23,7 @@ import com.afterglowtv.domain.repository.*
 import com.afterglowtv.domain.usecase.GetCustomCategories
 import com.afterglowtv.domain.usecase.UnlockParentalCategory
 import com.afterglowtv.player.PlayerEngine
+import com.afterglowtv.player.adaptive.ConnectionPrewarmer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -55,6 +56,7 @@ class HomeViewModelTest {
     private val livePreviewHandoffManager: LivePreviewHandoffManager = mock()
     private val playerEngine: PlayerEngine = mock()
     private val playerEngineProvider: InjectProvider<PlayerEngine> = mock()
+    private val connectionPrewarmer: ConnectionPrewarmer = mock()
     private val application: Application = mock()
     private val createdViewModels = mutableListOf<HomeViewModel>()
 
@@ -130,7 +132,8 @@ class HomeViewModelTest {
             tvInputChannelSyncManager = tvInputChannelSyncManager,
             multiViewManager = multiViewManager,
             livePreviewHandoffManager = livePreviewHandoffManager,
-            playerEngineProvider = playerEngineProvider
+            playerEngineProvider = playerEngineProvider,
+            connectionPrewarmer = connectionPrewarmer
         ).also(createdViewModels::add)
 
     private fun clearViewModel(viewModel: HomeViewModel) {

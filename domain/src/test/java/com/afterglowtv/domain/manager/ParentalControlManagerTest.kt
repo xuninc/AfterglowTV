@@ -108,22 +108,8 @@ class ParentalControlManagerTest {
         assertThat(manager.isCategoryUnlocked(1L, 100L)).isFalse()
     }
 
-    @Test
-    fun `manager clears persisted unlock state on startup`() {
-        store.state = ParentalControlSessionState(
-            unlockedCategoryIdsByProvider = mapOf(1L to setOf(100L))
-        )
-
-        manager = ParentalControlManager(store)
-
-        assertThat(store.state.unlockedCategoryIdsByProvider).isEmpty()
-        assertThat(manager.unlockedCategoriesByProvider.value).isEmpty()
-    }
-
     private class FakeParentalControlSessionStore : ParentalControlSessionStore {
         var state: ParentalControlSessionState = ParentalControlSessionState()
-
-        override fun readSessionState(): ParentalControlSessionState = state
 
         override fun writeSessionState(state: ParentalControlSessionState) {
             this.state = state

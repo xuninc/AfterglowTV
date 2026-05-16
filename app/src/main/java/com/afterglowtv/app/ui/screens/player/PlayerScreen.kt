@@ -183,6 +183,7 @@ fun PlayerScreen(
         currentSeriesSeasons?.any { it.episodes.isNotEmpty() } == true
     
     val isCatchUpPlayback by viewModel.isCatchUpPlayback.collectAsStateWithLifecycle()
+    val isLinearLivePlayback = contentType == "LIVE" && !isCatchUpPlayback
     val showChannelListOverlay by viewModel.showChannelListOverlay.collectAsStateWithLifecycle()
     val showCategoryListOverlay by viewModel.showCategoryListOverlay.collectAsStateWithLifecycle()
     val availableCategories by viewModel.availableCategories.collectAsStateWithLifecycle()
@@ -313,7 +314,7 @@ fun PlayerScreen(
     }
     LaunchedEffect(preventStandbyDuringPlayback, isPlaying, playbackState) {
         if (preventStandbyDuringPlayback) {
-            // Keep screen always on while in player — prevents TV OS standby nag
+            // Keep screen always on while in player to prevent TV OS standby nag.
             playerWindow?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else if (isPlaying || playbackState == PlaybackState.BUFFERING) {
             playerWindow?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -323,12 +324,12 @@ fun PlayerScreen(
     }
 
     // Consolidated focus management for all overlays
-    val liveOverlayVisible = contentType == "LIVE" && (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay || showChannelInfoOverlay)
+    val liveOverlayVisible = isLinearLivePlayback && (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay || showChannelInfoOverlay)
     val nextEpisodeCountdownVisible = !isInPictureInPictureMode && autoPlayCountdown != null
     val anyOverlayVisible = liveOverlayVisible || nextEpisodeCountdownVisible || showTrackSelection != null || showVariantSelection || showSpeedSelection || showAudioVideoOffsetDialog || showStopPlaybackTimerDialog || showIdleStandbyTimerDialog || showProgramHistory || showSplitDialog || showEpisodePicker || showDiagnostics
 
-    LaunchedEffect(contentType, showCategoryListOverlay, showChannelListOverlay, showEpgOverlay, showChannelInfoOverlay) {
-        if (contentType == "LIVE" && (showCategoryListOverlay || showChannelListOverlay || showEpgOverlay || showChannelInfoOverlay)) {
+    LaunchedEffect(isLinearLivePlayback, showCategoryListOverlay, showChannelListOverlay, showEpgOverlay, showChannelInfoOverlay) {
+        if (isLinearLivePlayback && (showCategoryListOverlay || showChannelListOverlay || showEpgOverlay || showChannelInfoOverlay)) {
             // Give overlays a moment to animate in before requesting focus
             delay(150)
             when {
@@ -464,7 +465,7 @@ fun PlayerScreen(
     LaunchedEffect(showControls) {
         if (showControls) {
             delay(100)
-            if (contentType == "LIVE") {
+            if (isLinearLivePlayback) {
                 quickActionsFocusRequester.requestFocusSafely(tag = "PlayerScreen", target = "Player quick actions")
             } else {
                 playButtonFocusRequester.requestFocusSafely(tag = "PlayerScreen", target = "Player transport")
@@ -556,13 +557,13 @@ fun PlayerScreen(
                 canFocus = !anyOverlayVisible && !showControls
             }
             .focusable()
-            .pointerInput(contentType, anyOverlayVisible, showControls) {
+            .pointerInput(isLinearLivePlayback, anyOverlayVisible, showControls) {
                 detectTapGestures {
                     viewModel.notifyUserActivity()
                     when {
                         anyOverlayVisible -> return@detectTapGestures
                         showControls -> viewModel.toggleControls()
-                        contentType == "LIVE" && !isCatchUpPlayback -> viewModel.openChannelInfoOverlay()
+                        isLinearLivePlayback -> viewModel.openChannelInfoOverlay()
                         else -> viewModel.toggleControls()
                     }
                 }
@@ -572,12 +573,12 @@ fun PlayerScreen(
             //   for live-TV channel zapping when no overlay/dialog is open. Fires BEFORE
             //   child composables see the event, so overlays that consume DPAD_UP/DOWN
             //   internally get priority (early returns above).
-            // onKeyEvent (bottom-up): all other keys — DPAD_CENTER, BACK, MEDIA_*,
+            // onKeyEvent (bottom-up): all other keys: DPAD_CENTER, BACK, MEDIA_*,
             //   numeric digits, MUTE, GUIDE, INFO, MENU, and the CHANNEL_UP/DOWN
             //   fallback for non-LIVE content types or when channelInfoSubPanelOpen.
             // CHANNEL_UP/DOWN appear in BOTH handlers. onPreviewKeyEvent intercepts them
             // first for live content with no sub-panel; onKeyEvent handles the remaining
-            // cases (non-LIVE content, sub-panel open). This is intentional — the preview
+            // cases (non-LIVE content, sub-panel open). This is intentional; the preview
             // handler returns false for those remaining cases, letting onKeyEvent run.
             .onPreviewKeyEvent { event ->
                 if (event.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) {
@@ -587,7 +588,7 @@ fun PlayerScreen(
                 if (nextEpisodeCountdownVisible) {
                     return@onPreviewKeyEvent false
                 }
-                if (contentType != "LIVE") {
+                if (!isLinearLivePlayback) {
                     return@onPreviewKeyEvent false
                 }
                 if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay) {
@@ -705,14 +706,14 @@ fun PlayerScreen(
                     when (event.nativeKeyEvent.keyCode) {
                         // MENU button (or long-press OK on remotes that lack a
                         // dedicated menu key) opens the on-screen channel-number
-                        // keypad — for users without a numpad on their remote.
+                        // keypad for users without a numpad on their remote.
                         // For non-LIVE content (VOD / catchup) MENU keeps its
                         // historical behavior of toggling player controls. This
                         // single handler now subsumes the previously-duplicated
                         // KEYCODE_MENU branch below; without the else-branch we
                         // accidentally broke MENU during VOD in v0.1.19.
                         KeyEvent.KEYCODE_MENU -> {
-                            if (contentType == "LIVE" && !isCatchUpPlayback) {
+                            if (isLinearLivePlayback) {
                                 showChannelNumberDialog = true
                             } else {
                                 if (showChannelListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics) {
@@ -725,20 +726,20 @@ fun PlayerScreen(
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                             // Long-press OK is the universal fallback trigger for
                             // the keypad on remotes that don't expose KEYCODE_MENU.
-                            if (event.nativeKeyEvent.isLongPress && contentType == "LIVE" && !isCatchUpPlayback) {
+                            if (event.nativeKeyEvent.isLongPress && isLinearLivePlayback) {
                                 showChannelNumberDialog = true
                                 return@onKeyEvent true
                             }
                             if (showChannelListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics) {
                                 viewModel.onLiveOverlayInteraction()
                             }
-                            if (contentType == "LIVE" && !isCatchUpPlayback && viewModel.hasPendingNumericChannelInput()) {
+                            if (isLinearLivePlayback && viewModel.hasPendingNumericChannelInput()) {
                                 viewModel.commitNumericChannelInput()
-                                   true
-                            } else if (contentType == "LIVE" && !isCatchUpPlayback) {
-                                    if (showChannelInfoOverlay) viewModel.closeChannelInfoOverlay()
-                                    else viewModel.openChannelInfoOverlay()
-                                   true
+                                true
+                            } else if (isLinearLivePlayback) {
+                                if (showChannelInfoOverlay) viewModel.closeChannelInfoOverlay()
+                                else viewModel.openChannelInfoOverlay()
+                                true
                             } else if (showControls) {
                                 false
                             } else {
@@ -751,11 +752,11 @@ fun PlayerScreen(
                                 viewModel.onLiveOverlayInteraction()
                             }
                             if (showControls && (contentType != "LIVE" || isCatchUpPlayback)) return@onKeyEvent false
-                            if (showChannelListOverlay && contentType == "LIVE" && !isCatchUpPlayback) {
-                                // Second left press while channel list is open → open category list
+                            if (showChannelListOverlay && isLinearLivePlayback) {
+                                // Second left press while channel list is open opens the category list.
                                 viewModel.openCategoryListOverlay()
                                 true
-                            } else if (contentType == "LIVE" && !isCatchUpPlayback && !showChannelListOverlay && !showCategoryListOverlay && !showEpgOverlay && !showChannelInfoOverlay) {
+                            } else if (isLinearLivePlayback && !showChannelListOverlay && !showCategoryListOverlay && !showEpgOverlay && !showChannelInfoOverlay) {
                                 if (isRtl) viewModel.openEpgOverlay() else viewModel.openChannelListOverlay()
                                 true
                             } else if (!showChannelListOverlay && !showCategoryListOverlay && !showEpgOverlay && !showChannelInfoOverlay) {
@@ -770,7 +771,7 @@ fun PlayerScreen(
                                 viewModel.onLiveOverlayInteraction()
                             }
                             if (showControls && (contentType != "LIVE" || isCatchUpPlayback)) return@onKeyEvent false
-                            if (contentType == "LIVE" && !isCatchUpPlayback && !showChannelListOverlay && !showEpgOverlay && !showChannelInfoOverlay) {
+                            if (isLinearLivePlayback && !showChannelListOverlay && !showEpgOverlay && !showChannelInfoOverlay) {
                                 if (isRtl) viewModel.openChannelListOverlay() else viewModel.openEpgOverlay()
                                 true
                             } else if (!showChannelListOverlay && !showEpgOverlay && !showChannelInfoOverlay) {
@@ -788,7 +789,7 @@ fun PlayerScreen(
                             if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay || showChannelInfoOverlay) return@onKeyEvent false
                             if (showControls && (contentType != "LIVE" || isCatchUpPlayback)) return@onKeyEvent false
 
-                            if (contentType == "LIVE" && !isCatchUpPlayback) {
+                            if (isLinearLivePlayback) {
                                 viewModel.playNext()
                             } else if (canOpenEpisodePicker) {
                                 showEpisodePicker = true
@@ -805,7 +806,7 @@ fun PlayerScreen(
                             if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay) return@onKeyEvent false
                             if (showControls && (contentType != "LIVE" || isCatchUpPlayback)) return@onKeyEvent false
 
-                            if (contentType == "LIVE" && !isCatchUpPlayback) {
+                            if (isLinearLivePlayback) {
                                 viewModel.playPrevious()
                             } else {
                                 viewModel.toggleControls()
@@ -830,7 +831,7 @@ fun PlayerScreen(
                             if (showChannelInfoOverlay && channelInfoSubPanelOpen) {
                                 true
                             } else
-                            if (contentType == "LIVE") {
+                            if (isLinearLivePlayback) {
                                 viewModel.playNext()
                                 true
                             } else {
@@ -841,7 +842,7 @@ fun PlayerScreen(
                             if (showChannelInfoOverlay && channelInfoSubPanelOpen) {
                                 true
                             } else
-                            if (contentType == "LIVE") {
+                            if (isLinearLivePlayback) {
                                 viewModel.playPrevious()
                                 true
                             } else {
@@ -852,7 +853,7 @@ fun PlayerScreen(
                             if (showChannelInfoOverlay && channelInfoSubPanelOpen) {
                                 true
                             } else
-                            if (contentType == "LIVE") {
+                            if (isLinearLivePlayback) {
                                 viewModel.zapToLastChannel()
                                 true
                             } else {
@@ -860,7 +861,7 @@ fun PlayerScreen(
                             }
                         }
                         KeyEvent.KEYCODE_GUIDE -> {
-                            if (contentType == "LIVE") {
+                            if (isLinearLivePlayback) {
                                 viewModel.openEpgOverlay()
                                 true
                             } else {
@@ -871,7 +872,7 @@ fun PlayerScreen(
                             if (showChannelListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics) {
                                 viewModel.onLiveOverlayInteraction()
                             }
-                            if (contentType == "LIVE") {
+                            if (isLinearLivePlayback) {
                                 if (showChannelInfoOverlay) viewModel.closeChannelInfoOverlay()
                                 else viewModel.openChannelInfoOverlay()
                             } else {
@@ -880,12 +881,12 @@ fun PlayerScreen(
                             true
                         }
                         // KEYCODE_MENU is now handled by the unified branch
-                        // higher in this `when` block (LIVE → keypad, else →
+                        // higher in this `when` block (LIVE opens keypad, else
                         // toggleControls). This duplicate-branch slot would be
                         // unreachable Kotlin dead code if left here.
                         in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9,
                         in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_9 -> {
-                            if (contentType == "LIVE") {
+                            if (isLinearLivePlayback) {
                                 val keyCode = event.nativeKeyEvent.keyCode
                                 val digit = when (keyCode) {
                                     in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> keyCode - KeyEvent.KEYCODE_0
@@ -1082,7 +1083,7 @@ fun PlayerScreen(
 
         PlayerNumericInputOverlay(
             state = numericChannelInput,
-            visible = contentType == "LIVE" && !showControls,
+            visible = isLinearLivePlayback && !showControls,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 40.dp)
@@ -1145,8 +1146,8 @@ fun PlayerScreen(
         
         // Channel-number input keypad (for remotes without a numpad).
         // Wires into the same buffer + commit pipeline as hardware numpad
-        // input — see PlayerViewModel.{inputNumericChannelDigit, commitNumericChannelInput}.
-        if (showChannelNumberDialog && !isInPictureInPictureMode) {
+        // input; see PlayerViewModel.{inputNumericChannelDigit, commitNumericChannelInput}.
+        if (showChannelNumberDialog && !isInPictureInPictureMode && isLinearLivePlayback) {
             val numericState by viewModel.numericChannelInput.collectAsStateWithLifecycle()
             com.afterglowtv.app.ui.screens.player.overlay.ChannelNumberInputDialog(
                 currentBuffer = numericState?.input.orEmpty(),
@@ -1250,7 +1251,7 @@ fun PlayerScreen(
             )
         }
 
-        if (contentType == "LIVE") {
+        if (isLinearLivePlayback) {
             AnimatedVisibility(
                 visible = showChannelListOverlay,
                 enter = slideInHorizontally(initialOffsetX = { if (isRtl) it else -it }),

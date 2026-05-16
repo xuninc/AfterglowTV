@@ -361,6 +361,33 @@ class M3uParserTest {
         }
     }
 
+    @Test
+    fun `isVodEntry_tokenizedMovieUrl_returnsTrue`() {
+        val entry = parseEntries(buildPlaylist(
+            "http://vod.example.com/movie/avatar.mp4?token=abc123" to "Movies"
+        )).single()
+
+        assertThat(M3uParser.isVodEntry(entry)).isTrue()
+    }
+
+    @Test
+    fun `isVodEntry_livePhpMp4Path_returnsFalse`() {
+        val entry = parseEntries(buildPlaylist(
+            "http://iptv.example.com/live.php/user/pass/12345.mp4?token=abc123" to "Live Channels"
+        )).single()
+
+        assertThat(M3uParser.isVodEntry(entry)).isFalse()
+    }
+
+    @Test
+    fun `isVodEntry_liveChannelsGroupWinsOverMovieExtension`() {
+        val entry = parseEntries(buildPlaylist(
+            "http://cdn.example.com/channel-42.mp4?token=abc123" to "Live Channels"
+        )).single()
+
+        assertThat(M3uParser.isVodEntry(entry)).isFalse()
+    }
+
     // ── Helpers ────────────────────────────────────────────────────
 
     private fun buildPlaylist(vararg entries: Pair<String, String>): String {

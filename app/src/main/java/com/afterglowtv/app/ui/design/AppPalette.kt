@@ -338,37 +338,36 @@ data class AppPalette(
             outline = Color(0x33FFFFFF),
         )
 
-        /** Afterglow Dark 2 — direct port of YTAfterglow's "Afterglow 2" preset.
-         *  Peach fire over electric violet: deep aubergine surfaces with a
-         *  bright cyan accent, hot pink live / now-line, coral peach as the
-         *  secondary highlight. Default first-run palette. */
+        /** Afterglow Dark 2 — default first-run palette.
+         *  Deep violet surfaces with neon orange focus, hot-pink live/now-line,
+         *  and peach highlight states. */
         val AfterglowSunset = AppPalette(
             id = "afterglow_sunset",
             displayName = "Afterglow Dark 2",
-            description = "Peach fire over electric violet.",
-            surfaceDeep = Color(0xFF1C0D21),         // YTAG bg
-            surfaceBase = Color(0xFF2B1430),         // YTAG nav
-            surfaceCool = Color(0xFF3D1B40),         // extrapolated step
-            surfaceAccent = Color(0xFF552555),       // extrapolated step
-            accent = Color(0xFF69E3FF),              // YTAG accent — electric cyan
-            accentLight = Color(0xFFFF8C6B),         // YTAG tabIcons — coral peach
-            accentMuted = Color(0x6669E3FF),
-            panelScrim = Color(0xCC150921),
-            osdScrim = Color(0x99150921),
-            nowLine = Color(0xFFFF7AA8),             // YTAG seekBar — hot pink
-            nowFill = Color(0x3369E3FF),
-            live = Color(0xFFFF7AA8),                // hot pink pulse
-            pipPreviewOutline = Color(0xFF69E3FF),   // cyan frame
-            focusFill = Color(0x4069E3FF),
-            textPrimary = Color(0xFFFFF0E6),         // YTAG textP — warm cream
-            textSecondary = Color(0xFFC9AAB8),       // YTAG textS — dusty pink
-            textTertiary = Color(0x99C9AAB8),
-            textDisabled = Color(0x66C9AAB8),
-            success = Color(0xFF69E3FF),
-            warning = Color(0xFFFF8C6B),
-            info = Color(0xFFFFD1B5),                // YTAG overlay — pale peach
-            divider = Color(0x22FFE0EC),
-            outline = Color(0x4069E3FF),
+            description = "Deep violet with neon orange and hot-pink Afterglow accents.",
+            surfaceDeep = Color(0xFF07030F),
+            surfaceBase = Color(0xFF150A22),
+            surfaceCool = Color(0xFF2A183E),
+            surfaceAccent = Color(0xFF513A6B),
+            accent = Color(0xFFFF7A18),
+            accentLight = Color(0xFFFFB15F),
+            accentMuted = Color(0x66FF7A18),
+            panelScrim = Color(0xCC0D0311),
+            osdScrim = Color(0x990D0311),
+            nowLine = Color(0xFFFF2D7A),
+            nowFill = Color(0x33FF7A18),
+            live = Color(0xFFFF2D7A),
+            pipPreviewOutline = Color(0xFFFF7A18),
+            focusFill = Color(0x40FF7A18),
+            textPrimary = Color(0xFFFFF7F0),
+            textSecondary = Color(0xCCFFE4D8),
+            textTertiary = Color(0x99FFE4D8),
+            textDisabled = Color(0x66FFE4D8),
+            success = Color(0xFFFFB15F),
+            warning = Color(0xFFFF7A18),
+            info = Color(0xFFFF7DB0),
+            divider = Color(0x22FFE4D8),
+            outline = Color(0x55FF7A18),
         )
 
         /** Afterglow 1 — hot magenta + cyan vaporwave. Deep indigo body,

@@ -12,6 +12,7 @@ import com.afterglowtv.domain.manager.BackupImportPlan
 import com.afterglowtv.domain.manager.BackupImportResult
 import com.afterglowtv.domain.usecase.ImportBackup
 import com.afterglowtv.domain.usecase.ImportBackupResult
+import com.afterglowtv.domain.usecase.XtreamProviderSetupCommand
 import com.afterglowtv.domain.usecase.ValidateAndAddProvider
 import com.afterglowtv.domain.usecase.ValidateAndAddProviderResult
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
@@ -51,6 +53,60 @@ class ProviderSetupViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `load provider exposes m3u epg url when editing`() = runTest {
+        whenever(providerRepository.getProvider(21L)).thenReturn(
+            Provider(
+                id = 21L,
+                name = "Weekend IPTV",
+                type = ProviderType.M3U,
+                serverUrl = "https://example.com/list.m3u",
+                m3uUrl = "https://example.com/list.m3u",
+                epgUrl = "https://example.com/guide.xml"
+            )
+        )
+
+        val viewModel = ProviderSetupViewModel(
+            providerRepository = providerRepository,
+            combinedM3uRepository = combinedM3uRepository,
+            validateAndAddProvider = validateAndAddProvider,
+            importBackup = importBackup
+        )
+
+        viewModel.loadProvider(21L)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.isEditing).isTrue()
+        assertThat(viewModel.uiState.value.m3uEpgUrl).isEqualTo("https://example.com/guide.xml")
+    }
+
+    @Test
+    fun `login xtream keeps fast sync enabled by default`() = runTest {
+        val createdProvider = Provider(
+            id = 8L,
+            name = "Premium",
+            type = ProviderType.XTREAM_CODES,
+            serverUrl = "https://example.com"
+        )
+        whenever(validateAndAddProvider.loginXtream(any(), any())).thenReturn(
+            ValidateAndAddProviderResult.Success(createdProvider)
+        )
+
+        val viewModel = ProviderSetupViewModel(
+            providerRepository = providerRepository,
+            combinedM3uRepository = combinedM3uRepository,
+            validateAndAddProvider = validateAndAddProvider,
+            importBackup = importBackup
+        )
+
+        viewModel.loginXtream("https://example.com", "alice", "secret", "Premium", "", "")
+        advanceUntilIdle()
+
+        val command = argumentCaptor<XtreamProviderSetupCommand>()
+        verify(validateAndAddProvider).loginXtream(command.capture(), any())
+        assertThat(command.firstValue.xtreamFastSyncEnabled).isTrue()
     }
 
     @Test

@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -79,11 +81,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.widget.Toast
 
-// ??? Source type ?????????????????????????????????????????????????????????????
+// Source type
 
 private enum class SourceType { XTREAM, STALKER, M3U_URL, M3U_FILE }
 
-// ??? Screen ??????????????????????????????????????????????????????????????????
+// Screen
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -98,8 +100,9 @@ fun ProviderSetupScreen(
     val knownLocalM3uUrls by viewModel.knownLocalM3uUrls.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    var appFilesDir by remember { mutableStateOf<java.io.File?>(null) }
 
-    // ?? Local form state ??????????????????????????????????????????????????????
+    // Local form state
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var name by rememberSaveable { mutableStateOf("") }
     var m3uUrl by rememberSaveable { mutableStateOf("") }
@@ -117,7 +120,7 @@ fun ProviderSetupScreen(
     var handledInitialImportUri by rememberSaveable { mutableStateOf<String?>(null) }
     var showDiscardDraftDialog by rememberSaveable { mutableStateOf(false) }
 
-    // ?? File import helper ????????????????????????????????????????????????????
+    // File import helper
     fun importM3uUri(uri: android.net.Uri) {
         coroutineScope.launch(Dispatchers.IO) {
             try {
@@ -169,9 +172,15 @@ fun ProviderSetupScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: android.net.Uri? -> uri?.let { viewModel.inspectBackup(it.toString()) } }
 
-    // ?? Effects ???????????????????????????????????????????????????????????????
-    LaunchedEffect(knownLocalM3uUrls) {
-        cleanupOldImportedM3uFilesAsync(context.filesDir, knownLocalM3uUrls, 20)
+    // Effects
+    LaunchedEffect(context) {
+        appFilesDir = withContext(Dispatchers.IO) { context.filesDir }
+    }
+
+    LaunchedEffect(appFilesDir, knownLocalM3uUrls) {
+        appFilesDir?.let { filesDir ->
+            cleanupOldImportedM3uFilesAsync(filesDir, knownLocalM3uUrls, 20)
+        }
     }
 
     LaunchedEffect(initialImportUri) {
@@ -188,15 +197,17 @@ fun ProviderSetupScreen(
             onProviderAdded()
         }
     }
-    ProviderSetupCompletionLayer(
-        uiState = uiState,
-        knownLocalM3uUrls = knownLocalM3uUrls,
-        selectedM3uUrl = m3uUrl,
-        filesDir = context.filesDir,
-        onProviderAdded = onProviderAdded,
-        onAttachCreatedProvider = viewModel::attachCreatedProviderToCombined,
-        onSkipCreatedProviderCombinedAttach = viewModel::skipCreatedProviderCombinedAttach
-    )
+    appFilesDir?.let { filesDir ->
+        ProviderSetupCompletionLayer(
+            uiState = uiState,
+            knownLocalM3uUrls = knownLocalM3uUrls,
+            selectedM3uUrl = m3uUrl,
+            filesDir = filesDir,
+            onProviderAdded = onProviderAdded,
+            onAttachCreatedProvider = viewModel::attachCreatedProviderToCombined,
+            onSkipCreatedProviderCombinedAttach = viewModel::skipCreatedProviderCombinedAttach
+        )
+    }
 
     LaunchedEffect(editProviderId) {
         if (editProviderId != null) viewModel.loadProvider(editProviderId)
@@ -210,6 +221,7 @@ fun ProviderSetupScreen(
             username = uiState.username
             password = uiState.password
             m3uUrl = uiState.m3uUrl
+            m3uEpgUrl = uiState.m3uEpgUrl
             httpUserAgent = uiState.httpUserAgent
             httpHeaders = uiState.httpHeaders
             stalkerMacAddress = uiState.stalkerMacAddress
@@ -219,7 +231,7 @@ fun ProviderSetupScreen(
         }
     }
 
-    // ?? Derived UI source type ????????????????????????????????????????????????
+    // Derived UI source type
     val sourceType = when {
         selectedTab == 0 -> SourceType.XTREAM
         selectedTab == 1 -> SourceType.STALKER
@@ -251,8 +263,9 @@ fun ProviderSetupScreen(
         }
     }
 
-    val hasUnsavedDraft = !uiState.isEditing && name.isBlank() && (
-        serverUrl.isNotBlank() ||
+    val hasUnsavedDraft = !uiState.isEditing && (
+        name.isNotBlank() ||
+            serverUrl.isNotBlank() ||
             username.isNotBlank() ||
             password.isNotBlank() ||
             httpUserAgent.isNotBlank() ||
@@ -261,7 +274,8 @@ fun ProviderSetupScreen(
             stalkerDeviceProfile.isNotBlank() ||
             stalkerDeviceTimezone.isNotBlank() ||
             stalkerDeviceLocale.isNotBlank() ||
-            m3uUrl.isNotBlank()
+            m3uUrl.isNotBlank() ||
+            m3uEpgUrl.isNotBlank()
         )
 
     BackHandler {
@@ -289,7 +303,7 @@ fun ProviderSetupScreen(
                 )
             )
     ) {
-        // Off-screen orange/porange melt in the top-right corner — "the afterglow"
+        // Off-screen accent melt in the top-right corner.
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -324,13 +338,13 @@ fun ProviderSetupScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = hPad, vertical = 16.dp)
+                .padding(horizontal = hPad, vertical = 14.dp)
         ) {
             // ── Hero brand strip ──────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 18.dp),
+                    .padding(bottom = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -365,9 +379,8 @@ fun ProviderSetupScreen(
                         androidx.tv.material3.Text(
                             text = "Afterglow",
                             style = androidx.tv.material3.MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified,
-                                fontSize = if (isWide) androidx.compose.ui.unit.TextUnit(40f, androidx.compose.ui.unit.TextUnitType.Sp) else androidx.compose.ui.unit.TextUnit(28f, androidx.compose.ui.unit.TextUnitType.Sp),
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.sp,
                             ),
                             color = com.afterglowtv.app.ui.design.AppColors.TextPrimary,
                         )
@@ -375,9 +388,8 @@ fun ProviderSetupScreen(
                         androidx.tv.material3.Text(
                             text = "TV",
                             style = androidx.tv.material3.MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                                letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified,
-                                fontSize = if (isWide) androidx.compose.ui.unit.TextUnit(34f, androidx.compose.ui.unit.TextUnitType.Sp) else androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp),
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 0.sp,
                             ),
                             color = com.afterglowtv.app.ui.design.AppColors.TiviAccent,
                             modifier = Modifier.padding(bottom = if (isWide) 4.dp else 2.dp),
@@ -386,8 +398,7 @@ fun ProviderSetupScreen(
                     androidx.tv.material3.Text(
                         text = "First-time setup",
                         style = androidx.tv.material3.MaterialTheme.typography.titleSmall.copy(
-                            letterSpacing = androidx.compose.ui.unit.TextUnit(4f, androidx.compose.ui.unit.TextUnitType.Sp),
-                            fontSize = if (isWide) androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp) else androidx.compose.ui.unit.TextUnit(10f, androidx.compose.ui.unit.TextUnitType.Sp),
+                            letterSpacing = 0.sp,
                         ),
                         color = com.afterglowtv.app.ui.design.AppColors.TiviAccentLight,
                     )
@@ -406,7 +417,7 @@ fun ProviderSetupScreen(
                         isEditLabel = if (uiState.isEditing) androidx.compose.ui.res.stringResource(R.string.setup_edit_provider)
                                       else androidx.compose.ui.res.stringResource(R.string.setup_provider_title),
                         onSelect = ::onSourceTypeSelected,
-                        modifier = Modifier.width(200.dp).fillMaxHeight()
+                        modifier = Modifier.width(240.dp).fillMaxHeight()
                     )
                     ProviderFormContent(
                         sourceType = sourceType,
@@ -429,6 +440,7 @@ fun ProviderSetupScreen(
                         onLoginStalker = { viewModel.loginStalker(serverUrl, stalkerMacAddress, name, stalkerDeviceProfile, stalkerDeviceTimezone, stalkerDeviceLocale) },
                         onAddM3u = { viewModel.addM3u(m3uUrl, name, httpUserAgent, httpHeaders, m3uEpgUrl) },
                         onToggleM3uVodClassification = { viewModel.updateM3uVodClassificationEnabled(!uiState.m3uVodClassificationEnabled) },
+                        onToggleXtreamFastSync = { viewModel.updateXtreamFastSyncEnabled(!uiState.xtreamFastSyncEnabled) },
                         onSelectEpgSyncMode = viewModel::updateEpgSyncMode,
                         onSelectXtreamLiveSyncMode = viewModel::updateXtreamLiveSyncMode,
                         showImportBackupButton = !uiState.isEditing,
@@ -469,6 +481,7 @@ fun ProviderSetupScreen(
                         onLoginStalker = { viewModel.loginStalker(serverUrl, stalkerMacAddress, name, stalkerDeviceProfile, stalkerDeviceTimezone, stalkerDeviceLocale) },
                         onAddM3u = { viewModel.addM3u(m3uUrl, name, httpUserAgent, httpHeaders, m3uEpgUrl) },
                         onToggleM3uVodClassification = { viewModel.updateM3uVodClassificationEnabled(!uiState.m3uVodClassificationEnabled) },
+                        onToggleXtreamFastSync = { viewModel.updateXtreamFastSyncEnabled(!uiState.xtreamFastSyncEnabled) },
                         onSelectEpgSyncMode = viewModel::updateEpgSyncMode,
                         onSelectXtreamLiveSyncMode = viewModel::updateXtreamLiveSyncMode,
                         showImportBackupButton = !uiState.isEditing,
@@ -595,7 +608,7 @@ fun ProviderSetupScreen(
         }
     }
 
-// ??? Form content ?????????????????????????????????????????????????????????????
+// Form content
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -620,6 +633,7 @@ private fun ProviderFormContent(
     onLoginStalker: () -> Unit,
     onAddM3u: () -> Unit,
     onToggleM3uVodClassification: () -> Unit,
+    onToggleXtreamFastSync: () -> Unit,
     onSelectEpgSyncMode: (ProviderEpgSyncMode) -> Unit,
     onSelectXtreamLiveSyncMode: (ProviderXtreamLiveSyncMode) -> Unit,
     showImportBackupButton: Boolean,
@@ -629,6 +643,26 @@ private fun ProviderFormContent(
 ) {
     val scrollState = rememberScrollState()
     val isTelevisionDevice = rememberIsTelevisionDevice()
+    val primaryActionText = when (sourceType) {
+        SourceType.XTREAM,
+        SourceType.STALKER -> when {
+            uiState.isLoading -> androidx.compose.ui.res.stringResource(R.string.setup_connecting)
+            uiState.isEditing -> androidx.compose.ui.res.stringResource(R.string.setup_save)
+            else -> androidx.compose.ui.res.stringResource(R.string.setup_login)
+        }
+        SourceType.M3U_URL,
+        SourceType.M3U_FILE -> when {
+            uiState.isLoading -> androidx.compose.ui.res.stringResource(R.string.setup_validating)
+            uiState.isEditing -> androidx.compose.ui.res.stringResource(R.string.setup_save)
+            else -> androidx.compose.ui.res.stringResource(R.string.setup_add)
+        }
+    }
+    val primaryAction = when (sourceType) {
+        SourceType.XTREAM -> onLoginXtream
+        SourceType.STALKER -> onLoginStalker
+        SourceType.M3U_URL,
+        SourceType.M3U_FILE -> onAddM3u
+    }
 
     Surface(
         modifier = modifier,
@@ -639,225 +673,401 @@ private fun ProviderFormContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .imePadding()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(18.dp)
         ) {
-            // Playlist name ן¿½ always shown
-            ProviderTextField(
-                value = name,
-                onValueChange = onNameChange,
-                placeholder = androidx.compose.ui.res.stringResource(R.string.setup_name_hint)
-            )
-
-            HorizontalDivider(color = SurfaceHighlight.copy(alpha = 0.6f))
-
-            when (sourceType) {
-                SourceType.XTREAM -> {
-                    ProviderTextField(
-                        value = serverUrl, onValueChange = onServerUrlChange,
-                        placeholder = androidx.compose.ui.res.stringResource(R.string.setup_server_hint),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            autoCorrectEnabled = false,
-                            keyboardType = if (isTelevisionDevice) KeyboardType.Ascii else KeyboardType.Uri,
-                            imeAction = ImeAction.Next
-                        )
-                    )
-                    ProviderTextField(
-                        value = username, onValueChange = onUsernameChange,
-                        placeholder = androidx.compose.ui.res.stringResource(R.string.setup_user_hint),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            autoCorrectEnabled = false,
-                            keyboardType = KeyboardType.Ascii,
-                            imeAction = ImeAction.Next
-                        )
-                    )
-                    ProviderTextField(
-                        value = password, onValueChange = onPasswordChange,
-                        placeholder = androidx.compose.ui.res.stringResource(R.string.setup_pass_hint),
-                        isPassword = true,
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            autoCorrectEnabled = false,
-                            keyboardType = if (isTelevisionDevice) KeyboardType.Ascii else KeyboardType.Password,
-                            imeAction = ImeAction.Done
-                        )
-                    )
-                    AdvancedProviderOptionsSection(
-                        sourceType = sourceType,
-                        uiState = uiState,
-                        httpUserAgent = httpUserAgent,
-                        onHttpUserAgentChange = onHttpUserAgentChange,
-                        httpHeaders = httpHeaders,
-                        onHttpHeadersChange = onHttpHeadersChange,
-                        onToggleM3uVodClassification = onToggleM3uVodClassification,
-                        onSelectEpgSyncMode = onSelectEpgSyncMode,
-                        onSelectXtreamLiveSyncMode = onSelectXtreamLiveSyncMode,
-                        stalkerDeviceProfile = stalkerDeviceProfile,
-                        onStalkerDeviceProfileChange = onStalkerDeviceProfileChange,
-                        stalkerDeviceTimezone = stalkerDeviceTimezone,
-                        onStalkerDeviceTimezoneChange = onStalkerDeviceTimezoneChange,
-                        stalkerDeviceLocale = stalkerDeviceLocale,
-                        onStalkerDeviceLocaleChange = onStalkerDeviceLocaleChange
-                    )
-                    FormErrors(uiState.validationError, uiState.error)
-                    ActionButton(
-                        text = when {
-                            uiState.isLoading -> androidx.compose.ui.res.stringResource(R.string.setup_connecting)
-                            uiState.isEditing -> androidx.compose.ui.res.stringResource(R.string.setup_save)
-                            else              -> androidx.compose.ui.res.stringResource(R.string.setup_login)
-                        },
-                        isLoading = uiState.isLoading,
-                        onClick = onLoginXtream
-                    )
-                }
-
-                SourceType.STALKER -> {
-                    ProviderTextField(
-                        value = serverUrl, onValueChange = onServerUrlChange,
-                        placeholder = "Portal URL",
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            autoCorrectEnabled = false,
-                            keyboardType = if (isTelevisionDevice) KeyboardType.Ascii else KeyboardType.Uri,
-                            imeAction = ImeAction.Next
-                        )
-                    )
-                    ProviderTextField(
-                        value = stalkerMacAddress, onValueChange = onStalkerMacAddressChange,
-                        placeholder = "MAC address",
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Characters,
-                            autoCorrectEnabled = false,
-                            keyboardType = KeyboardType.Ascii,
-                            imeAction = ImeAction.Next
-                        )
-                    )
-                    AdvancedProviderOptionsSection(
-                        sourceType = sourceType,
-                        uiState = uiState,
-                        httpUserAgent = httpUserAgent,
-                        onHttpUserAgentChange = onHttpUserAgentChange,
-                        httpHeaders = httpHeaders,
-                        onHttpHeadersChange = onHttpHeadersChange,
-                        onToggleM3uVodClassification = onToggleM3uVodClassification,
-                        onSelectEpgSyncMode = onSelectEpgSyncMode,
-                        onSelectXtreamLiveSyncMode = onSelectXtreamLiveSyncMode,
-                        stalkerDeviceProfile = stalkerDeviceProfile,
-                        onStalkerDeviceProfileChange = onStalkerDeviceProfileChange,
-                        stalkerDeviceTimezone = stalkerDeviceTimezone,
-                        onStalkerDeviceTimezoneChange = onStalkerDeviceTimezoneChange,
-                        stalkerDeviceLocale = stalkerDeviceLocale,
-                        onStalkerDeviceLocaleChange = onStalkerDeviceLocaleChange
-                    )
-                    FormErrors(uiState.validationError, uiState.error)
-                    ActionButton(
-                        text = when {
-                            uiState.isLoading -> androidx.compose.ui.res.stringResource(R.string.setup_connecting)
-                            uiState.isEditing -> androidx.compose.ui.res.stringResource(R.string.setup_save)
-                            else              -> androidx.compose.ui.res.stringResource(R.string.setup_login)
-                        },
-                        isLoading = uiState.isLoading,
-                        onClick = onLoginStalker
-                    )
-                }
-
-                SourceType.M3U_URL -> {
-                    com.afterglowtv.app.ui.components.ClipboardPasteButton(
-                        onPaste = { onM3uUrlChange(it) },
-                        label = "Paste M3U URL",
-                    )
-                    ProviderTextField(
-                        value = m3uUrl, onValueChange = onM3uUrlChange,
-                        placeholder = androidx.compose.ui.res.stringResource(R.string.setup_m3u_hint),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next)
-                    )
-                    com.afterglowtv.app.ui.components.ClipboardPasteButton(
-                        onPaste = { onM3uEpgUrlChange(it) },
-                        label = "Paste EPG URL",
-                    )
-                    ProviderTextField(
-                        value = m3uEpgUrl, onValueChange = onM3uEpgUrlChange,
-                        placeholder = androidx.compose.ui.res.stringResource(R.string.setup_epg_url_hint),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done)
-                    )
-                    AdvancedProviderOptionsSection(
-                        sourceType = sourceType,
-                        uiState = uiState,
-                        httpUserAgent = httpUserAgent,
-                        onHttpUserAgentChange = onHttpUserAgentChange,
-                        httpHeaders = httpHeaders,
-                        onHttpHeadersChange = onHttpHeadersChange,
-                        onToggleM3uVodClassification = onToggleM3uVodClassification,
-                        onSelectEpgSyncMode = onSelectEpgSyncMode,
-                        onSelectXtreamLiveSyncMode = onSelectXtreamLiveSyncMode,
-                        stalkerDeviceProfile = stalkerDeviceProfile,
-                        onStalkerDeviceProfileChange = onStalkerDeviceProfileChange,
-                        stalkerDeviceTimezone = stalkerDeviceTimezone,
-                        onStalkerDeviceTimezoneChange = onStalkerDeviceTimezoneChange,
-                        stalkerDeviceLocale = stalkerDeviceLocale,
-                        onStalkerDeviceLocaleChange = onStalkerDeviceLocaleChange
-                    )
-                    FormErrors(uiState.validationError, uiState.error)
-                    ActionButton(
-                        text = when {
-                            uiState.isLoading -> androidx.compose.ui.res.stringResource(R.string.setup_validating)
-                            uiState.isEditing -> androidx.compose.ui.res.stringResource(R.string.setup_save)
-                            else              -> androidx.compose.ui.res.stringResource(R.string.setup_add)
-                        },
-                        isLoading = uiState.isLoading,
-                        onClick = onAddM3u
-                    )
-                }
-
-                SourceType.M3U_FILE -> {
-                    FileSelectorCard(
-                        fileName = if (m3uUrl.startsWith("file://")) m3uUrl.substringAfterLast("/") else null,
-                        fileSelectedHint = androidx.compose.ui.res.stringResource(R.string.setup_file_replace_hint),
-                        emptySelectionTitle = androidx.compose.ui.res.stringResource(R.string.setup_file_select_title),
-                        emptySelectionHint = androidx.compose.ui.res.stringResource(R.string.setup_file_browse_hint),
-                        onClick = onFilePick
-                    )
-                    fileImportError?.let {
-                        Text(text = it, style = MaterialTheme.typography.bodyMedium, color = ErrorColor)
+            val showScrollHint by remember {
+                derivedStateOf { scrollState.value < scrollState.maxValue }
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(bottom = if (showScrollHint) 34.dp else 0.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        if (maxWidth >= 560.dp) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                SetupSectionBox(modifier = Modifier.weight(0.46f)) {
+                                    SetupSummaryStrip(sourceType = sourceType, isEditing = uiState.isEditing)
+                                }
+                                SetupSectionBox(modifier = Modifier.weight(0.54f)) {
+                                    ProviderTextField(
+                                        value = name,
+                                        onValueChange = onNameChange,
+                                        placeholder = androidx.compose.ui.res.stringResource(R.string.setup_name_hint),
+                                        modifier = Modifier.fillMaxWidth(0.72f)
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                SetupSectionBox {
+                                    SetupSummaryStrip(sourceType = sourceType, isEditing = uiState.isEditing)
+                                }
+                                SetupSectionBox {
+                                    ProviderTextField(
+                                        value = name,
+                                        onValueChange = onNameChange,
+                                        placeholder = androidx.compose.ui.res.stringResource(R.string.setup_name_hint)
+                                    )
+                                }
+                            }
+                        }
                     }
-                    AdvancedProviderOptionsSection(
-                        sourceType = sourceType,
-                        uiState = uiState,
-                        httpUserAgent = httpUserAgent,
-                        onHttpUserAgentChange = onHttpUserAgentChange,
-                        httpHeaders = httpHeaders,
-                        onHttpHeadersChange = onHttpHeadersChange,
-                        onToggleM3uVodClassification = onToggleM3uVodClassification,
-                        onSelectEpgSyncMode = onSelectEpgSyncMode,
-                        onSelectXtreamLiveSyncMode = onSelectXtreamLiveSyncMode,
-                        stalkerDeviceProfile = stalkerDeviceProfile,
-                        onStalkerDeviceProfileChange = onStalkerDeviceProfileChange,
-                        stalkerDeviceTimezone = stalkerDeviceTimezone,
-                        onStalkerDeviceTimezoneChange = onStalkerDeviceTimezoneChange,
-                        stalkerDeviceLocale = stalkerDeviceLocale,
-                        onStalkerDeviceLocaleChange = onStalkerDeviceLocaleChange
-                    )
+
+                    SetupSectionBox {
+                        when (sourceType) {
+                            SourceType.XTREAM -> {
+                            ProviderTextField(
+                                value = serverUrl, onValueChange = onServerUrlChange,
+                                placeholder = androidx.compose.ui.res.stringResource(R.string.setup_server_hint),
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.None,
+                                    autoCorrectEnabled = false,
+                                    keyboardType = if (isTelevisionDevice) KeyboardType.Ascii else KeyboardType.Uri,
+                                    imeAction = ImeAction.Next
+                                )
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                ProviderTextField(
+                                    value = username, onValueChange = onUsernameChange,
+                                    placeholder = androidx.compose.ui.res.stringResource(R.string.setup_user_hint),
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.None,
+                                        autoCorrectEnabled = false,
+                                        keyboardType = KeyboardType.Ascii,
+                                        imeAction = ImeAction.Next
+                                    )
+                                )
+                                ProviderTextField(
+                                    value = password, onValueChange = onPasswordChange,
+                                    placeholder = androidx.compose.ui.res.stringResource(R.string.setup_pass_hint),
+                                    modifier = Modifier.weight(1f),
+                                    isPassword = true,
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.None,
+                                        autoCorrectEnabled = false,
+                                        keyboardType = if (isTelevisionDevice) KeyboardType.Ascii else KeyboardType.Password,
+                                        imeAction = ImeAction.Done
+                                    )
+                                )
+                            }
+                            AdvancedProviderOptionsSection(
+                                sourceType = sourceType,
+                                uiState = uiState,
+                                httpUserAgent = httpUserAgent,
+                                onHttpUserAgentChange = onHttpUserAgentChange,
+                                httpHeaders = httpHeaders,
+                                onHttpHeadersChange = onHttpHeadersChange,
+                                onToggleM3uVodClassification = onToggleM3uVodClassification,
+                                onToggleXtreamFastSync = onToggleXtreamFastSync,
+                                onSelectEpgSyncMode = onSelectEpgSyncMode,
+                                onSelectXtreamLiveSyncMode = onSelectXtreamLiveSyncMode,
+                                stalkerDeviceProfile = stalkerDeviceProfile,
+                                onStalkerDeviceProfileChange = onStalkerDeviceProfileChange,
+                                stalkerDeviceTimezone = stalkerDeviceTimezone,
+                                onStalkerDeviceTimezoneChange = onStalkerDeviceTimezoneChange,
+                                stalkerDeviceLocale = stalkerDeviceLocale,
+                                onStalkerDeviceLocaleChange = onStalkerDeviceLocaleChange
+                            )
+                            }
+
+                            SourceType.STALKER -> {
+                            ProviderTextField(
+                                value = serverUrl, onValueChange = onServerUrlChange,
+                                placeholder = "Portal URL",
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.None,
+                                    autoCorrectEnabled = false,
+                                    keyboardType = if (isTelevisionDevice) KeyboardType.Ascii else KeyboardType.Uri,
+                                    imeAction = ImeAction.Next
+                                )
+                            )
+                            ProviderTextField(
+                                value = stalkerMacAddress, onValueChange = onStalkerMacAddressChange,
+                                placeholder = "MAC address",
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Characters,
+                                    autoCorrectEnabled = false,
+                                    keyboardType = KeyboardType.Ascii,
+                                    imeAction = ImeAction.Next
+                                )
+                            )
+                            AdvancedProviderOptionsSection(
+                                sourceType = sourceType,
+                                uiState = uiState,
+                                httpUserAgent = httpUserAgent,
+                                onHttpUserAgentChange = onHttpUserAgentChange,
+                                httpHeaders = httpHeaders,
+                                onHttpHeadersChange = onHttpHeadersChange,
+                                onToggleM3uVodClassification = onToggleM3uVodClassification,
+                                onToggleXtreamFastSync = onToggleXtreamFastSync,
+                                onSelectEpgSyncMode = onSelectEpgSyncMode,
+                                onSelectXtreamLiveSyncMode = onSelectXtreamLiveSyncMode,
+                                stalkerDeviceProfile = stalkerDeviceProfile,
+                                onStalkerDeviceProfileChange = onStalkerDeviceProfileChange,
+                                stalkerDeviceTimezone = stalkerDeviceTimezone,
+                                onStalkerDeviceTimezoneChange = onStalkerDeviceTimezoneChange,
+                                stalkerDeviceLocale = stalkerDeviceLocale,
+                                onStalkerDeviceLocaleChange = onStalkerDeviceLocaleChange
+                            )
+                            }
+
+                            SourceType.M3U_URL -> {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                com.afterglowtv.app.ui.components.ClipboardPasteButton(
+                                    onPaste = { onM3uUrlChange(it) },
+                                    label = "Paste M3U URL",
+                                )
+                                com.afterglowtv.app.ui.components.ClipboardCopyButton(
+                                    text = m3uUrl,
+                                    label = "Copy"
+                                )
+                                com.afterglowtv.app.ui.components.ClipboardClearButton(
+                                    onClear = { onM3uUrlChange("") },
+                                    label = "Clear",
+                                    enabled = m3uUrl.isNotEmpty()
+                                )
+                            }
+                            ProviderTextField(
+                                value = m3uUrl, onValueChange = onM3uUrlChange,
+                                placeholder = androidx.compose.ui.res.stringResource(R.string.setup_m3u_hint),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next)
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                com.afterglowtv.app.ui.components.ClipboardPasteButton(
+                                    onPaste = { onM3uEpgUrlChange(it) },
+                                    label = "Paste EPG URL",
+                                )
+                                com.afterglowtv.app.ui.components.ClipboardCopyButton(
+                                    text = m3uEpgUrl,
+                                    label = "Copy"
+                                )
+                                com.afterglowtv.app.ui.components.ClipboardClearButton(
+                                    onClear = { onM3uEpgUrlChange("") },
+                                    label = "Clear",
+                                    enabled = m3uEpgUrl.isNotEmpty()
+                                )
+                            }
+                            ProviderTextField(
+                                value = m3uEpgUrl, onValueChange = onM3uEpgUrlChange,
+                                placeholder = androidx.compose.ui.res.stringResource(R.string.setup_epg_url_hint),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done)
+                            )
+                            AdvancedProviderOptionsSection(
+                                sourceType = sourceType,
+                                uiState = uiState,
+                                httpUserAgent = httpUserAgent,
+                                onHttpUserAgentChange = onHttpUserAgentChange,
+                                httpHeaders = httpHeaders,
+                                onHttpHeadersChange = onHttpHeadersChange,
+                                onToggleM3uVodClassification = onToggleM3uVodClassification,
+                                onToggleXtreamFastSync = onToggleXtreamFastSync,
+                                onSelectEpgSyncMode = onSelectEpgSyncMode,
+                                onSelectXtreamLiveSyncMode = onSelectXtreamLiveSyncMode,
+                                stalkerDeviceProfile = stalkerDeviceProfile,
+                                onStalkerDeviceProfileChange = onStalkerDeviceProfileChange,
+                                stalkerDeviceTimezone = stalkerDeviceTimezone,
+                                onStalkerDeviceTimezoneChange = onStalkerDeviceTimezoneChange,
+                                stalkerDeviceLocale = stalkerDeviceLocale,
+                                onStalkerDeviceLocaleChange = onStalkerDeviceLocaleChange
+                            )
+                            }
+
+                            SourceType.M3U_FILE -> {
+                            FileSelectorCard(
+                                fileName = if (m3uUrl.startsWith("file://")) m3uUrl.substringAfterLast("/") else null,
+                                fileSelectedHint = androidx.compose.ui.res.stringResource(R.string.setup_file_replace_hint),
+                                emptySelectionTitle = androidx.compose.ui.res.stringResource(R.string.setup_file_select_title),
+                                emptySelectionHint = androidx.compose.ui.res.stringResource(R.string.setup_file_browse_hint),
+                                onClick = onFilePick
+                            )
+                            fileImportError?.let {
+                                Text(text = it, style = MaterialTheme.typography.bodyMedium, color = ErrorColor)
+                            }
+                            AdvancedProviderOptionsSection(
+                                sourceType = sourceType,
+                                uiState = uiState,
+                                httpUserAgent = httpUserAgent,
+                                onHttpUserAgentChange = onHttpUserAgentChange,
+                                httpHeaders = httpHeaders,
+                                onHttpHeadersChange = onHttpHeadersChange,
+                                onToggleM3uVodClassification = onToggleM3uVodClassification,
+                                onToggleXtreamFastSync = onToggleXtreamFastSync,
+                                onSelectEpgSyncMode = onSelectEpgSyncMode,
+                                onSelectXtreamLiveSyncMode = onSelectXtreamLiveSyncMode,
+                                stalkerDeviceProfile = stalkerDeviceProfile,
+                                onStalkerDeviceProfileChange = onStalkerDeviceProfileChange,
+                                stalkerDeviceTimezone = stalkerDeviceTimezone,
+                                onStalkerDeviceTimezoneChange = onStalkerDeviceTimezoneChange,
+                                stalkerDeviceLocale = stalkerDeviceLocale,
+                                onStalkerDeviceLocaleChange = onStalkerDeviceLocaleChange
+                            )
+                            }
+                        }
+                    }
                     FormErrors(uiState.validationError, uiState.error)
-                    ActionButton(
-                        text = when {
-                            uiState.isLoading -> androidx.compose.ui.res.stringResource(R.string.setup_validating)
-                            uiState.isEditing -> androidx.compose.ui.res.stringResource(R.string.setup_save)
-                            else              -> androidx.compose.ui.res.stringResource(R.string.setup_add)
-                        },
-                        isLoading = uiState.isLoading,
-                        onClick = onAddM3u
+                }
+                if (showScrollHint) {
+                    ScrollDownHint(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 4.dp)
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
             if (showImportBackupButton) {
-                SmallActionButton(
-                    text = androidx.compose.ui.res.stringResource(R.string.setup_import_backup),
-                    isLoading = isImportingBackup,
-                    onClick = onImportBackup
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ActionButton(
+                        text = primaryActionText,
+                        isLoading = uiState.isLoading,
+                        onClick = primaryAction,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ActionButton(
+                        text = androidx.compose.ui.res.stringResource(R.string.setup_import_backup),
+                        isLoading = isImportingBackup,
+                        onClick = onImportBackup,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                ActionButton(
+                    text = primaryActionText,
+                    isLoading = uiState.isLoading,
+                    onClick = primaryAction
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScrollDownHint(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(width = 56.dp, height = 28.dp)
+            .background(com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.96f), RoundedCornerShape(8.dp))
+            .border(1.dp, Primary.copy(alpha = 0.7f), RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.size(18.dp)) {
+            val stroke = 3.dp.toPx()
+            drawLine(
+                color = Primary,
+                start = androidx.compose.ui.geometry.Offset(size.width * 0.18f, size.height * 0.35f),
+                end = androidx.compose.ui.geometry.Offset(size.width * 0.50f, size.height * 0.68f),
+                strokeWidth = stroke
+            )
+            drawLine(
+                color = Primary,
+                start = androidx.compose.ui.geometry.Offset(size.width * 0.82f, size.height * 0.35f),
+                end = androidx.compose.ui.geometry.Offset(size.width * 0.50f, size.height * 0.68f),
+                strokeWidth = stroke
+            )
+        }
+    }
+}
+
+@Composable
+private fun SetupSectionBox(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Surface.copy(alpha = 0.72f), RoundedCornerShape(8.dp))
+            .border(1.dp, SurfaceHighlight.copy(alpha = 0.95f), RoundedCornerShape(8.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun SetupSummaryStrip(
+    sourceType: SourceType,
+    isEditing: Boolean
+) {
+    val title = when (sourceType) {
+        SourceType.XTREAM -> stringResource(R.string.setup_info_xtream_title)
+        SourceType.STALKER -> stringResource(R.string.setup_stalker)
+        SourceType.M3U_URL,
+        SourceType.M3U_FILE -> stringResource(R.string.setup_info_m3u_title)
+    }
+    val subtitle = when (sourceType) {
+        SourceType.XTREAM -> stringResource(R.string.setup_info_xtream_body)
+        SourceType.STALKER -> stringResource(R.string.setup_info_stalker_body)
+        SourceType.M3U_URL -> stringResource(R.string.setup_info_m3u_body)
+        SourceType.M3U_FILE -> stringResource(R.string.setup_file_browse_hint)
+    }
+    val badges = when (sourceType) {
+        SourceType.XTREAM -> listOf(
+            R.string.setup_badge_live_tv,
+            R.string.setup_badge_fast_sync,
+            R.string.setup_badge_epg
+        )
+        SourceType.STALKER -> listOf(
+            R.string.setup_badge_live_tv,
+            R.string.setup_badge_portal,
+            R.string.badge_beta
+        )
+        SourceType.M3U_URL -> listOf(
+            R.string.setup_badge_live_tv,
+            R.string.setup_badge_vod_sorting,
+            R.string.setup_badge_epg
+        )
+        SourceType.M3U_FILE -> listOf(
+            R.string.setup_badge_local_file,
+            R.string.setup_badge_vod_sorting,
+            R.string.setup_badge_epg
+        )
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = if (isEditing) stringResource(R.string.setup_edit_provider) else title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.sp
+                    ),
+                    color = TextPrimary
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceDim
+                )
+            }
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            badges.forEach { labelRes ->
+                StatusPill(
+                    label = stringResource(labelRes),
+                    containerColor = SurfaceHighlight,
+                    contentColor = TextPrimary,
+                    horizontalPadding = 8.dp,
+                    verticalPadding = 3.dp,
+                    cornerRadius = 6.dp
                 )
             }
         }
@@ -873,6 +1083,7 @@ private fun AdvancedProviderOptionsSection(
     httpHeaders: String,
     onHttpHeadersChange: (String) -> Unit,
     onToggleM3uVodClassification: () -> Unit,
+    onToggleXtreamFastSync: () -> Unit,
     onSelectEpgSyncMode: (ProviderEpgSyncMode) -> Unit,
     onSelectXtreamLiveSyncMode: (ProviderXtreamLiveSyncMode) -> Unit,
     stalkerDeviceProfile: String,
@@ -883,15 +1094,17 @@ private fun AdvancedProviderOptionsSection(
     onStalkerDeviceLocaleChange: (String) -> Unit
 ) {
     var showAdvancedOptions by rememberSaveable(sourceType) { mutableStateOf(false) }
-    val defaultEpgSyncMode = when (sourceType) {
-        SourceType.STALKER -> ProviderEpgSyncMode.BACKGROUND
-        SourceType.XTREAM,
-        SourceType.M3U_URL,
-        SourceType.M3U_FILE -> ProviderEpgSyncMode.UPFRONT
-    }
+    val defaultEpgSyncMode = ProviderEpgSyncMode.BACKGROUND
 
-    LaunchedEffect(uiState.isEditing, uiState.epgSyncMode, uiState.xtreamLiveSyncMode, sourceType) {
+    LaunchedEffect(
+        uiState.isEditing,
+        uiState.epgSyncMode,
+        uiState.xtreamFastSyncEnabled,
+        uiState.xtreamLiveSyncMode,
+        sourceType
+    ) {
         val hasNonDefaultSelection = ((sourceType == SourceType.XTREAM || sourceType == SourceType.STALKER) && uiState.epgSyncMode != defaultEpgSyncMode) ||
+            (sourceType == SourceType.XTREAM && !uiState.xtreamFastSyncEnabled) ||
             (sourceType == SourceType.XTREAM && uiState.xtreamLiveSyncMode != ProviderXtreamLiveSyncMode.AUTO) ||
             ((sourceType == SourceType.M3U_URL || sourceType == SourceType.M3U_FILE) && !uiState.m3uVodClassificationEnabled) ||
             ((sourceType == SourceType.XTREAM || sourceType == SourceType.M3U_URL || sourceType == SourceType.M3U_FILE) &&
@@ -910,8 +1123,8 @@ private fun AdvancedProviderOptionsSection(
                 .mouseClickable(onClick = { showAdvancedOptions = !showAdvancedOptions }),
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
             colors = ClickableSurfaceDefaults.colors(
-                containerColor = if (showAdvancedOptions) Primary.copy(alpha = 0.12f) else Surface,
-                focusedContainerColor = Primary.copy(alpha = 0.24f)
+                containerColor = if (showAdvancedOptions) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.95f) else SurfaceElevated,
+                focusedContainerColor = com.afterglowtv.app.ui.design.AppColors.SurfaceAccent
             ),
             border = ClickableSurfaceDefaults.border(
                 border = Border(
@@ -959,50 +1172,12 @@ private fun AdvancedProviderOptionsSection(
         AnimatedVisibility(visible = showAdvancedOptions) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (sourceType == SourceType.M3U_URL || sourceType == SourceType.M3U_FILE) {
-                    Surface(
-                        onClick = onToggleM3uVodClassification,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .mouseClickable(onClick = onToggleM3uVodClassification),
-                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
-                        colors = ClickableSurfaceDefaults.colors(
-                            containerColor = if (uiState.m3uVodClassificationEnabled) Primary.copy(alpha = 0.1f) else Surface,
-                            focusedContainerColor = Primary.copy(alpha = 0.22f)
-                        ),
-                        border = ClickableSurfaceDefaults.border(
-                            border = Border(
-                                BorderStroke(
-                                    1.dp,
-                                    if (uiState.m3uVodClassificationEnabled) Primary.copy(alpha = 0.4f) else SurfaceHighlight
-                                )
-                            ),
-                            focusedBorder = Border(BorderStroke(3.dp, PrimaryLight))
-                        ),
-                        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(
-                                    text = androidx.compose.ui.res.stringResource(R.string.setup_m3u_vod_classification_label),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = TextPrimary
-                                )
-                                Text(
-                                    text = androidx.compose.ui.res.stringResource(R.string.setup_m3u_vod_classification_helper),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = OnSurfaceDim
-                                )
-                            }
-                            Switch(
-                                checked = uiState.m3uVodClassificationEnabled,
-                                onCheckedChange = { onToggleM3uVodClassification() }
-                            )
-                        }
-                    }
+                    AdvancedSwitchOption(
+                        title = stringResource(R.string.setup_m3u_vod_classification_label),
+                        helper = stringResource(R.string.setup_m3u_vod_classification_helper),
+                        checked = uiState.m3uVodClassificationEnabled,
+                        onToggle = onToggleM3uVodClassification
+                    )
                 }
 
                 if (sourceType == SourceType.XTREAM || sourceType == SourceType.M3U_URL || sourceType == SourceType.M3U_FILE) {
@@ -1032,6 +1207,12 @@ private fun AdvancedProviderOptionsSection(
 
                 if (sourceType == SourceType.XTREAM || sourceType == SourceType.STALKER) {
                     if (sourceType == SourceType.XTREAM) {
+                        AdvancedSwitchOption(
+                            title = stringResource(R.string.setup_xtream_fast_sync_label),
+                            helper = stringResource(R.string.setup_xtream_fast_sync_helper),
+                            checked = uiState.xtreamFastSyncEnabled,
+                            onToggle = onToggleXtreamFastSync
+                        )
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1118,6 +1299,59 @@ private fun AdvancedProviderOptionsSection(
 }
 
 @Composable
+private fun AdvancedSwitchOption(
+    title: String,
+    helper: String,
+    checked: Boolean,
+    onToggle: () -> Unit
+) {
+    Surface(
+        onClick = onToggle,
+        modifier = Modifier
+            .fillMaxWidth()
+            .mouseClickable(onClick = onToggle),
+            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+            colors = ClickableSurfaceDefaults.colors(
+            containerColor = if (checked) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.95f) else SurfaceElevated,
+            focusedContainerColor = com.afterglowtv.app.ui.design.AppColors.SurfaceAccent
+        ),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(
+                BorderStroke(
+                    1.dp,
+                    if (checked) Primary.copy(alpha = 0.4f) else SurfaceHighlight
+                )
+            ),
+            focusedBorder = Border(BorderStroke(3.dp, PrimaryLight))
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = TextPrimary
+                )
+                Text(
+                    text = helper,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = OnSurfaceDim
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = { onToggle() }
+            )
+        }
+    }
+}
+
+@Composable
 private fun XtreamLiveSyncModeOptionRow(
     mode: ProviderXtreamLiveSyncMode,
     selected: Boolean,
@@ -1140,8 +1374,8 @@ private fun XtreamLiveSyncModeOptionRow(
             .mouseClickable(onClick = onSelect),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Primary.copy(alpha = 0.12f) else Color.Transparent,
-            focusedContainerColor = if (selected) Primary.copy(alpha = 0.26f) else SurfaceHighlight.copy(alpha = 0.9f)
+            containerColor = if (selected) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.95f) else Color.Transparent,
+            focusedContainerColor = com.afterglowtv.app.ui.design.AppColors.SurfaceAccent
         ),
         border = ClickableSurfaceDefaults.border(
             border = Border(
@@ -1215,8 +1449,8 @@ private fun EpgSyncModeOptionRow(
             .mouseClickable(onClick = onSelect),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Primary.copy(alpha = 0.12f) else Color.Transparent,
-            focusedContainerColor = if (selected) Primary.copy(alpha = 0.26f) else SurfaceHighlight.copy(alpha = 0.9f)
+            containerColor = if (selected) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.95f) else Color.Transparent,
+            focusedContainerColor = com.afterglowtv.app.ui.design.AppColors.SurfaceAccent
         ),
         border = ClickableSurfaceDefaults.border(
             border = Border(
@@ -1264,7 +1498,7 @@ private fun FormErrors(validationError: String?, error: String?) {
     }
 }
 
-// ??? Source type selector ן¿½ wide layout (left sidebar) ????????????????????????
+// Source type selector: wide layout
 
 @Composable
 private fun SourceTypeSelectorPanel(
@@ -1277,6 +1511,7 @@ private fun SourceTypeSelectorPanel(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
+        border = Border(border = BorderStroke(1.dp, SurfaceHighlight.copy(alpha = 0.95f)), shape = RoundedCornerShape(20.dp)),
         colors = SurfaceDefaults.colors(containerColor = Surface.copy(alpha = 0.92f))
     ) {
         Column(
@@ -1335,17 +1570,6 @@ private fun SourceTypeSelectorPanel(
                     onClick = { onSelect(SourceType.M3U_FILE) }
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_info_manage_title),
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceDim
-            )
-            Text(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_info_manage_body),
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceDim.copy(alpha = 0.55f)
-            )
         }
     }
 }
@@ -1361,20 +1585,30 @@ private fun SourceTypeCard(
 ) {
     Surface(
         onClick = { if (enabled) onClick() },
-        modifier = Modifier.fillMaxWidth().mouseClickable(enabled = enabled, onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .mouseClickable(enabled = enabled, onClick = onClick),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor  = if (selected) Primary.copy(alpha = 0.18f) else SurfaceElevated,
-            focusedContainerColor = if (selected) Primary.copy(alpha = 0.28f) else SurfaceHighlight
+            containerColor  = if (selected) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.72f) else SurfaceElevated,
+            focusedContainerColor = com.afterglowtv.app.ui.design.AppColors.SurfaceAccent
         ),
         border = ClickableSurfaceDefaults.border(
-            border = Border(BorderStroke(1.dp, if (selected) Primary.copy(alpha = 0.5f) else SurfaceHighlight)),
+            border = Border(
+                BorderStroke(
+                    if (selected) 2.dp else 1.dp,
+                    if (selected) Primary else Color.Transparent
+                )
+            ),
             focusedBorder = Border(BorderStroke(2.dp, FocusBorder))
         )
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1383,7 +1617,7 @@ private fun SourceTypeCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (selected) Primary else TextPrimary
+                    color = Primary
                 )
                 badge?.let {
                     StatusPill(
@@ -1396,12 +1630,13 @@ private fun SourceTypeCard(
                     )
                 }
             }
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = OnSurfaceDim, maxLines = 2)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = OnSurfaceDim, maxLines = 1)
         }
     }
 }
 
-// ??? Source type row ן¿½ narrow layout (top tabs) ???????????????????????????????
+// Source type selector: narrow layout
 
 @Composable
 private fun SourceTypeTabRow(
@@ -1443,10 +1678,10 @@ private fun SourceTypeTabRow(
     }
 }
 
-// ??? ProviderTextField ????????????????????????????????????????????????????????
+// ProviderTextField
 //
 // Key fix: uses BasicTextField with decorationBox and tracks focus via
-// onFocusEvent { it.hasFocus } ן¿½ hasFocus is true when this node OR any
+// onFocusEvent { it.hasFocus } is true when this node OR any
 // descendant (the actual cursor/text composable) has focus. The old approach
 // used onFocusChanged { isFocused } on an outer Box, which became false the
 // moment the inner BasicTextField took focus, breaking keyboard scroll.
@@ -1567,12 +1802,22 @@ private fun ProviderTextField(
         if (revealedPasswordIndex == idx) revealedPasswordIndex = null
     }
 
-    val borderColor by animateColorAsState(if (isFocused) Primary else SurfaceHighlight, tween(150), label = "border")
-    val bgColor     by animateColorAsState(if (isFocused) Surface  else SurfaceElevated, tween(150), label = "bg")
+    val borderColor by animateColorAsState(
+        if (isFocused) com.afterglowtv.app.ui.design.AppColors.Live else Primary.copy(alpha = 0.55f),
+        tween(150),
+        label = "border"
+    )
+    val bgColor by animateColorAsState(
+        if (isFocused) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent else Surface.copy(alpha = 0.92f),
+        tween(150),
+        label = "bg"
+    )
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
+            .then(modifier)
+            .height(64.dp)
             .focusRequester(containerFocusRequester)
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusEvent {
@@ -1664,85 +1909,79 @@ private fun ProviderTextField(
             },
             cursorBrush = SolidColor(Primary),
             decorationBox = { innerTextField ->
-                // AfterglowTV signature field: razor-sharp 2dp corners + an
-                // accent stripe on the leading edge that thickens on focus,
-                // plus a subtle accent-tinted background so the field still
-                // has a visual mass without a heavy outline. No outer border
-                // when unfocused — only the stripe carries the identity.
-                val fieldShape = RoundedCornerShape(2.dp)
+                val fieldShape = RoundedCornerShape(6.dp)
                 val stripeWidth: androidx.compose.ui.unit.Dp = if (isFocused) 6.dp else 4.dp
-                val tintedBg = if (isFocused) {
-                    com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.10f)
-                } else {
-                    com.afterglowtv.app.ui.design.AppColors.TiviSurfaceCool.copy(alpha = 0.60f)
-                }
-                Row(
+                Box(
                     modifier = Modifier
-                        .background(tintedBg, fieldShape)
+                        .fillMaxSize()
+                        .background(bgColor, fieldShape)
                         .border(
-                            width = if (isFocused) 1.dp else 0.dp,
-                            color = if (isFocused) borderColor.copy(alpha = 0.6f) else androidx.compose.ui.graphics.Color.Transparent,
+                            width = if (isFocused) 2.dp else 1.dp,
+                            color = borderColor,
                             shape = fieldShape,
                         )
-                        .padding(start = stripeWidth.value.dp + 12.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // The leading accent stripe — always visible, gives every
-                    // field a recognisable AfterglowTV silhouette.
                     Box(
                         modifier = Modifier
-                            .offset(x = -((stripeWidth.value + 12f).dp))
+                            .align(Alignment.CenterStart)
                             .width(stripeWidth)
-                            .height(40.dp)
+                            .fillMaxHeight()
                             .background(
-                                color = com.afterglowtv.app.ui.design.AppColors.TiviAccent,
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp),
+                                color = if (isFocused) com.afterglowtv.app.ui.design.AppColors.Live else Primary,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp),
                             ),
                     )
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.CenterStart
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = stripeWidth + 12.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (value.isEmpty()) {
-                            Text(text = placeholder, style = MaterialTheme.typography.bodyMedium, color = OnSurfaceDim)
-                        }
-                        innerTextField()
-                    }
-
-                    if (isPassword) {
                         Box(
-                            modifier = Modifier
-                                .padding(start = 12.dp)
-                                .size(24.dp)
-                                .focusRequester(visibilityToggleFocusRequester)
-                                .focusProperties {
-                                    canFocus = !isTelevisionDevice || acceptsInput
-                                    left = inputFocusRequester
-                                }
-                                .onFocusEvent {
-                                    if (it.hasFocus) {
-                                        coroutineScope.launch {
-                                            delay(120)
-                                            runCatching { bringIntoViewRequester.bringIntoView() }
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (value.isEmpty()) {
+                                Text(text = placeholder, style = MaterialTheme.typography.bodyMedium, color = OnSurfaceDim)
+                            }
+                            innerTextField()
+                        }
+
+                        if (isPassword) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(start = 12.dp)
+                                    .size(24.dp)
+                                    .focusRequester(visibilityToggleFocusRequester)
+                                    .focusProperties {
+                                        canFocus = !isTelevisionDevice || acceptsInput
+                                        left = inputFocusRequester
+                                    }
+                                    .onFocusEvent {
+                                        if (it.hasFocus) {
+                                            coroutineScope.launch {
+                                                delay(120)
+                                                runCatching { bringIntoViewRequester.bringIntoView() }
+                                            }
                                         }
                                     }
-                                }
-                                .semantics {
-                                    contentDescription = passwordVisibilityDescription.orEmpty()
-                                }
-                                .clickable {
-                                    isPasswordVisible = !isPasswordVisible
-                                }
-                                .mouseClickable(focusRequester = visibilityToggleFocusRequester) {
-                                    isPasswordVisible = !isPasswordVisible
-                                }
-                                .focusable(enabled = !isTelevisionDevice || acceptsInput)
-                        ) {
-                            PasswordVisibilityGlyph(
-                                isVisible = isPasswordVisible,
-                                tint = if (isFocused) Primary else OnSurfaceDim,
-                                modifier = Modifier.align(Alignment.Center)
-                            )
+                                    .semantics {
+                                        contentDescription = passwordVisibilityDescription.orEmpty()
+                                    }
+                                    .clickable {
+                                        isPasswordVisible = !isPasswordVisible
+                                    }
+                                    .mouseClickable(focusRequester = visibilityToggleFocusRequester) {
+                                        isPasswordVisible = !isPasswordVisible
+                                    }
+                                    .focusable(enabled = !isTelevisionDevice || acceptsInput)
+                            ) {
+                                PasswordVisibilityGlyph(
+                                    isVisible = isPasswordVisible,
+                                    tint = if (isFocused) Primary else OnSurfaceDim,
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
+                            }
                         }
                     }
                 }
@@ -1781,7 +2020,7 @@ private fun PasswordVisibilityGlyph(
     }
 }
 
-// ??? Sync progress dialog ?????????????????????????????????????????????????????
+// Sync progress dialog
 
 @Composable
 fun SyncProgressDialog(message: String) {
@@ -1813,19 +2052,21 @@ fun SyncProgressDialog(message: String) {
     )
 }
 
-// ??? ActionButton ?????????????????????????????????????????????????????????????
+// ActionButton
 
 @Composable
 private fun ActionButton(
     text: String,
     isLoading: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     ProviderActionButton(
         text = text,
         height = 52.dp,
         isLoading = isLoading,
-        onClick = onClick
+        onClick = onClick,
+        modifier = modifier
     )
 }
 
@@ -1833,13 +2074,15 @@ private fun ActionButton(
 private fun SmallActionButton(
     text: String,
     isLoading: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     ProviderActionButton(
         text = text,
         height = 40.dp,
         isLoading = isLoading,
-        onClick = onClick
+        onClick = onClick,
+        modifier = modifier
     )
 }
 
@@ -1848,14 +2091,15 @@ private fun ProviderActionButton(
     text: String,
     height: androidx.compose.ui.unit.Dp,
     isLoading: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (isFocused) 1.03f else 1f, tween(150), label = "scale")
 
     Surface(
         onClick = { if (!isLoading) onClick() },
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(height)
             .scale(scale)
@@ -1872,8 +2116,8 @@ private fun ProviderActionButton(
             .mouseClickable(enabled = !isLoading, onClick = onClick),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (!isLoading) com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.12f) else SurfaceHighlight,
-            focusedContainerColor = if (!isLoading) com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.22f) else SurfaceHighlight,
+            containerColor = if (!isLoading) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.95f) else SurfaceHighlight,
+            focusedContainerColor = if (!isLoading) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent else SurfaceHighlight,
         ),
         border = ClickableSurfaceDefaults.border(
             border = Border(BorderStroke(1.dp, com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.45f))),
@@ -1892,7 +2136,7 @@ private fun ProviderActionButton(
                     text = text,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                        letterSpacing = androidx.compose.ui.unit.TextUnit(0.5f, androidx.compose.ui.unit.TextUnitType.Sp),
+                        letterSpacing = 0.sp,
                     ),
                     color = com.afterglowtv.app.ui.design.AppColors.TextPrimary,
                 )
@@ -1901,7 +2145,7 @@ private fun ProviderActionButton(
     }
 }
 
-// ??? FileSelectorCard ?????????????????????????????????????????????????????????
+// FileSelectorCard
 
 @Composable
 private fun FileSelectorCard(
@@ -1941,7 +2185,7 @@ private fun FileSelectorCard(
     }
 }
 
-// ??? TabButton (used by SourceTypeTabRow) ?????????????????????????????????????
+// TabButton
 
 @Composable
 private fun TabButton(text: String, isSelected: Boolean, onClick: () -> Unit, badge: String? = null) {
@@ -1951,11 +2195,11 @@ private fun TabButton(text: String, isSelected: Boolean, onClick: () -> Unit, ba
         modifier = Modifier.onFocusEvent { isFocused = it.hasFocus }.mouseClickable(onClick = onClick),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (isSelected) Primary.copy(alpha = 0.2f) else Surface,
-            focusedContainerColor = SurfaceHighlight
+            containerColor = if (isSelected) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.72f) else SurfaceElevated,
+            focusedContainerColor = com.afterglowtv.app.ui.design.AppColors.SurfaceAccent
         ),
         border = ClickableSurfaceDefaults.border(
-            border = Border(BorderStroke(1.dp, if (isSelected) Primary.copy(alpha = 0.4f) else SurfaceHighlight)),
+            border = Border(BorderStroke(1.dp, SurfaceHighlight.copy(alpha = if (isSelected) 0.95f else 0.65f))),
             focusedBorder = Border(BorderStroke(2.dp, FocusBorder))
         )
     ) {
@@ -1967,7 +2211,7 @@ private fun TabButton(text: String, isSelected: Boolean, onClick: () -> Unit, ba
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isSelected) Primary else if (isFocused) TextPrimary else OnSurface
+                color = if (isFocused) TextPrimary else OnSurface
             )
             badge?.let {
                 StatusPill(

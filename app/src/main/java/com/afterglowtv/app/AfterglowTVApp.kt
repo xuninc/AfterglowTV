@@ -1,6 +1,8 @@
 package com.afterglowtv.app
 
 import android.app.Application
+import android.os.Handler
+import android.os.Looper
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -15,7 +17,11 @@ import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.app.ui.design.AppPalette
 import com.afterglowtv.data.preferences.PreferencesRepository
 import com.afterglowtv.domain.model.Result
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
 import dagger.hilt.android.HiltAndroidApp
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,69 +32,78 @@ import okio.Path.Companion.toOkioPath
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.Operation
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.afterglowtv.data.manager.recording.RecordingReconcileWorker
 import com.afterglowtv.data.sync.ProviderSyncWorker
 import com.afterglowtv.data.sync.XtreamIndexWorker
 import com.afterglowtv.player.timeshift.TimeshiftDiskManager
-import javax.inject.Inject
+import java.util.concurrent.TimeUnit
 
 @HiltAndroidApp
 class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
     private val runtimeDiagnosticsManager by lazy { RuntimeDiagnosticsManager(this) }
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    @Inject
-    lateinit var preferencesRepository: PreferencesRepository
-
-    @Inject
-    lateinit var gitHubReleaseChecker: GitHubReleaseChecker
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     override fun onCreate() {
         super.onCreate()
         CrashReportStore.install(this)
-        runtimeDiagnosticsManager.start()
         applicationScope.launch {
-            // Clean up any timeshift temp directories left behind by crashes, OOM kills, or
-            // force-stops from the previous run. activeSessionDir = null means wipe everything.
-            TimeshiftDiskManager(applicationContext).cleanupStaleDirectories(activeSessionDir = null)
+            cancelColdStartMaintenanceWork()
         }
-        applicationScope.launch {
-            // Load the user's saved theme palette ASAP so first-frame composition
-            // renders in the chosen palette rather than the default Vaporwave.
-            val storedId = preferencesRepository.themePalette.first()
-            AppColors.applyPalette(AppPalette.byId(storedId))
+        scheduleDeferredStartupWork()
+    }
 
-            // Apply the bundled shape-set first, then layer any per-axis
-            // overrides on top. Per-axis prefs are cleared whenever the user
-            // switches the bundled set, so this composition order is right.
-            val shapeSetId = preferencesRepository.themeShapeSet.first()
-            com.afterglowtv.app.ui.design.AppStyles.apply(
-                com.afterglowtv.app.ui.design.AppShapeSet.byId(shapeSetId)
-            )
-            applyPerAxisStyleOverrides()
+    private fun scheduleDeferredStartupWork() {
+        val startupDelayMs = if (BuildConfig.DEBUG) {
+            DEBUG_STARTUP_BACKGROUND_WORK_DELAY_MS
+        } else {
+            STARTUP_BACKGROUND_WORK_DELAY_MS
         }
-        applicationScope.launch {
-            // Load saved Glow customization — intensity + per-role specs.
-            // Empty serialized strings mean "use the in-code defaults".
-            val intensity = preferencesRepository.glowIntensity.first()
-            com.afterglowtv.app.ui.design.Glows.applyIntensity(intensity)
+        mainHandler.postDelayed({
+            runtimeDiagnosticsManager.start()
+            applicationScope.launch {
+                runDeferredStartupWork()
+            }
+        }, startupDelayMs)
+    }
 
-            preferencesRepository.glowFocusSpecs.first()
-                .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
-                ?.let { com.afterglowtv.app.ui.design.Glows.overrideFocus(it) }
-            preferencesRepository.glowLiveSpecs.first()
-                .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
-                ?.let { com.afterglowtv.app.ui.design.Glows.overrideLive(it) }
-            preferencesRepository.glowAmbientSpecs.first()
-                .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
-                ?.let { com.afterglowtv.app.ui.design.Glows.overrideAmbient(it) }
-        }
-        applicationScope.launch {
-            refreshCachedAppUpdateIfNeeded()
-        }
-        
+    private suspend fun runDeferredStartupWork() {
+        val entryPoint = startupEntryPoint()
+        val preferencesRepository = entryPoint.preferencesRepository()
+        TimeshiftDiskManager(applicationContext).cleanupStaleDirectories(activeSessionDir = null)
+        applySavedVisualPreferences(preferencesRepository)
+        refreshCachedAppUpdateIfNeeded(preferencesRepository, entryPoint.gitHubReleaseChecker())
+        enqueueMaintenanceWorkers()
+    }
+
+    private suspend fun applySavedVisualPreferences(preferencesRepository: PreferencesRepository) {
+        val storedId = preferencesRepository.themePalette.first()
+        AppColors.applyPalette(AppPalette.byId(storedId))
+
+        val shapeSetId = preferencesRepository.themeShapeSet.first()
+        com.afterglowtv.app.ui.design.AppStyles.apply(
+            com.afterglowtv.app.ui.design.AppShapeSet.byId(shapeSetId)
+        )
+        applyPerAxisStyleOverrides(preferencesRepository)
+
+        val intensity = preferencesRepository.glowIntensity.first()
+        com.afterglowtv.app.ui.design.Glows.applyIntensity(intensity)
+
+        preferencesRepository.glowFocusSpecs.first()
+            .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
+            ?.let { com.afterglowtv.app.ui.design.Glows.overrideFocus(it) }
+        preferencesRepository.glowLiveSpecs.first()
+            .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
+            ?.let { com.afterglowtv.app.ui.design.Glows.overrideLive(it) }
+        preferencesRepository.glowAmbientSpecs.first()
+            .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
+            ?.let { com.afterglowtv.app.ui.design.Glows.overrideAmbient(it) }
+    }
+
+    private fun enqueueMaintenanceWorkers() {
         // Schedule daily data maintenance: EPG pruning, stale-favorite cleanup, and DB compaction checks.
         // BLD-H02: Require network + device idle so the worker doesn't drain battery.
         val gcConstraints = Constraints.Builder()
@@ -99,10 +114,11 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
 
         val gcWorkRequest = PeriodicWorkRequestBuilder<com.afterglowtv.data.sync.SyncWorker>(24, java.util.concurrent.TimeUnit.HOURS)
             .setConstraints(gcConstraints)
+            .setInitialDelay(MAINTENANCE_WORK_INITIAL_DELAY_MINUTES, java.util.concurrent.TimeUnit.MINUTES)
             .build()
             
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "DataMaintenanceWorker",
+            DATA_MAINTENANCE_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             gcWorkRequest
         )
@@ -115,12 +131,30 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
         RecordingReconcileWorker.enqueueOneShot(this)
     }
 
+    private fun cancelColdStartMaintenanceWork() {
+        val operations = buildList {
+            add(WorkManager.getInstance(this@AfterglowTVApp).cancelUniqueWork(DATA_MAINTENANCE_WORK_NAME))
+            addAll(ProviderSyncWorker.cancelStartupMaintenance(this@AfterglowTVApp))
+            addAll(XtreamIndexWorker.cancelStartupMaintenance(this@AfterglowTVApp))
+            addAll(RecordingReconcileWorker.cancelStartupMaintenance(this@AfterglowTVApp))
+        }
+        operations.awaitStartupMaintenance()
+    }
+
+    private fun List<Operation>.awaitStartupMaintenance() {
+        forEach { operation ->
+            runCatching {
+                operation.result.get(5, TimeUnit.SECONDS)
+            }
+        }
+    }
+
     override fun onTerminate() {
         runtimeDiagnosticsManager.stop()
         super.onTerminate()
     }
 
-    private suspend fun applyPerAxisStyleOverrides() {
+    private suspend fun applyPerAxisStyleOverrides(preferencesRepository: PreferencesRepository) {
         preferencesRepository.styleButton.first()?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.ButtonStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setButton)
@@ -155,7 +189,10 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
         }
     }
 
-    private suspend fun refreshCachedAppUpdateIfNeeded() {
+    private suspend fun refreshCachedAppUpdateIfNeeded(
+        preferencesRepository: PreferencesRepository,
+        gitHubReleaseChecker: GitHubReleaseChecker
+    ) {
         val autoCheckEnabled = preferencesRepository.autoCheckAppUpdates.first()
         if (!autoCheckEnabled) {
             return
@@ -184,6 +221,12 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
         }
     }
 
+    private fun startupEntryPoint(): StartupEntryPoint =
+        EntryPointAccessors.fromApplication(
+            applicationContext,
+            StartupEntryPoint::class.java
+        )
+
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         return ImageLoader.Builder(context)
             .memoryCache {
@@ -202,5 +245,19 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
             .decoderCoroutineContext(Dispatchers.Default.limitedParallelism(4))
             .crossfade(!isReducedMotionEnabled(context))
             .build()
+    }
+
+    companion object {
+        private const val DATA_MAINTENANCE_WORK_NAME = "DataMaintenanceWorker"
+        private const val MAINTENANCE_WORK_INITIAL_DELAY_MINUTES = 15L
+        private const val STARTUP_BACKGROUND_WORK_DELAY_MS = 5_000L
+        private const val DEBUG_STARTUP_BACKGROUND_WORK_DELAY_MS = 60_000L
+    }
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface StartupEntryPoint {
+        fun preferencesRepository(): PreferencesRepository
+        fun gitHubReleaseChecker(): GitHubReleaseChecker
     }
 }

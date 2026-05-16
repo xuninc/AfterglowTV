@@ -890,15 +890,15 @@
     <string name="setup_source_type_label">How are we connecting?</string>
     <string name="setup_info_xtream_title">Xtream Codes</string>
     <string name="setup_info_xtream_body">Server URL + username + password.</string>
-    <string name="setup_info_stalker_body">Stalker / Ministra portal + a registered MAC.</string>
+    <string name="setup_info_stalker_body">Portal URL + registered MAC address.</string>
     <string name="setup_info_m3u_title">M3U Playlist</string>
     <string name="setup_info_m3u_body">A playlist link from your provider.</string>
-    <string name="setup_info_manage_title">Swap any time</string>
+    <string name="setup_info_manage_title">Manage later</string>
     <string name="setup_info_manage_body">Edit, refresh, or replace from Settings whenever.</string>
     <string name="setup_import_backup">Restore from backup</string>
     <string name="badge_beta">Beta</string>
     <string name="setup_xtream">Xtream Codes</string>
-    <string name="setup_stalker">Stalker Portal</string>
+    <string name="setup_stalker">Portal Login</string>
     <string name="setup_m3u">M3U Playlist</string>
     <string name="setup_name_hint">Name this playlist (optional)</string>
     <string name="setup_server_hint">Server URL</string>
@@ -915,6 +915,8 @@
     <string name="setup_advanced_options_hide">Hide</string>
     <string name="setup_m3u_vod_classification_label">M3U VOD Classification</string>
     <string name="setup_m3u_vod_classification_helper">M3U only. Use playlist URL and group-title heuristics to sort matching entries into Movies instead of Live TV.</string>
+    <string name="setup_xtream_fast_sync_label">Fast Movie + Series Sync</string>
+    <string name="setup_xtream_fast_sync_helper">Keep movie and series imports lightweight on the first sync. Turn this off only for providers that need a full catalog pass immediately.</string>
     <string name="setup_xtream_live_sync_mode_label">Xtream Live Sync</string>
     <string name="setup_xtream_live_sync_mode_helper">Choose how Live TV channels are fetched. Auto protects weak devices and routine refreshes while keeping categories populated.</string>
     <string name="setup_xtream_live_sync_mode_auto_title">Auto</string>
@@ -931,9 +933,9 @@
     <string name="setup_epg_sync_mode_background_description">Finish setup first, then fetch guide data automatically in the background.</string>
     <string name="setup_epg_sync_mode_skip_title">Skip EPG for now</string>
     <string name="setup_epg_sync_mode_skip_description">Do not fetch guide data automatically. You can refresh EPG later from Settings.</string>
-    <string name="setup_stalker_epg_sync_mode_helper">Stalker can use the portal’s native guide when XMLTV is missing or unavailable. Upfront imports it during setup, Background defers it, and Skip leaves guide loading on demand.</string>
-    <string name="setup_stalker_epg_sync_mode_upfront_description">Download live channels and import the Stalker portal guide during setup. If XMLTV is configured and works, it is used first.</string>
-    <string name="setup_stalker_epg_sync_mode_background_description">Finish setup first, then import the Stalker portal guide in the background. If XMLTV is configured and works, it is used first.</string>
+    <string name="setup_stalker_epg_sync_mode_helper">Portal login can use the portal’s native guide when XMLTV is missing or unavailable. Upfront imports it during setup, Background defers it, and Skip leaves guide loading on demand.</string>
+    <string name="setup_stalker_epg_sync_mode_upfront_description">Download live channels and import the portal guide during setup. If XMLTV is configured and works, it is used first.</string>
+    <string name="setup_stalker_epg_sync_mode_background_description">Finish setup first, then import the portal guide in the background. If XMLTV is configured and works, it is used first.</string>
     <string name="setup_stalker_epg_sync_mode_skip_description">Do not bulk import guide data automatically. Live guide data can still load on demand when you browse channels.</string>
     <string name="setup_m3u_hint">M3U URL</string>
     <string name="setup_epg_url_hint">EPG / XMLTV URL (optional)</string>
@@ -945,6 +947,12 @@
     <string name="setup_file_browse_hint">Browse local storage or USB</string>
     <string name="setup_file_import_failed">Could not import playlist file. Please try again.</string>
     <string name="setup_file_import_storage_full">Storage is full. Free up space and try importing again.</string>
+    <string name="setup_badge_live_tv">Live TV</string>
+    <string name="setup_badge_fast_sync">Fast sync</string>
+    <string name="setup_badge_epg">EPG</string>
+    <string name="setup_badge_portal">Portal</string>
+    <string name="setup_badge_vod_sorting">VOD sorting</string>
+    <string name="setup_badge_local_file">Local file</string>
     <string name="setup_discard_draft_title">Discard setup draft?</string>
     <string name="setup_discard_draft_body">This provider setup is incomplete. Go back and lose the current draft?</string>
     <string name="setup_discard_draft_confirm">Discard</string>
@@ -1498,4 +1506,3 @@
     <string name="tv_input_setup_retry_scan">Retry Auto Scan</string>
     <string name="tv_input_setup_success_hint">Android TV Live TV can now open your Afterglow TV channels.</string>
 </resources>
-

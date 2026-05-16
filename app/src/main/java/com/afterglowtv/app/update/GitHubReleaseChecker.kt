@@ -1,5 +1,6 @@
 package com.afterglowtv.app.update
 
+import android.net.TrafficStats
 import com.afterglowtv.domain.model.Result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,6 +30,8 @@ class GitHubReleaseChecker @Inject constructor(
     private companion object {
         private const val RELEASES_LATEST_URL = "https://api.github.com/repos/xuninc/AfterglowTV/releases/latest"
         private const val MAX_RESPONSE_BYTES = 512 * 1024L
+        private const val TRAFFIC_STATS_TAG_NONE = -1
+        private const val UPDATE_CHECK_TRAFFIC_TAG = 0xA17A
         private val STRUCTURED_TAG_REGEX = Regex("""^v?(.+?)\+(\d+)$""", RegexOption.IGNORE_CASE)
     }
 
@@ -40,50 +43,66 @@ class GitHubReleaseChecker @Inject constructor(
                 .header("User-Agent", "AfterglowTV-Update-Checker")
                 .build()
 
-            okHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    return@withContext Result.error("Update check failed: HTTP ${response.code}")
-                }
+            withUpdateCheckTrafficTag {
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        return@withContext Result.error("Update check failed: HTTP ${response.code}")
+                    }
 
-                val body = when (val bodyResult = response.body?.let(::readResponseBodyCapped)) {
-                    is Result.Success -> bodyResult.data
-                    is Result.Error -> return@withContext Result.error(bodyResult.message, bodyResult.exception)
-                    null,
-                    Result.Loading -> ""
-                }
-                if (body.isBlank()) {
-                    return@withContext Result.error("Update check failed: empty GitHub release response")
-                }
+                    val body = when (val bodyResult = response.body?.let(::readResponseBodyCapped)) {
+                        is Result.Success -> bodyResult.data
+                        is Result.Error -> return@withContext Result.error(bodyResult.message, bodyResult.exception)
+                        null,
+                        Result.Loading -> ""
+                    }
+                    if (body.isBlank()) {
+                        return@withContext Result.error("Update check failed: empty GitHub release response")
+                    }
 
-                val json = JSONObject(body)
-                val parsedTag = parseTagVersionInfo(json.optString("tag_name"))
-                if (parsedTag.versionName.isBlank()) {
-                    return@withContext Result.error("Update check failed: latest release tag is missing")
-                }
+                    val json = JSONObject(body)
+                    val parsedTag = parseTagVersionInfo(json.optString("tag_name"))
+                    if (parsedTag.versionName.isBlank()) {
+                        return@withContext Result.error("Update check failed: latest release tag is missing")
+                    }
 
-                val notes = json.optString("body").trim()
-                val assets = json.optJSONArray("assets")
-                val releaseUrl = json.optString("html_url").takeIf(::isHttpsUrl).orEmpty()
-                if (releaseUrl.isBlank()) {
-                    return@withContext Result.error("Update check failed: latest release URL is not HTTPS")
-                }
-                val downloadUrl = findApkAssetUrl(assets)
+                    val notes = json.optString("body").trim()
+                    val assets = json.optJSONArray("assets")
+                    val releaseUrl = json.optString("html_url").takeIf(::isHttpsUrl).orEmpty()
+                    if (releaseUrl.isBlank()) {
+                        return@withContext Result.error("Update check failed: latest release URL is not HTTPS")
+                    }
+                    val downloadUrl = findApkAssetUrl(assets)
 
-                return@withContext Result.success(
-                    GitHubReleaseInfo(
-                        versionName = parsedTag.versionName,
-                        versionCode = parsedTag.versionCode,
-                        releaseUrl = releaseUrl,
-                        downloadUrl = downloadUrl,
-                        releaseNotes = notes,
-                        publishedAt = json.optString("published_at").takeIf { it.isNotBlank() }
+                    return@withContext Result.success(
+                        GitHubReleaseInfo(
+                            versionName = parsedTag.versionName,
+                            versionCode = parsedTag.versionCode,
+                            releaseUrl = releaseUrl,
+                            downloadUrl = downloadUrl,
+                            releaseNotes = notes,
+                            publishedAt = json.optString("published_at").takeIf { it.isNotBlank() }
+                        )
                     )
-                )
+                }
             }
         } catch (error: IOException) {
             Result.error("Update check failed: network error", error)
         } catch (error: Exception) {
             Result.error("Update check failed: ${error.message}", error)
+        }
+    }
+
+    private inline fun <T> withUpdateCheckTrafficTag(block: () -> T): T {
+        val previousTag = TrafficStats.getThreadStatsTag()
+        TrafficStats.setThreadStatsTag(UPDATE_CHECK_TRAFFIC_TAG)
+        return try {
+            block()
+        } finally {
+            if (previousTag == TRAFFIC_STATS_TAG_NONE) {
+                TrafficStats.clearThreadStatsTag()
+            } else {
+                TrafficStats.setThreadStatsTag(previousTag)
+            }
         }
     }
 

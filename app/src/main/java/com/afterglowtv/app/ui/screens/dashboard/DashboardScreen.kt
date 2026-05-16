@@ -533,7 +533,7 @@ private fun DashboardProviderHealthCard(
     val sourceLabel = when (health.type) {
         com.afterglowtv.domain.model.ProviderType.XTREAM_CODES -> stringResource(R.string.dashboard_provider_xtream)
         com.afterglowtv.domain.model.ProviderType.M3U -> stringResource(R.string.dashboard_provider_m3u)
-        com.afterglowtv.domain.model.ProviderType.STALKER_PORTAL -> "Stalker/MAG Portal"
+        com.afterglowtv.domain.model.ProviderType.STALKER_PORTAL -> "Portal/MAG Login"
     }
 
     Surface(
@@ -934,4 +934,3 @@ private fun FavoriteChannelLogoCard(
         }
     }
 }
-

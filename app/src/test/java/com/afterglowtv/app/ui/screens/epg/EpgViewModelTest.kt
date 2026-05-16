@@ -66,6 +66,7 @@ class EpgViewModelTest {
     private val programReminderManager: ProgramReminderManager = mock()
     private val scheduleRecording: ScheduleRecording = mock()
     private val recordingManager: RecordingManager = mock()
+    private val positionMemo = EpgPositionMemo()
     private val getCustomCategories by lazy { GetCustomCategories(favoriteRepository) }
     private val createdViewModels = mutableListOf<EpgViewModel>()
 
@@ -126,7 +127,8 @@ class EpgViewModelTest {
             programReminderManager = programReminderManager,
             getCustomCategories = getCustomCategories,
             scheduleRecording = scheduleRecording,
-            recordingManager = recordingManager
+            recordingManager = recordingManager,
+            positionMemo = positionMemo
         ).also(createdViewModels::add)
 
     private fun clearViewModel(viewModel: EpgViewModel) {

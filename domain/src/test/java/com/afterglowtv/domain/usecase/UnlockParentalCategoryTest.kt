@@ -75,8 +75,6 @@ private class FakeParentalPinVerifier(
 private class InMemorySessionStore : ParentalControlSessionStore {
     private var state = ParentalControlSessionState()
 
-    override fun readSessionState(): ParentalControlSessionState = state
-
     override fun writeSessionState(state: ParentalControlSessionState) {
         this.state = state
     }

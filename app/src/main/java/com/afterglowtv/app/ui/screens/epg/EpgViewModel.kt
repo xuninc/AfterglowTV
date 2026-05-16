@@ -1280,7 +1280,7 @@ class EpgViewModel @Inject constructor(
         return when (provider.type) {
             com.afterglowtv.domain.model.ProviderType.XTREAM_CODES -> "Xtream Codes"
             com.afterglowtv.domain.model.ProviderType.M3U -> "M3U Playlist"
-            com.afterglowtv.domain.model.ProviderType.STALKER_PORTAL -> "Stalker/MAG Portal"
+            com.afterglowtv.domain.model.ProviderType.STALKER_PORTAL -> "Portal/MAG Login"
         }
     }
 
