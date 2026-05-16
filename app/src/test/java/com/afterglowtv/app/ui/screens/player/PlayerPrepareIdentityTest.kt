@@ -1,5 +1,7 @@
 package com.afterglowtv.app.ui.screens.player
 
+import com.afterglowtv.domain.model.VirtualCategoryIds
+import com.afterglowtv.domain.repository.ChannelRepository
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -82,5 +84,43 @@ class PlayerPrepareIdentityTest {
                 archiveTitle = "Morning News"
             )
         ).isEqualTo("Morning News")
+    }
+
+    @Test
+    fun `prepare identity preserves all-channels category id`() {
+        val identity = buildPlayerPrepareIdentity(
+            streamUrl = "https://example.com/live/230.m3u8",
+            epgChannelId = null,
+            internalChannelId = 230L,
+            categoryId = ChannelRepository.ALL_CHANNELS_ID,
+            providerId = 1L,
+            isVirtual = false,
+            combinedProfileId = null,
+            combinedSourceFilterProviderId = null,
+            contentType = "LIVE",
+            archiveStartMs = null,
+            archiveEndMs = null
+        )
+
+        assertThat(identity.categoryId).isEqualTo(ChannelRepository.ALL_CHANNELS_ID)
+    }
+
+    @Test
+    fun `prepare identity preserves virtual live category ids`() {
+        val identity = buildPlayerPrepareIdentity(
+            streamUrl = "https://example.com/live/recent.m3u8",
+            epgChannelId = null,
+            internalChannelId = 230L,
+            categoryId = VirtualCategoryIds.RECENT,
+            providerId = 1L,
+            isVirtual = true,
+            combinedProfileId = null,
+            combinedSourceFilterProviderId = null,
+            contentType = "LIVE",
+            archiveStartMs = null,
+            archiveEndMs = null
+        )
+
+        assertThat(identity.categoryId).isEqualTo(VirtualCategoryIds.RECENT)
     }
 }

@@ -26,8 +26,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +38,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.afterglowtv.app.R
+import com.afterglowtv.app.ui.components.shell.AfterglowBackdrop
 import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.app.ui.design.AppPalette
 import com.afterglowtv.app.ui.design.GlowSpec
@@ -78,44 +77,7 @@ fun ThemePickerScreen(
     val palettes = AppPalette.ALL
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Layered backdrop — vertical gradient + warm/cool radial melts
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            AppColors.TiviSurfaceDeep,
-                            AppColors.TiviSurfaceBase,
-                            AppColors.TiviSurfaceCool,
-                        ),
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.TiviAccent.copy(alpha = 0.28f),
-                        AppColors.TiviAccent.copy(alpha = 0f),
-                    ),
-                    center = Offset(2400f, -200f),
-                    radius = 1400f,
-                )
-            )
-        )
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.EpgNowLine.copy(alpha = 0.22f),
-                        AppColors.EpgNowLine.copy(alpha = 0f),
-                    ),
-                    center = Offset(300f, 1900f),
-                    radius = 1100f,
-                )
-            )
-        )
+        AfterglowBackdrop(modifier = Modifier.fillMaxSize())
 
         Column(
             modifier = Modifier

@@ -96,6 +96,35 @@ private enum class FocusRestoreTarget {
     CHANNEL
 }
 
+internal sealed interface HomeChannelRestorePlan {
+    data class FocusChannel(val channelId: Long, val index: Int) : HomeChannelRestorePlan
+    data object LoadMoreForSavedChannel : HomeChannelRestorePlan
+    data object NoChannels : HomeChannelRestorePlan
+}
+
+internal fun resolveChannelRestorePlan(
+    savedChannelId: Long?,
+    channels: List<Channel>,
+    hasMoreChannels: Boolean
+): HomeChannelRestorePlan {
+    if (savedChannelId != null) {
+        val savedIndex = channels.indexOfFirst { it.id == savedChannelId }
+        if (savedIndex != -1) {
+            return HomeChannelRestorePlan.FocusChannel(savedChannelId, savedIndex)
+        }
+        if (hasMoreChannels) {
+            return HomeChannelRestorePlan.LoadMoreForSavedChannel
+        }
+    }
+
+    val firstChannel = channels.firstOrNull()
+    return if (firstChannel == null) {
+        HomeChannelRestorePlan.NoChannels
+    } else {
+        HomeChannelRestorePlan.FocusChannel(firstChannel.id, 0)
+    }
+}
+
 private const val HOME_ALL_FILTER_KEY = "__all_categories__"
 
 @Composable
@@ -388,6 +417,8 @@ fun HomeScreen(
                 var preferredRestoreTarget by rememberSaveable { mutableStateOf(FocusRestoreTarget.CHANNEL.name) }
                 var pendingRestoreTarget by remember { mutableStateOf<FocusRestoreTarget?>(null) }
                 var focusRestoreNonce by rememberSaveable { mutableStateOf(0) }
+                var pendingChannelFocusId by remember { mutableStateOf<Long?>(null) }
+                var pendingChannelScrollIndex by remember { mutableStateOf<Int?>(null) }
                 var pendingCategoryContentJumpCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
 
                 fun requestChannelFocus(channelId: Long?): Boolean {
@@ -404,16 +435,36 @@ fun HomeScreen(
                         ?: false
                 }
 
+                fun queueChannelRestore(plan: HomeChannelRestorePlan): Boolean {
+                    return when (plan) {
+                        is HomeChannelRestorePlan.FocusChannel -> {
+                            lastFocusedChannelId = plan.channelId
+                            pendingChannelFocusId = plan.channelId
+                            pendingChannelScrollIndex = plan.index
+                            pendingRestoreTarget = null
+                            true
+                        }
+                        HomeChannelRestorePlan.LoadMoreForSavedChannel -> {
+                            viewModel.loadMoreChannels()
+                            true
+                        }
+                        HomeChannelRestorePlan.NoChannels -> false
+                    }
+                }
+
                 fun requestChannelFocusFromCategory(): Boolean {
                     if (uiState.filteredChannels.isEmpty()) return false
-                    val preferredChannelId = lastFocusedChannelId
-                        ?.takeIf { channelId -> uiState.filteredChannels.any { it.id == channelId } }
+                    val restorePlan = resolveChannelRestorePlan(
+                        savedChannelId = lastFocusedChannelId,
+                        channels = uiState.filteredChannels,
+                        hasMoreChannels = uiState.hasMoreChannels
+                    )
+                    val preferredChannelId = (restorePlan as? HomeChannelRestorePlan.FocusChannel)?.channelId
                         ?: uiState.filteredChannels.first().id
-                    lastFocusedChannelId = preferredChannelId
                     preferredRestoreTarget = FocusRestoreTarget.CHANNEL.name
                     pendingRestoreTarget = FocusRestoreTarget.CHANNEL
                     focusRestoreNonce++
-                    val focusedImmediately = requestChannelFocus(preferredChannelId)
+                    val focusedImmediately = queueChannelRestore(restorePlan) || requestChannelFocus(preferredChannelId)
                     scope.launch {
                         kotlinx.coroutines.delay(60)
                         val focused = requestChannelFocus(preferredChannelId)
@@ -497,7 +548,10 @@ fun HomeScreen(
                     if (!modalClosed) return@LaunchedEffect
 
                     val canRestoreChannel = lastFocusedChannelId != null &&
-                        uiState.filteredChannels.any { it.id == lastFocusedChannelId }
+                        (
+                            uiState.hasMoreChannels ||
+                                uiState.filteredChannels.any { it.id == lastFocusedChannelId }
+                            )
                     val canRestoreCategory = lastFocusedCategoryId != null &&
                         visibleCategories.any { it.id == lastFocusedCategoryId }
                     val restoreTarget = runCatching {
@@ -517,20 +571,31 @@ fun HomeScreen(
                     }
                 }
 
-                LaunchedEffect(focusRestoreNonce, uiState.categories, uiState.filteredChannels) {
+                LaunchedEffect(focusRestoreNonce, uiState.categories, uiState.filteredChannels, uiState.hasMoreChannels) {
                     val restoreTarget = pendingRestoreTarget ?: return@LaunchedEffect
                     kotlinx.coroutines.delay(80)
+                    val channelRestorePlan = if (restoreTarget == FocusRestoreTarget.CHANNEL) {
+                        resolveChannelRestorePlan(
+                            savedChannelId = lastFocusedChannelId,
+                            channels = uiState.filteredChannels,
+                            hasMoreChannels = uiState.hasMoreChannels
+                        )
+                    } else {
+                        HomeChannelRestorePlan.NoChannels
+                    }
                     val restored = when (restoreTarget) {
-                        FocusRestoreTarget.CHANNEL -> requestChannelFocus(lastFocusedChannelId)
+                        FocusRestoreTarget.CHANNEL -> queueChannelRestore(channelRestorePlan)
                         FocusRestoreTarget.CATEGORY -> requestCategoryFocus(lastFocusedCategoryId)
                     }
                     if (!restored) {
                         when (restoreTarget) {
                             FocusRestoreTarget.CHANNEL -> {
-                                val fallbackChannelId = uiState.filteredChannels.firstOrNull()?.id
-                                if (fallbackChannelId != null) {
-                                    requestChannelFocus(fallbackChannelId)
-                                } else {
+                                val fallbackPlan = resolveChannelRestorePlan(
+                                    savedChannelId = null,
+                                    channels = uiState.filteredChannels,
+                                    hasMoreChannels = false
+                                )
+                                if (!queueChannelRestore(fallbackPlan)) {
                                     val fallbackCategoryId = (unlockedVisibleCategories.firstOrNull() ?: visibleCategories.firstOrNull())?.id
                                     requestCategoryFocus(fallbackCategoryId)
                                 }
@@ -541,7 +606,9 @@ fun HomeScreen(
                             }
                         }
                     }
-                    pendingRestoreTarget = null
+                    if (channelRestorePlan !is HomeChannelRestorePlan.LoadMoreForSavedChannel) {
+                        pendingRestoreTarget = null
+                    }
                 }
 
                 FocusRestoreHost(
@@ -552,7 +619,10 @@ fun HomeScreen(
                         }.getOrDefault(FocusRestoreTarget.CHANNEL)
 
                         val canRestoreChannel = lastFocusedChannelId != null &&
-                            uiState.filteredChannels.any { it.id == lastFocusedChannelId }
+                            (
+                                uiState.hasMoreChannels ||
+                                    uiState.filteredChannels.any { it.id == lastFocusedChannelId }
+                                )
                         val canRestoreCategory = lastFocusedCategoryId != null &&
                             visibleCategories.any { it.id == lastFocusedCategoryId }
 
@@ -999,6 +1069,24 @@ fun HomeScreen(
                         } else {
                             var ignoreNextClick by remember { mutableStateOf(false) }
                             val channelListState = rememberLazyListState()
+
+                            LaunchedEffect(pendingChannelFocusId, pendingChannelScrollIndex, uiState.filteredChannels) {
+                                val channelId = pendingChannelFocusId ?: return@LaunchedEffect
+                                val targetIndex = pendingChannelScrollIndex
+                                    ?: uiState.filteredChannels.indexOfFirst { it.id == channelId }
+                                if (targetIndex !in uiState.filteredChannels.indices) return@LaunchedEffect
+
+                                channelListState.scrollToItem(targetIndex)
+                                kotlinx.coroutines.delay(90)
+                                val focused = requestChannelFocus(channelId)
+                                if (!focused) {
+                                    kotlinx.coroutines.delay(90)
+                                }
+                                if (focused || requestChannelFocus(channelId)) {
+                                    pendingChannelFocusId = null
+                                    pendingChannelScrollIndex = null
+                                }
+                            }
 
                             LaunchedEffect(ignoreNextClick) {
                                 if (ignoreNextClick) {

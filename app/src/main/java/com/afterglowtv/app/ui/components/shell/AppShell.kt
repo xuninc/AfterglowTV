@@ -111,7 +111,8 @@ fun AppScreenScaffold(
                     colors = listOf(
                         AppColors.Canvas,
                         AppColors.CanvasElevated,
-                        AppColors.Surface
+                        AppColors.Surface,
+                        AppColors.SurfaceAccent
                     )
                 )
             )
