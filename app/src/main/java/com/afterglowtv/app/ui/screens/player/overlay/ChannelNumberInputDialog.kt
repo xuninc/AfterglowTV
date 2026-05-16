@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +26,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -143,7 +146,14 @@ fun ChannelNumberInputDialog(
                     )
                 }
 
-                // 3×4 keypad
+                // 3×4 keypad. We attach a FocusRequester to the "5" button so
+                // the dialog opens with a button already focused — otherwise
+                // the user has to D-pad once just to enter the focus tree, and
+                // the entry point Compose picks is arbitrary.
+                val initialFocusRequester = remember { FocusRequester() }
+                LaunchedEffect(Unit) {
+                    runCatching { initialFocusRequester.requestFocus() }
+                }
                 val rows = listOf(
                     listOf(KeypadKey.Digit(1), KeypadKey.Digit(2), KeypadKey.Digit(3)),
                     listOf(KeypadKey.Digit(4), KeypadKey.Digit(5), KeypadKey.Digit(6)),
@@ -153,9 +163,11 @@ fun ChannelNumberInputDialog(
                 rows.forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         row.forEach { key ->
+                            val attachInitialFocus = key is KeypadKey.Digit && key.value == 5
                             KeypadButton(
                                 key = key,
                                 enabled = key !is KeypadKey.Go || currentBuffer.isNotEmpty(),
+                                focusRequester = if (attachInitialFocus) initialFocusRequester else null,
                                 onPress = {
                                     when (key) {
                                         is KeypadKey.Digit -> onDigitPressed(key.value)
@@ -189,6 +201,7 @@ private sealed class KeypadKey {
 private fun KeypadButton(
     key: KeypadKey,
     enabled: Boolean,
+    focusRequester: FocusRequester?,
     onPress: () -> Unit,
 ) {
     var isFocused by remember { mutableStateOf(false) }
@@ -228,6 +241,7 @@ private fun KeypadButton(
                 ),
                 shape,
             )
+            .let { base -> if (focusRequester != null) base.focusRequester(focusRequester) else base }
             .focusable(enabled = enabled)
             .onFocusChanged { isFocused = it.isFocused }
             .clickable(enabled = enabled, onClick = onPress),

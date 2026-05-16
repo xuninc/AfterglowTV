@@ -705,15 +705,22 @@ fun PlayerScreen(
                     when (event.nativeKeyEvent.keyCode) {
                         // MENU button (or long-press OK on remotes that lack a
                         // dedicated menu key) opens the on-screen channel-number
-                        // keypad for users without a numpad on their remote.
-                        // Hardware-numpad users keep using KEYCODE_0..9 directly
-                        // — both paths feed the same buffer + commit pipeline
-                        // in PlayerViewModel.
+                        // keypad — for users without a numpad on their remote.
+                        // For non-LIVE content (VOD / catchup) MENU keeps its
+                        // historical behavior of toggling player controls. This
+                        // single handler now subsumes the previously-duplicated
+                        // KEYCODE_MENU branch below; without the else-branch we
+                        // accidentally broke MENU during VOD in v0.1.19.
                         KeyEvent.KEYCODE_MENU -> {
                             if (contentType == "LIVE" && !isCatchUpPlayback) {
                                 showChannelNumberDialog = true
-                                true
-                            } else false
+                            } else {
+                                if (showChannelListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics) {
+                                    viewModel.onLiveOverlayInteraction()
+                                }
+                                viewModel.toggleControls()
+                            }
+                            true
                         }
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                             // Long-press OK is the universal fallback trigger for
@@ -872,13 +879,10 @@ fun PlayerScreen(
                             }
                             true
                         }
-                        KeyEvent.KEYCODE_MENU -> {
-                            if (showChannelListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics) {
-                                viewModel.onLiveOverlayInteraction()
-                            }
-                            viewModel.toggleControls()
-                            true
-                        }
+                        // KEYCODE_MENU is now handled by the unified branch
+                        // higher in this `when` block (LIVE → keypad, else →
+                        // toggleControls). This duplicate-branch slot would be
+                        // unreachable Kotlin dead code if left here.
                         in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9,
                         in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_9 -> {
                             if (contentType == "LIVE") {
