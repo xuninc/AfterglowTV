@@ -278,6 +278,7 @@ class EpgViewModel @Inject constructor(
         const val PRIME_TIME_HOUR = 20
         const val NO_ACTIVE_PROVIDER = "NO_ACTIVE_PROVIDER"
         private const val NO_GUIDE_DATA_CATEGORY = "No guide data"
+        private const val PLACEHOLDER_PROGRAMME_SLOT_MS = 2 * 60 * 60 * 1000L
     }
 
     private val _uiState = MutableStateFlow(EpgUiState())
@@ -1694,27 +1695,39 @@ class EpgViewModel @Inject constructor(
         val placeholders = channels.mapNotNull { channel ->
             val lookupKey = channel.guideLookupKey() ?: return@mapNotNull null
             if (this[lookupKey].orEmpty().hasRealGuidePrograms()) return@mapNotNull null
-            lookupKey to listOf(channel.toGuidePlaceholderProgram(lookupKey, windowStart, windowEnd))
+            lookupKey to channel.toGuidePlaceholderPrograms(lookupKey, windowStart, windowEnd)
         }
         if (placeholders.isEmpty()) return this
         return this + placeholders
     }
 
-    private fun Channel.toGuidePlaceholderProgram(
+    private fun Channel.toGuidePlaceholderPrograms(
         lookupKey: String,
         windowStart: Long,
         windowEnd: Long
-    ): Program =
-        Program(
-            channelId = lookupKey,
-            title = name,
-            description = buildGuidePlaceholderDescription(),
-            startTime = windowStart,
-            endTime = windowEnd,
-            category = NO_GUIDE_DATA_CATEGORY,
-            providerId = providerId,
-            isPlaceholder = true
-        )
+    ): List<Program> {
+        if (windowEnd <= windowStart) return emptyList()
+        val description = buildGuidePlaceholderDescription()
+        return buildList {
+            var slotStart = windowStart
+            while (slotStart < windowEnd) {
+                val slotEnd = minOf(slotStart + PLACEHOLDER_PROGRAMME_SLOT_MS, windowEnd)
+                add(
+                    Program(
+                        channelId = lookupKey,
+                        title = name,
+                        description = description,
+                        startTime = slotStart,
+                        endTime = slotEnd,
+                        category = NO_GUIDE_DATA_CATEGORY,
+                        providerId = providerId,
+                        isPlaceholder = true
+                    )
+                )
+                slotStart = slotEnd
+            }
+        }
+    }
 
     private fun Channel.buildGuidePlaceholderDescription(): String {
         val categoryLabel = categoryName

@@ -195,7 +195,7 @@ class EpgViewModelTest {
     }
 
     @Test
-    fun `guide shows channel description placeholder when no programme data exists`() = runTest {
+    fun `guide shows two-hour channel description placeholders when no programme data exists`() = runTest {
         val provider = Provider(
             id = 1L,
             name = "Provider",
@@ -235,12 +235,24 @@ class EpgViewModelTest {
             viewModel.uiState.value.programsByChannel["Adult Asian"].orEmpty().isNotEmpty()
         }
 
-        val placeholder = viewModel.uiState.value.programsByChannel.getValue("Adult Asian").single()
-        assertThat(placeholder.isPlaceholder).isTrue()
-        assertThat(placeholder.title).isEqualTo("Adult Asian")
-        assertThat(placeholder.description).contains("No guide data")
-        assertThat(placeholder.description).contains("XXX")
-        assertThat(placeholder.category).isEqualTo("No guide data")
+        val state = viewModel.uiState.value
+        val placeholders = state.programsByChannel.getValue("Adult Asian")
+        val placeholderSlotMs = 2 * 60 * 60 * 1000L
+        val expectedSlotCount = ((state.guideWindowEnd - state.guideWindowStart + placeholderSlotMs - 1) / placeholderSlotMs).toInt()
+        assertThat(placeholders).hasSize(expectedSlotCount)
+        assertThat(placeholders.map { it.startTime }).containsExactlyElementsIn(
+            List(expectedSlotCount) { index -> state.guideWindowStart + index * placeholderSlotMs }
+        ).inOrder()
+        assertThat(placeholders.map { it.endTime }).containsExactlyElementsIn(
+            List(expectedSlotCount) { index ->
+                minOf(state.guideWindowStart + (index + 1) * placeholderSlotMs, state.guideWindowEnd)
+            }
+        ).inOrder()
+        assertThat(placeholders.all { it.isPlaceholder }).isTrue()
+        assertThat(placeholders.all { it.title == "Adult Asian" }).isTrue()
+        assertThat(placeholders.first().description).contains("No guide data")
+        assertThat(placeholders.first().description).contains("XXX")
+        assertThat(placeholders.all { it.category == "No guide data" }).isTrue()
         assertThat(viewModel.uiState.value.channelsWithSchedule).isEqualTo(0)
     }
 
