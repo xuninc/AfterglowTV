@@ -58,8 +58,8 @@ fun AfterglowBackdrop(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxSize().background(
                 Brush.radialGradient(
                     colors = listOf(
-                        AppColors.TiviAccentLight.copy(alpha = 0.22f),
-                        AppColors.TiviAccent.copy(alpha = 0.16f),
+                        AppColors.TiviAccentLight.copy(alpha = AppColors.palette.glowAlpha(0.22f)),
+                        AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.16f)),
                         AppColors.TiviAccent.copy(alpha = 0f),
                     ),
                     center = Offset(2400f, -200f),
@@ -71,8 +71,8 @@ fun AfterglowBackdrop(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxSize().background(
                 Brush.radialGradient(
                     colors = listOf(
-                        AppColors.EpgNowLine.copy(alpha = 0.18f),
-                        AppColors.TiviAccent.copy(alpha = 0.10f),
+                        AppColors.EpgNowLine.copy(alpha = AppColors.palette.glowAlpha(0.18f)),
+                        AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.10f)),
                         AppColors.EpgNowLine.copy(alpha = 0f),
                     ),
                     center = Offset(300f, 1900f),

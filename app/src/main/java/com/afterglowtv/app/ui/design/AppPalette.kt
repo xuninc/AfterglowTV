@@ -57,7 +57,10 @@ data class AppPalette(
     // Lines
     val divider: Color,
     val outline: Color,
+    val glowIntensity: Float = 1f,
 ) {
+    fun glowAlpha(alpha: Float): Float = (alpha * glowIntensity).coerceIn(0f, 1f)
+
     companion object {
         /** Default. Cobalt slate darks, blue accent, hot-magenta now-line. Modern, neon-leaning. */
         val NeonDusk = AppPalette(
@@ -87,6 +90,7 @@ data class AppPalette(
             info = Color(0xFFA9C8FF),
             divider = Color(0x1AFFFFFF),
             outline = Color(0x334E8DFF),
+            glowIntensity = 0.35f,
         )
 
         /** Pure black OLED-friendly with cyan accent and electric-pink now-line. Cyberpunk edge. */
@@ -117,36 +121,38 @@ data class AppPalette(
             info = Color(0xFFFF00B3),
             divider = Color(0x2200E5FF),
             outline = Color(0x4400E5FF),
+            glowIntensity = 0.35f,
         )
 
-        /** Rachel's Sunset — cobalt night with neon peach, medium mint, pink, and orange. */
+        /** Rachel's Sunset — pastel mint, cream, neon peach, and coral-pink glow. */
         val SunsetAurora = AppPalette(
             id = "sunset_aurora",
             displayName = "Rachel's Sunset",
-            description = "I love you Rachel! Neon peach sunset with medium mint, pink, and orange.",
-            surfaceDeep = Color(0xFF050B16),
-            surfaceBase = Color(0xFF0B1524),
-            surfaceCool = Color(0xFF14243A),
-            surfaceAccent = Color(0xFF203A5A),
-            accent = Color(0xFFFF8A5B),
-            accentLight = Color(0xFF44D17A),
-            accentMuted = Color(0x66FF8A5B),
-            panelScrim = Color(0xD6050B16),
-            osdScrim = Color(0xA6050B16),
-            nowLine = Color(0xFFFF4E9A),
-            nowFill = Color(0x33FF8A5B),
-            live = Color(0xFFFF6A2A),
-            pipPreviewOutline = Color(0xFF44D17A),
-            focusFill = Color(0x40FF8A5B),
-            textPrimary = Color(0xFFFFF6EE),
-            textSecondary = Color(0xD9DCEBFF),
-            textTertiary = Color(0x99DCEBFF),
-            textDisabled = Color(0x66DCEBFF),
-            success = Color(0xFF44D17A),
-            warning = Color(0xFFFF8A5B),
-            info = Color(0xFFFF7BB2),
-            divider = Color(0x24DCEBFF),
-            outline = Color(0x5544D17A),
+            description = "I love you Rachel! Soft mint sunset with cream bands, neon peach, coral-pink, and full Afterglow glow.",
+            surfaceDeep = Color(0xFF263C38),
+            surfaceBase = Color(0xFF614D50),
+            surfaceCool = Color(0xFF8B5F66),
+            surfaceAccent = Color(0xFFA7D6C4),
+            accent = Color(0xFFA7D6C4),
+            accentLight = Color(0xFFFFC5A6),
+            accentMuted = Color(0x66A7D6C4),
+            panelScrim = Color(0xD6263C38),
+            osdScrim = Color(0xA6263C38),
+            nowLine = Color(0xFFEF7F93),
+            nowFill = Color(0x33A7D6C4),
+            live = Color(0xFFFF8FA1),
+            pipPreviewOutline = Color(0xFFA7D6C4),
+            focusFill = Color(0x40A7D6C4),
+            textPrimary = Color(0xFFFFF7E9),
+            textSecondary = Color(0xD9F5D9C8),
+            textTertiary = Color(0x99F5D9C8),
+            textDisabled = Color(0x66F5D9C8),
+            success = Color(0xFFA7D6C4),
+            warning = Color(0xFFFFC5A6),
+            info = Color(0xFFEF7F93),
+            divider = Color(0x22F5D9C8),
+            outline = Color(0x66A7D6C4),
+            glowIntensity = 1f,
         )
 
         /** Calm cobalt: deep slate-blue with amber now-line. Easy on the eyes. */
@@ -177,6 +183,7 @@ data class AppPalette(
             info = Color(0xFFAFC8FF),
             divider = Color(0x1ADCE8FF),
             outline = Color(0x335C8DFF),
+            glowIntensity = 0.35f,
         )
 
         /** Minimal mono: near-black + clean whites + grey accents. For minimalists. */
@@ -207,6 +214,7 @@ data class AppPalette(
             info = Color(0xFFE8E8E8),
             divider = Color(0x1AFFFFFF),
             outline = Color(0x33FFFFFF),
+            glowIntensity = 0.35f,
         )
 
         /** Reference: TiViMate's actual decompiled v5.2.0 palette. Homage option. */
@@ -237,6 +245,7 @@ data class AppPalette(
             info = Color(0xFF2DAAE2),
             divider = Color(0x1AF4F8FF),
             outline = Color(0x264C6D95),
+            glowIntensity = 0.35f,
         )
 
         /** Synthwave — black laser grid with hot pink and yellow. Distinct from Afterglow. */
@@ -267,6 +276,7 @@ data class AppPalette(
             info = Color(0xFFFF6EA8),
             divider = Color(0x22D7E4FF),
             outline = Color(0x444E8DFF),
+            glowIntensity = 0.35f,
         )
 
         /** Vaporwave — warm chrome sunset with no purple-family base. */
@@ -297,6 +307,7 @@ data class AppPalette(
             info = Color(0xFFFFB47A),
             divider = Color(0x22FFE8C7),
             outline = Color(0x40FF7A38),
+            glowIntensity = 0.35f,
         )
 
         /** Afterglow Gray — direct port of the user's favorite YTAfterglow preset.
@@ -578,36 +589,35 @@ data class AppPalette(
             outline = Color(0x4033B56D),
         )
 
-        /** Rachel's Sunset Light — daylight counterpart to the dedicated
-         *  Rachel's Sunset palette. It stays warm and pretty without blasting
-         *  the screen white: peach-rose surfaces, medium mint focus, slate text. */
+        /** Rachel's Sunset Light — daylight version of the mint, cream, peach, and coral reference. */
         val RachelsSunsetLight = AppPalette(
             id = "rachels_sunset_light",
             displayName = "Rachel's Sunset Light",
-            description = "I love you Rachel! Daylight neon peach with medium mint, pink, and orange.",
-            surfaceDeep = Color(0xFFD9B8AE),
-            surfaceBase = Color(0xFFE8C9B9),
-            surfaceCool = Color(0xFFF2D8CA),
-            surfaceAccent = Color(0xFFBF9180),
-            accent = Color(0xFF2EAF68),
-            accentLight = Color(0xFFFF7F50),
-            accentMuted = Color(0x662EAF68),
-            panelScrim = Color(0xCC1B1F27),
-            osdScrim = Color(0x991B1F27),
-            nowLine = Color(0xFFE7357A),
-            nowFill = Color(0x332EAF68),
-            live = Color(0xFFFF6A2A),
-            pipPreviewOutline = Color(0xFF2EAF68),
-            focusFill = Color(0x402EAF68),
-            textPrimary = Color(0xFF1D2530),
-            textSecondary = Color(0xFF445066),
-            textTertiary = Color(0x99445066),
-            textDisabled = Color(0x66445066),
-            success = Color(0xFF2EAF68),
-            warning = Color(0xFFFF6A2A),
-            info = Color(0xFFE7357A),
-            divider = Color(0x221D2530),
-            outline = Color(0x402EAF68),
+            description = "I love you Rachel! Pastel mint top, cream sunset bands, neon peach, and coral-pink body.",
+            surfaceDeep = Color(0xFF91B69F),
+            surfaceBase = Color(0xFFEA8093),
+            surfaceCool = Color(0xFFF2A5A1),
+            surfaceAccent = Color(0xFFAAD8C6),
+            accent = Color(0xFF4F9A7F),
+            accentLight = Color(0xFFFFC8A8),
+            accentMuted = Color(0x664F9A7F),
+            panelScrim = Color(0xCC273433),
+            osdScrim = Color(0x99273433),
+            nowLine = Color(0xFFED6F86),
+            nowFill = Color(0x334F9A7F),
+            live = Color(0xFFED6F86),
+            pipPreviewOutline = Color(0xFF4F9A7F),
+            focusFill = Color(0x404F9A7F),
+            textPrimary = Color(0xFF243130),
+            textSecondary = Color(0xFF4D4A44),
+            textTertiary = Color(0x994D4A44),
+            textDisabled = Color(0x664D4A44),
+            success = Color(0xFF4F9A7F),
+            warning = Color(0xFFB35A3D),
+            info = Color(0xFFB44A67),
+            divider = Color(0x22243130),
+            outline = Color(0x664F9A7F),
+            glowIntensity = 1f,
         )
 
         /** Afterglow Light 4 — warm ash, peach controls, medium mint secondary. */
@@ -640,11 +650,11 @@ data class AppPalette(
             outline = Color(0x402EAF68),
         )
 
-        /** Ultraviolet Spectrum — theme built from the six-swatch reference image. */
+        /** Afterglow Violet Spectrum — theme built from the six-swatch reference image. */
         val UltravioletSpectrum = AppPalette(
             id = "ultraviolet_spectrum",
-            displayName = "Ultraviolet Spectrum",
-            description = "Six-swatch violet spectrum: lavender, electric violet, royal blue, and deep night.",
+            displayName = "Afterglow Violet Spectrum",
+            description = "Afterglow six-swatch violet spectrum: lavender, electric violet, royal blue, and deep night.",
             surfaceDeep = Color(0xFF07042F),
             surfaceBase = Color(0xFF1808A9),
             surfaceCool = Color(0xFF431DCD),
@@ -698,13 +708,14 @@ data class AppPalette(
             info = Color(0xFFD3D0CE),
             divider = Color(0x22F7F6F4),
             outline = Color(0x66B8B4B1),
+            glowIntensity = 0.35f,
         )
 
-        /** Copper Fjord — theme built from the rust, teal, burgundy, and charcoal swatch reference image. */
+        /** Afterglow Copper Fjord — theme built from the rust, teal, burgundy, and charcoal swatch reference image. */
         val CopperFjord = AppPalette(
             id = "copper_fjord",
-            displayName = "Copper Fjord",
-            description = "Rust copper, deep teal, burgundy shadow, and near-black charcoal.",
+            displayName = "Afterglow Copper Fjord",
+            description = "Afterglow rust copper, deep teal, burgundy shadow, and near-black charcoal.",
             surfaceDeep = Color(0xFF071118),
             surfaceBase = Color(0xFF003A40),
             surfaceCool = Color(0xFF003A45),
@@ -730,11 +741,11 @@ data class AppPalette(
             outline = Color(0x66015468),
         )
 
-        /** Amber Noir — theme built from the tan, amber, mauve, umber, and black swatch reference image. */
+        /** Afterglow Amber Noir — theme built from the tan, amber, mauve, umber, and black swatch reference image. */
         val AmberNoir = AppPalette(
             id = "amber_noir",
-            displayName = "Amber Noir",
-            description = "Soft tan, amber gold, muted mauve, umber brown, and near-black.",
+            displayName = "Afterglow Amber Noir",
+            description = "Afterglow soft tan, amber gold, muted mauve, umber brown, and near-black.",
             surfaceDeep = Color(0xFF0B0A0C),
             surfaceBase = Color(0xFF2F1E16),
             surfaceCool = Color(0xFF6E585E),
@@ -770,6 +781,9 @@ data class AppPalette(
             Afterglow3,           // Afterglow Dark 3
             Afterglow4,           // Afterglow Dark 4
             AfterglowGray,        // Afterglow Gray (dark monochrome)
+            UltravioletSpectrum,  // Afterglow Violet Spectrum
+            CopperFjord,          // Afterglow Copper Fjord
+            AmberNoir,            // Afterglow Amber Noir
             SunsetAurora,         // Rachel's Sunset (dark dedication palette)
             AfterglowLight1,
             AfterglowLight2,
@@ -780,10 +794,7 @@ data class AppPalette(
             Vaporwave,
             Synthwave,
             NeonDusk,
-            UltravioletSpectrum,
             MineralSlate,
-            CopperFjord,
-            AmberNoir,
             CyberPunk,
             ForestMist,
             PureOnyx,

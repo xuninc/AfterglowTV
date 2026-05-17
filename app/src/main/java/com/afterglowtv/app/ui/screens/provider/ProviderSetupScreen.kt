@@ -310,7 +310,9 @@ fun ProviderSetupScreen(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.32f),
+                            com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(
+                                alpha = com.afterglowtv.app.ui.design.AppColors.palette.glowAlpha(0.32f),
+                            ),
                             com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.0f),
                         ),
                         center = androidx.compose.ui.geometry.Offset(x = 2400f, y = -200f),
@@ -324,7 +326,9 @@ fun ProviderSetupScreen(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            com.afterglowtv.app.ui.design.AppColors.EpgNowLine.copy(alpha = 0.22f),
+                            com.afterglowtv.app.ui.design.AppColors.EpgNowLine.copy(
+                                alpha = com.afterglowtv.app.ui.design.AppColors.palette.glowAlpha(0.22f),
+                            ),
                             com.afterglowtv.app.ui.design.AppColors.EpgNowLine.copy(alpha = 0.0f),
                         ),
                         center = androidx.compose.ui.geometry.Offset(x = 400f, y = 1900f),

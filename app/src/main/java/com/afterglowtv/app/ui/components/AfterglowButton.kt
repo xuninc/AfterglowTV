@@ -145,9 +145,10 @@ private fun GlassLabel(text: String, mod: Modifier) {
 @Composable
 private fun DoubleShadowLabel(text: String, mod: Modifier) {
     val shape = RoundedCornerShape(2.dp)
+    val glowColor = AppColors.EpgNowLine.copy(alpha = AppColors.palette.glowAlpha(1f))
     Row(
         modifier = mod
-            .shadow(elevation = 8.dp, shape = shape, ambientColor = AppColors.EpgNowLine, spotColor = AppColors.EpgNowLine)
+            .shadow(elevation = 8.dp, shape = shape, ambientColor = glowColor, spotColor = glowColor)
             .clip(shape)
             .background(AppColors.TiviAccent),
         horizontalArrangement = Arrangement.Center,

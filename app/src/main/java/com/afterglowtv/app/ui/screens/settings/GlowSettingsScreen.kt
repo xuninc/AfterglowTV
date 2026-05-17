@@ -99,7 +99,7 @@ fun GlowSettingsScreen(
             modifier = Modifier.fillMaxSize().background(
                 androidx.compose.ui.graphics.Brush.radialGradient(
                     colors = listOf(
-                        AppColors.TiviAccent.copy(alpha = 0.30f),
+                        AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.30f)),
                         AppColors.TiviAccent.copy(alpha = 0f),
                     ),
                     center = androidx.compose.ui.geometry.Offset(2400f, -200f),
@@ -111,7 +111,7 @@ fun GlowSettingsScreen(
             modifier = Modifier.fillMaxSize().background(
                 androidx.compose.ui.graphics.Brush.radialGradient(
                     colors = listOf(
-                        AppColors.EpgNowLine.copy(alpha = 0.20f),
+                        AppColors.EpgNowLine.copy(alpha = AppColors.palette.glowAlpha(0.20f)),
                         AppColors.EpgNowLine.copy(alpha = 0f),
                     ),
                     center = androidx.compose.ui.geometry.Offset(300f, 1900f),

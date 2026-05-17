@@ -74,9 +74,9 @@ object Glows {
     fun overrideLive(specs: List<GlowSpec>) { live = specs }
     fun overrideAmbient(specs: List<GlowSpec>) { ambient = specs }
 
-    /** Scale the configured specs by the current [intensity] before painting. */
+    /** Scale the configured specs by the user intensity and active theme's glow strength before painting. */
     internal fun scaled(specs: List<GlowSpec>): List<GlowSpec> {
-        val k = intensity
+        val k = (intensity * AppColors.palette.glowIntensity).coerceIn(0f, 2f)
         if (k == 0f) return emptyList()
         if (k == 1f) return specs
         return specs.map { it.copy(opacity = (it.opacity * k).coerceIn(0f, 1f)) }
