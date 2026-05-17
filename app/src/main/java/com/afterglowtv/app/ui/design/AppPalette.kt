@@ -730,6 +730,36 @@ data class AppPalette(
             outline = Color(0x66015468),
         )
 
+        /** Amber Noir — theme built from the tan, amber, mauve, umber, and black swatch reference image. */
+        val AmberNoir = AppPalette(
+            id = "amber_noir",
+            displayName = "Amber Noir",
+            description = "Soft tan, amber gold, muted mauve, umber brown, and near-black.",
+            surfaceDeep = Color(0xFF0B0A0C),
+            surfaceBase = Color(0xFF2F1E16),
+            surfaceCool = Color(0xFF6E585E),
+            surfaceAccent = Color(0xFF6B4716),
+            accent = Color(0xFFBF8737),
+            accentLight = Color(0xFFD0B99A),
+            accentMuted = Color(0x66BF8737),
+            panelScrim = Color(0xD60B0A0C),
+            osdScrim = Color(0xA60B0A0C),
+            nowLine = Color(0xFFD0B99A),
+            nowFill = Color(0x33BF8737),
+            live = Color(0xFFD0B99A),
+            pipPreviewOutline = Color(0xFFBF8737),
+            focusFill = Color(0x40BF8737),
+            textPrimary = Color(0xFFF7EFE5),
+            textSecondary = Color(0xD9E7D7C6),
+            textTertiary = Color(0x99E7D7C6),
+            textDisabled = Color(0x66E7D7C6),
+            success = Color(0xFF8C6B74),
+            warning = Color(0xFFBF8737),
+            info = Color(0xFFD0B99A),
+            divider = Color(0x22E7D7C6),
+            outline = Color(0x66D0B99A),
+        )
+
         /** All available presets, in display order. Afterglow Dark 1-4 first
          *  in numerical order (Dark 2 is the default), then the gray
          *  variant, then Afterglow Light 1-4, then the gray light, then the
@@ -753,6 +783,7 @@ data class AppPalette(
             UltravioletSpectrum,
             MineralSlate,
             CopperFjord,
+            AmberNoir,
             CyberPunk,
             ForestMist,
             PureOnyx,
