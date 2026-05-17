@@ -1112,7 +1112,7 @@ private fun AdvancedProviderOptionsSection(
         val hasNonDefaultSelection = ((sourceType == SourceType.XTREAM || sourceType == SourceType.STALKER) && uiState.epgSyncMode != defaultEpgSyncMode) ||
             (sourceType == SourceType.XTREAM && !uiState.xtreamFastSyncEnabled) ||
             (sourceType == SourceType.XTREAM && uiState.xtreamLiveSyncMode != ProviderXtreamLiveSyncMode.AUTO) ||
-            ((sourceType == SourceType.M3U_URL || sourceType == SourceType.M3U_FILE) && !uiState.m3uVodClassificationEnabled) ||
+            ((sourceType == SourceType.M3U_URL || sourceType == SourceType.M3U_FILE) && uiState.m3uVodClassificationEnabled) ||
             ((sourceType == SourceType.XTREAM || sourceType == SourceType.M3U_URL || sourceType == SourceType.M3U_FILE) &&
                 (httpUserAgent.isNotBlank() || httpHeaders.isNotBlank())) ||
             (sourceType == SourceType.STALKER && (stalkerDeviceProfile.isNotBlank() || stalkerDeviceTimezone.isNotBlank() || stalkerDeviceLocale.isNotBlank()))

@@ -722,10 +722,9 @@ data class ProviderSetupState(
     val xtreamFastSyncEnabled: Boolean = true,
     val xtreamLiveSyncMode: ProviderXtreamLiveSyncMode = ProviderXtreamLiveSyncMode.AUTO,
     val hasCustomizedEpgSyncMode: Boolean = false,
-    // Default ON: most M3U IPTV providers (e.g. tv123.me /IPTV_VOD bouquets)
-    // ship VOD entries that would otherwise show up as live channels.
-    // Users can still disable this via Advanced Options.
-    val m3uVodClassificationEnabled: Boolean = true
+    // Opt-in only. A plain M3U playlist should be treated as Live TV unless the
+    // user explicitly asks AfterglowTV to classify VOD/movie-looking entries.
+    val m3uVodClassificationEnabled: Boolean = false
 )
 
 private fun defaultEpgSyncModeFor(sourceType: ProviderSetupViewModel.SetupSourceType): ProviderEpgSyncMode = when (sourceType) {

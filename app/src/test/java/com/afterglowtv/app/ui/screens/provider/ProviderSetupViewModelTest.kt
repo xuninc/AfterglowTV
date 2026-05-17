@@ -12,6 +12,7 @@ import com.afterglowtv.domain.manager.BackupImportPlan
 import com.afterglowtv.domain.manager.BackupImportResult
 import com.afterglowtv.domain.usecase.ImportBackup
 import com.afterglowtv.domain.usecase.ImportBackupResult
+import com.afterglowtv.domain.usecase.M3uProviderSetupCommand
 import com.afterglowtv.domain.usecase.XtreamProviderSetupCommand
 import com.afterglowtv.domain.usecase.ValidateAndAddProvider
 import com.afterglowtv.domain.usecase.ValidateAndAddProviderResult
@@ -107,6 +108,34 @@ class ProviderSetupViewModelTest {
         val command = argumentCaptor<XtreamProviderSetupCommand>()
         verify(validateAndAddProvider).loginXtream(command.capture(), any())
         assertThat(command.firstValue.xtreamFastSyncEnabled).isTrue()
+    }
+
+    @Test
+    fun `adding m3u keeps vod classification disabled by default`() = runTest {
+        val createdProvider = Provider(
+            id = 7L,
+            name = "Playlist 7",
+            type = ProviderType.M3U,
+            serverUrl = "https://example.com",
+            m3uUrl = "https://example.com/list.m3u"
+        )
+        whenever(validateAndAddProvider.addM3u(any(), any())).thenReturn(
+            ValidateAndAddProviderResult.Success(createdProvider)
+        )
+
+        val viewModel = ProviderSetupViewModel(
+            providerRepository = providerRepository,
+            combinedM3uRepository = combinedM3uRepository,
+            validateAndAddProvider = validateAndAddProvider,
+            importBackup = importBackup
+        )
+
+        viewModel.addM3u("https://example.com/list.m3u", "Playlist 7", "", "")
+        advanceUntilIdle()
+
+        val command = argumentCaptor<M3uProviderSetupCommand>()
+        verify(validateAndAddProvider).addM3u(command.capture(), any())
+        assertThat(command.firstValue.m3uVodClassificationEnabled).isFalse()
     }
 
     @Test

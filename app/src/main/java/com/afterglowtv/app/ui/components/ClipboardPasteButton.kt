@@ -1,8 +1,7 @@
 package com.afterglowtv.app.ui.components
 
 import android.content.ClipData
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -18,9 +17,13 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.afterglowtv.app.ui.design.AppColors
+import com.afterglowtv.app.ui.design.FocusSpec
+import com.afterglowtv.app.ui.interaction.TvClickableSurface
 import kotlinx.coroutines.launch
 
 /**
@@ -32,10 +35,8 @@ import kotlinx.coroutines.launch
  * Reads the current clipboard via `LocalClipboard` and emits the text
  * verbatim through [onPaste]. Caller wires `onPaste = { fieldValue = it }`.
  *
- * If the clipboard is empty, the pill is still clickable but [onPaste] is
- * called with an empty string — caller may want to ignore that. For
- * provider-setup URL fields we accept the empty string (it will clear the
- * field, which is occasionally what you want anyway).
+ * If the clipboard is empty, the pill stays selectable but leaves the field
+ * alone. Clearing is handled by [ClipboardClearButton].
  */
 @Composable
 fun ClipboardPasteButton(
@@ -58,7 +59,9 @@ fun ClipboardPasteButton(
                     ?.coerceToText(context)
                     ?.toString()
                     .orEmpty()
-                onPaste(text)
+                if (text.isNotEmpty()) {
+                    onPaste(text)
+                }
             }
         }
     )
@@ -106,25 +109,46 @@ private fun ClipboardActionPill(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(AppColors.TiviAccentMuted)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    val shape = RoundedCornerShape(999.dp)
+    TvClickableSurface(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        shape = ClickableSurfaceDefaults.shape(shape),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = AppColors.TiviAccentMuted,
+            focusedContainerColor = AppColors.TiviAccent.copy(alpha = 0.34f),
+            disabledContainerColor = AppColors.SurfaceAccent.copy(alpha = 0.32f),
+            contentColor = AppColors.TiviAccentLight,
+            focusedContentColor = AppColors.TextPrimary,
+            disabledContentColor = AppColors.TextDisabled,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, AppColors.TiviAccent.copy(alpha = if (enabled) 0.36f else 0.12f)),
+                shape = shape,
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus),
+                shape = shape,
+            ),
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
-        Icon(
-            imageVector = Icons.Filled.Edit,
-            contentDescription = null,
-            tint = AppColors.TiviAccentLight,
-            modifier = Modifier.padding(end = 2.dp),
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = AppColors.TiviAccentLight,
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Edit,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 2.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
     }
 }
