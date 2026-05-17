@@ -2,6 +2,7 @@ package com.afterglowtv.app.ui.screens.epg
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -47,6 +50,11 @@ import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import com.afterglowtv.app.R
 import com.afterglowtv.app.ui.components.ChannelLogoBadge
+import com.afterglowtv.app.ui.design.AppColors
+import com.afterglowtv.app.ui.design.AppShapeSet
+import com.afterglowtv.app.ui.design.AppStyles
+import com.afterglowtv.app.ui.design.GlowSpec
+import com.afterglowtv.app.ui.design.afterglow
 import com.afterglowtv.app.ui.interaction.TvButton
 import com.afterglowtv.app.ui.interaction.TvClickableSurface
 import com.afterglowtv.app.ui.model.guideLookupKey
@@ -125,9 +133,9 @@ internal fun EpgGrid(
     val channelRailWidth = 180.dp
     val timelineGap = 4.dp
     val rowHeight = when (density) {
-        GuideDensity.COMPACT -> 38.dp
-        GuideDensity.COMFORTABLE -> 44.dp
-        GuideDensity.CINEMATIC -> 52.dp
+        GuideDensity.COMPACT -> 36.dp
+        GuideDensity.COMFORTABLE -> 52.dp
+        GuideDensity.CINEMATIC -> 68.dp
     }
     val horizontalScrollState = rememberScrollState()
 
@@ -352,8 +360,8 @@ fun EpgRow(
     }
     val channelLogoSize = when (density) {
         GuideDensity.COMPACT -> 22.dp
-        GuideDensity.COMFORTABLE -> 24.dp
-        GuideDensity.CINEMATIC -> 26.dp
+        GuideDensity.COMFORTABLE -> 30.dp
+        GuideDensity.CINEMATIC -> 38.dp
     }
 
     Row(
@@ -514,6 +522,9 @@ fun ProgramItem(
     var isFocused by remember { mutableStateOf(false) }
     val now = currentGuideNow()
     val isCurrent = now in program.startTime until program.endTime
+    val cellStyle = AppStyles.value.epgCell
+    val liveStyle = AppStyles.value.epgLiveCell
+    val cellShape = remember(cellStyle) { epgCellShape(cellStyle) }
 
     val appTimeFormat = LocalAppTimeFormat.current
     val format = remember(appTimeFormat) { appTimeFormat.createTimeFormatter() }
@@ -528,16 +539,16 @@ fun ProgramItem(
     val itemStart = totalTimelineWidth * startRatio
     val minimumItemWidth = when (density) {
         GuideDensity.COMPACT -> 40.dp
-        GuideDensity.COMFORTABLE -> 48.dp
-        GuideDensity.CINEMATIC -> 56.dp
+        GuideDensity.COMFORTABLE -> 58.dp
+        GuideDensity.CINEMATIC -> 76.dp
     }
     val itemWidth = (totalTimelineWidth * widthRatio).coerceAtLeast(minimumItemWidth)
     val isCompactCell = itemWidth < 148.dp
     val isVeryCompactCell = itemWidth < 116.dp
     val outerVerticalPadding = when (density) {
         GuideDensity.COMPACT -> 2.dp
-        GuideDensity.COMFORTABLE -> 2.dp
-        GuideDensity.CINEMATIC -> 3.dp
+        GuideDensity.COMFORTABLE -> 3.dp
+        GuideDensity.CINEMATIC -> 5.dp
     }
     val innerHorizontalPadding = when {
         isVeryCompactCell -> 5.dp
@@ -546,8 +557,8 @@ fun ProgramItem(
     }
     val innerVerticalPadding = when (density) {
         GuideDensity.COMPACT -> 2.dp
-        GuideDensity.COMFORTABLE -> 3.dp
-        GuideDensity.CINEMATIC -> 4.dp
+        GuideDensity.COMFORTABLE -> 5.dp
+        GuideDensity.CINEMATIC -> 7.dp
     }
     val titleStyle = when {
         isVeryCompactCell -> MaterialTheme.typography.labelSmall.copy(
@@ -557,6 +568,10 @@ fun ProgramItem(
         isCompactCell || density == GuideDensity.COMPACT -> MaterialTheme.typography.labelMedium.copy(
             fontSize = 11.sp,
             lineHeight = 12.sp
+        )
+        density == GuideDensity.CINEMATIC -> MaterialTheme.typography.labelLarge.copy(
+            fontSize = 15.sp,
+            lineHeight = 17.sp
         )
         else -> MaterialTheme.typography.labelLarge.copy(
             fontSize = 12.sp,
@@ -568,18 +583,42 @@ fun ProgramItem(
             fontSize = 9.sp,
             lineHeight = 10.sp
         )
+        density == GuideDensity.CINEMATIC -> MaterialTheme.typography.labelSmall.copy(
+            fontSize = 12.sp,
+            lineHeight = 13.sp
+        )
         else -> MaterialTheme.typography.labelSmall.copy(
             fontSize = 10.sp,
             lineHeight = 11.sp
         )
     }
+    val leadingStripeWidth = when (cellStyle) {
+        AppShapeSet.EpgCellStyle.ACCENT_STRIPE -> 4.dp
+        else -> 0.dp
+    }
+    val contentStartPadding = innerHorizontalPadding + leadingStripeWidth
+    val showCornerTag = isCurrent && liveStyle == AppShapeSet.EpgLiveCellStyle.CORNER_TAG && !isVeryCompactCell
+    val modifierWithGlow = Modifier
+        .padding(start = itemStart, top = outerVerticalPadding, bottom = outerVerticalPadding)
+        .width(itemWidth)
+        .fillMaxHeight()
+        .let { base ->
+            if (isCurrent && liveStyle == AppShapeSet.EpgLiveCellStyle.GLOW) {
+                base.afterglow(
+                    listOf(
+                        GlowSpec(AppColors.EpgNowLine, 12.dp, 0.55f),
+                        GlowSpec(AppColors.TiviAccent, 26.dp, 0.28f),
+                    ),
+                    cellShape
+                )
+            } else {
+                base
+            }
+        }
 
     TvClickableSurface(
         onClick = onClick,
-        modifier = Modifier
-            .padding(start = itemStart, top = outerVerticalPadding, bottom = outerVerticalPadding)
-            .width(itemWidth)
-            .fillMaxHeight()
+        modifier = modifierWithGlow
             .onFocusChanged {
                 if (it.isFocused && !isFocused) {
                     onFocused()
@@ -587,46 +626,200 @@ fun ProgramItem(
                 isFocused = it.isFocused
             },
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (isCurrent) Primary.copy(alpha = 0.2f) else SurfaceElevated,
-            focusedContainerColor = SurfaceHighlight
+            containerColor = epgCellContainerColor(cellStyle, liveStyle, isCurrent),
+            focusedContainerColor = epgCellFocusedColor(cellStyle, isCurrent)
         ),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        shape = ClickableSurfaceDefaults.shape(cellShape),
         border = ClickableSurfaceDefaults.border(
             border = Border(
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
-                shape = RoundedCornerShape(8.dp)
+                border = BorderStroke(
+                    width = epgCellBorderWidth(cellStyle, liveStyle, isCurrent),
+                    color = epgCellBorderColor(cellStyle, liveStyle, isCurrent)
+                ),
+                shape = cellShape
             ),
             focusedBorder = Border(
-                border = BorderStroke(2.dp, FocusBorder),
-                shape = RoundedCornerShape(8.dp)
+                border = BorderStroke(3.dp, FocusBorder),
+                shape = cellShape
             )
         )
     ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = innerHorizontalPadding, vertical = innerVerticalPadding)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = program.title,
-                style = titleStyle,
-                color = if (isFocused) TextPrimary else if (isCurrent) Primary else OnSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (!isVeryCompactCell) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (cellStyle == AppShapeSet.EpgCellStyle.ACCENT_STRIPE) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(if (isCurrent) AppColors.EpgNowLine else AppColors.TiviAccent)
+                )
+            }
+            if (cellStyle == AppShapeSet.EpgCellStyle.BEVELED) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.White.copy(alpha = 0.22f))
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.Black.copy(alpha = 0.28f))
+                )
+            }
+            if (
+                cellStyle == AppShapeSet.EpgCellStyle.DOUBLE_EDGE ||
+                (isCurrent && liveStyle == AppShapeSet.EpgLiveCellStyle.DOUBLE_EDGE)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(2.dp)
+                        .border(
+                            width = 1.dp,
+                            color = if (isCurrent) AppColors.EpgNowLine.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.16f),
+                            shape = cellShape
+                        )
+                )
+            }
+            if (showCornerTag) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .background(
+                            color = AppColors.EpgNowLine,
+                            shape = RoundedCornerShape(bottomStart = 5.dp)
+                        )
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = "NOW",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 8.sp,
+                            lineHeight = 9.sp
+                        ),
+                        color = AppColors.TiviSurfaceDeep,
+                        maxLines = 1
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .padding(
+                        start = contentStartPadding,
+                        end = innerHorizontalPadding,
+                        top = innerVerticalPadding,
+                        bottom = innerVerticalPadding
+                    )
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
-                    text = "$startStr - $endStr",
-                    style = timeStyle,
-                    color = if (isFocused) TextSecondary else OnSurfaceDim,
+                    text = program.title,
+                    style = titleStyle,
+                    color = epgProgramTitleColor(liveStyle, isCurrent, isFocused),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (!isVeryCompactCell && !showCornerTag) {
+                    Text(
+                        text = "$startStr - $endStr",
+                        style = timeStyle,
+                        color = if (isFocused) TextSecondary else OnSurfaceDim,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
 }
+
+private fun epgCellShape(style: AppShapeSet.EpgCellStyle): Shape =
+    when (style) {
+        AppShapeSet.EpgCellStyle.RECTANGULAR -> RoundedCornerShape(0.dp)
+        AppShapeSet.EpgCellStyle.SOFT -> RoundedCornerShape(12.dp)
+        AppShapeSet.EpgCellStyle.ACCENT_STRIPE -> RoundedCornerShape(5.dp)
+        AppShapeSet.EpgCellStyle.BEVELED -> GenericShape { size, _ ->
+            val cut = 10f.coerceAtMost(size.minDimension / 3f)
+            moveTo(cut, 0f)
+            lineTo(size.width, 0f)
+            lineTo(size.width, size.height - cut)
+            lineTo(size.width - cut, size.height)
+            lineTo(0f, size.height)
+            lineTo(0f, cut)
+            close()
+        }
+        AppShapeSet.EpgCellStyle.DOUBLE_EDGE -> RoundedCornerShape(4.dp)
+    }
+
+private fun epgCellContainerColor(
+    style: AppShapeSet.EpgCellStyle,
+    liveStyle: AppShapeSet.EpgLiveCellStyle,
+    isCurrent: Boolean
+): Color {
+    if (isCurrent && liveStyle == AppShapeSet.EpgLiveCellStyle.NOW_FILL) {
+        return AppColors.EpgNowFill.copy(alpha = 0.34f)
+    }
+    return when (style) {
+        AppShapeSet.EpgCellStyle.RECTANGULAR -> AppColors.TiviSurfaceBase.copy(alpha = 0.92f)
+        AppShapeSet.EpgCellStyle.SOFT -> AppColors.TiviSurfaceCool.copy(alpha = 0.94f)
+        AppShapeSet.EpgCellStyle.ACCENT_STRIPE -> AppColors.TiviSurfaceCool.copy(alpha = 0.92f)
+        AppShapeSet.EpgCellStyle.BEVELED -> AppColors.SurfaceAccent.copy(alpha = 0.86f)
+        AppShapeSet.EpgCellStyle.DOUBLE_EDGE -> AppColors.TiviSurfaceBase.copy(alpha = 0.94f)
+    }
+}
+
+private fun epgCellFocusedColor(
+    style: AppShapeSet.EpgCellStyle,
+    isCurrent: Boolean
+): Color =
+    when {
+        isCurrent -> AppColors.FocusFill.copy(alpha = 0.55f)
+        style == AppShapeSet.EpgCellStyle.RECTANGULAR -> AppColors.SurfaceAccent.copy(alpha = 0.95f)
+        else -> SurfaceHighlight
+    }
+
+private fun epgCellBorderColor(
+    style: AppShapeSet.EpgCellStyle,
+    liveStyle: AppShapeSet.EpgLiveCellStyle,
+    isCurrent: Boolean
+): Color =
+    when {
+        isCurrent && liveStyle == AppShapeSet.EpgLiveCellStyle.DOUBLE_EDGE -> AppColors.EpgNowLine
+        isCurrent -> AppColors.EpgNowLine.copy(alpha = 0.72f)
+        style == AppShapeSet.EpgCellStyle.ACCENT_STRIPE -> AppColors.TiviAccent.copy(alpha = 0.42f)
+        style == AppShapeSet.EpgCellStyle.BEVELED -> Color.White.copy(alpha = 0.18f)
+        style == AppShapeSet.EpgCellStyle.DOUBLE_EDGE -> Color.White.copy(alpha = 0.24f)
+        else -> Color.White.copy(alpha = 0.12f)
+    }
+
+private fun epgCellBorderWidth(
+    style: AppShapeSet.EpgCellStyle,
+    liveStyle: AppShapeSet.EpgLiveCellStyle,
+    isCurrent: Boolean
+): Dp =
+    when {
+        isCurrent && liveStyle == AppShapeSet.EpgLiveCellStyle.DOUBLE_EDGE -> 2.dp
+        style == AppShapeSet.EpgCellStyle.RECTANGULAR -> 1.dp
+        style == AppShapeSet.EpgCellStyle.DOUBLE_EDGE -> 2.dp
+        else -> 1.dp
+    }
+
+private fun epgProgramTitleColor(
+    liveStyle: AppShapeSet.EpgLiveCellStyle,
+    isCurrent: Boolean,
+    isFocused: Boolean
+): Color =
+    when {
+        isFocused -> TextPrimary
+        isCurrent && liveStyle == AppShapeSet.EpgLiveCellStyle.NOW_FILL -> AppColors.TiviAccentLight
+        isCurrent -> AppColors.EpgNowLine
+        else -> OnSurface
+    }
 
 private fun List<Program>.currentProgramAt(now: Long): Program? =
     firstOrNull { now in it.startTime until it.endTime }

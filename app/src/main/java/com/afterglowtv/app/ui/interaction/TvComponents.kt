@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
@@ -27,7 +28,10 @@ import androidx.tv.material3.IconButton
 import androidx.tv.material3.IconButtonDefaults
 import androidx.tv.material3.Surface
 import com.afterglowtv.app.ui.design.AppColors
+import com.afterglowtv.app.ui.design.AppShapeSet
+import com.afterglowtv.app.ui.design.AppStyles
 import com.afterglowtv.app.ui.design.FocusSpec
+import com.afterglowtv.app.ui.design.afterglowButtonShape
 
 /**
  * Drop-in replacement for TV Material3 Surface(onClick) that automatically adds
@@ -75,8 +79,8 @@ fun TvButton(
     scale: ButtonScale = ButtonDefaults.scale(),
     glow: ButtonGlow = ButtonDefaults.glow(),
     interactionSource: MutableInteractionSource? = null,
-    shape: ButtonShape = ButtonDefaults.shape(),
-    colors: ButtonColors = ButtonDefaults.colors(),
+    shape: ButtonShape = defaultButtonShape(),
+    colors: ButtonColors = defaultButtonColors(),
     border: ButtonBorder = defaultButtonBorder(),
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit,
@@ -109,7 +113,7 @@ fun TvIconButton(
     scale: ButtonScale = IconButtonDefaults.scale(),
     glow: ButtonGlow = IconButtonDefaults.glow(),
     interactionSource: MutableInteractionSource? = null,
-    shape: ButtonShape = IconButtonDefaults.shape(),
+    shape: ButtonShape = defaultIconButtonShape(),
     colors: ButtonColors = IconButtonDefaults.colors(),
     border: ButtonBorder = defaultIconButtonBorder(),
     content: @Composable BoxScope.() -> Unit,
@@ -144,14 +148,88 @@ private fun defaultClickableSurfaceBorder(): ClickableSurfaceBorder =
 
 @Composable
 private fun defaultButtonBorder(): ButtonBorder =
-    ButtonDefaults.border(
-        border = Border(border = BorderStroke(0.dp, AppColors.Outline.copy(alpha = 0f))),
-        focusedBorder = Border(border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus))
-    )
+    AppStyles.value.button.let { style ->
+        val shape = afterglowButtonShape(style)
+        ButtonDefaults.border(
+            border = Border(
+                border = BorderStroke(
+                    width = if (style == AppShapeSet.ButtonStyle.GHOST) 1.5.dp else 0.dp,
+                    color = if (style == AppShapeSet.ButtonStyle.GHOST) AppColors.TiviAccent else AppColors.Outline.copy(alpha = 0f)
+                ),
+                shape = shape
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(
+                    width = if (style == AppShapeSet.ButtonStyle.DOUBLE_SHADOW) 3.dp else FocusSpec.BorderWidth,
+                    color = AppColors.Focus
+                ),
+                shape = shape
+            )
+        )
+    }
 
 @Composable
 private fun defaultIconButtonBorder(): ButtonBorder =
-    IconButtonDefaults.border(
-        border = Border(border = BorderStroke(0.dp, AppColors.Outline.copy(alpha = 0f))),
-        focusedBorder = Border(border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus))
-    )
+    AppStyles.value.button.let { style ->
+        val shape = afterglowButtonShape(style)
+        IconButtonDefaults.border(
+            border = Border(
+                border = BorderStroke(
+                    width = if (style == AppShapeSet.ButtonStyle.GHOST) 1.5.dp else 0.dp,
+                    color = if (style == AppShapeSet.ButtonStyle.GHOST) AppColors.TiviAccent else AppColors.Outline.copy(alpha = 0f)
+                ),
+                shape = shape
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus),
+                shape = shape
+            )
+        )
+    }
+
+@Composable
+private fun defaultButtonShape(): ButtonShape =
+    ButtonDefaults.shape(shape = afterglowButtonShape(AppStyles.value.button))
+
+@Composable
+private fun defaultIconButtonShape(): ButtonShape =
+    IconButtonDefaults.shape(shape = afterglowButtonShape(AppStyles.value.button))
+
+@Composable
+private fun defaultButtonColors(): ButtonColors {
+    return when (AppStyles.value.button) {
+        AppShapeSet.ButtonStyle.PILL,
+        AppShapeSet.ButtonStyle.SHARP,
+        AppShapeSet.ButtonStyle.SOFT,
+        AppShapeSet.ButtonStyle.CUT_CORNER -> ButtonDefaults.colors(
+            containerColor = AppColors.TiviAccent,
+            focusedContainerColor = AppColors.TiviAccentLight,
+            contentColor = AppColors.TiviSurfaceDeep,
+            focusedContentColor = AppColors.TiviSurfaceDeep
+        )
+        AppShapeSet.ButtonStyle.STRIPE -> ButtonDefaults.colors(
+            containerColor = AppColors.TiviSurfaceCool,
+            focusedContainerColor = AppColors.SurfaceAccent,
+            contentColor = AppColors.TextPrimary,
+            focusedContentColor = AppColors.TextPrimary
+        )
+        AppShapeSet.ButtonStyle.GHOST -> ButtonDefaults.colors(
+            containerColor = Color.Transparent,
+            focusedContainerColor = AppColors.TiviAccent.copy(alpha = 0.18f),
+            contentColor = AppColors.TiviAccent,
+            focusedContentColor = AppColors.TiviAccentLight
+        )
+        AppShapeSet.ButtonStyle.GLASS -> ButtonDefaults.colors(
+            containerColor = AppColors.TiviAccent.copy(alpha = 0.10f),
+            focusedContainerColor = AppColors.TiviAccent.copy(alpha = 0.24f),
+            contentColor = AppColors.TiviAccentLight,
+            focusedContentColor = AppColors.TextPrimary
+        )
+        AppShapeSet.ButtonStyle.DOUBLE_SHADOW -> ButtonDefaults.colors(
+            containerColor = AppColors.TiviAccent,
+            focusedContainerColor = AppColors.EpgNowLine,
+            contentColor = AppColors.TiviSurfaceDeep,
+            focusedContentColor = AppColors.TiviSurfaceDeep
+        )
+    }
+}

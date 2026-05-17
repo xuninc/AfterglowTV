@@ -58,6 +58,23 @@ private fun sanitizePlaybackTimerMinutes(minutes: Int): Int = when (minutes) {
     else -> 120
 }
 
+data class VisualPreferencesSnapshot(
+    val themePalette: String,
+    val themeShapeSet: String,
+    val styleButton: String?,
+    val styleEpgCell: String?,
+    val styleEpgLiveCell: String?,
+    val styleTextField: String?,
+    val styleChannelRow: String?,
+    val stylePill: String?,
+    val styleFocus: String?,
+    val styleProgress: String?,
+    val glowIntensity: Float,
+    val glowFocusSpecs: String,
+    val glowLiveSpecs: String,
+    val glowAmbientSpecs: String,
+)
+
 @Singleton
 class PreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -1139,6 +1156,26 @@ class PreferencesRepository @Inject constructor(
             preferences.remove(PreferencesKeys.STYLE_FOCUS)
             preferences.remove(PreferencesKeys.STYLE_PROGRESS)
         }
+    }
+
+    suspend fun visualPreferencesSnapshot(): VisualPreferencesSnapshot {
+        val preferences = context.dataStore.data.first()
+        return VisualPreferencesSnapshot(
+            themePalette = preferences[PreferencesKeys.THEME_PALETTE] ?: "afterglow_sunset",
+            themeShapeSet = preferences[PreferencesKeys.THEME_SHAPE_SET] ?: "halo",
+            styleButton = preferences[PreferencesKeys.STYLE_BUTTON],
+            styleEpgCell = preferences[PreferencesKeys.STYLE_EPG_CELL],
+            styleEpgLiveCell = preferences[PreferencesKeys.STYLE_EPG_LIVE_CELL],
+            styleTextField = preferences[PreferencesKeys.STYLE_TEXT_FIELD],
+            styleChannelRow = preferences[PreferencesKeys.STYLE_CHANNEL_ROW],
+            stylePill = preferences[PreferencesKeys.STYLE_PILL],
+            styleFocus = preferences[PreferencesKeys.STYLE_FOCUS],
+            styleProgress = preferences[PreferencesKeys.STYLE_PROGRESS],
+            glowIntensity = preferences[PreferencesKeys.GLOW_INTENSITY]?.toFloatOrNull() ?: 1f,
+            glowFocusSpecs = preferences[PreferencesKeys.GLOW_FOCUS_SPECS] ?: "",
+            glowLiveSpecs = preferences[PreferencesKeys.GLOW_LIVE_SPECS] ?: "",
+            glowAmbientSpecs = preferences[PreferencesKeys.GLOW_AMBIENT_SPECS] ?: "",
+        )
     }
 
     val styleButton: Flow<String?> = context.dataStore.data.map { it[PreferencesKeys.STYLE_BUTTON] }

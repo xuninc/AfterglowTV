@@ -870,8 +870,12 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(userMessage = null) }
     }
 
-    fun exportConfig(uriString: String, onSuccess: (() -> Unit)? = null) {
-        backupActions.exportConfig(viewModelScope, uriString, onSuccess)
+    fun exportConfig(
+        uriString: String,
+        successMessage: String? = null,
+        onSuccess: (() -> Unit)? = null
+    ) {
+        backupActions.exportConfig(viewModelScope, uriString, successMessage, onSuccess)
     }
 
     fun inspectBackup(uriString: String) {

@@ -61,16 +61,25 @@ fun SettingsScreen(
     val providerState = rememberSettingsProviderSectionState(dialogState)
     var handledInitialBackupImportUri by remember { mutableStateOf<String?>(null) }
 
-    val createDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        uri?.let { viewModel.exportConfig(it.toString()) }
-    }
-
     val openDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let { viewModel.inspectBackup(it.toString()) }
+    }
+
+    fun exportBackupToDownloads() {
+        val destination = runCatching { BackupFileBridge.createDownloadsExport(context) }.getOrNull()
+        if (destination == null) {
+            viewModel.showUserMessage(context.getString(R.string.settings_backup_export_prepare_failed))
+            return
+        }
+        viewModel.exportConfig(
+            uriString = destination.uri.toString(),
+            successMessage = context.getString(
+                R.string.settings_backup_export_saved_to,
+                destination.displayLocation
+            )
+        )
     }
 
     fun shareBackup() {
@@ -187,7 +196,7 @@ fun SettingsScreen(
                         onEditProvider = onEditProvider,
                         onNavigateToParentalControl = onNavigateToParentalControl,
                         onChooseRecordingFolder = { recordingFolderLauncher.launch(null) },
-                        onCreateBackup = { createDocumentLauncher.launch("afterglowtv_backup.json") },
+                        onCreateBackup = ::exportBackupToDownloads,
                         onShareBackup = ::shareBackup,
                         onViewCrashReport = viewModel::viewCrashReport,
                         onShareCrashReport = ::shareCrashReport,

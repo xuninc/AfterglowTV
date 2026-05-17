@@ -22,7 +22,9 @@ import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.afterglowtv.app.R
+import com.afterglowtv.app.ui.design.AppStyles
 import com.afterglowtv.app.ui.design.FocusSpec
+import com.afterglowtv.app.ui.design.afterglowButtonShape
 import com.afterglowtv.app.ui.interaction.TvClickableSurface
 import com.afterglowtv.app.ui.theme.ErrorColor
 import com.afterglowtv.app.ui.theme.OnBackground
@@ -74,13 +76,20 @@ internal fun ProviderM3uOptionsPanel(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val buttonShape = afterglowButtonShape(AppStyles.value.button)
             TvClickableSurface(
                 onClick = onRefreshM3uClassification,
                 enabled = !isSyncing,
-                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(6.dp)),
+                shape = ClickableSurfaceDefaults.shape(buttonShape),
                 colors = ClickableSurfaceDefaults.colors(
                     containerColor = Primary.copy(alpha = 0.15f),
                     focusedContainerColor = Primary.copy(alpha = 0.3f)
+                ),
+                border = ClickableSurfaceDefaults.border(
+                    focusedBorder = Border(
+                        border = BorderStroke(FocusSpec.BorderWidth, Color.White),
+                        shape = buttonShape
+                    )
                 ),
                 scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
             ) {
@@ -143,13 +152,20 @@ private fun ProviderWarningRetryButton(
     isSyncing: Boolean,
     onClick: () -> Unit
 ) {
+    val buttonShape = afterglowButtonShape(AppStyles.value.button)
     TvClickableSurface(
         onClick = onClick,
         enabled = !isSyncing,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(6.dp)),
+        shape = ClickableSurfaceDefaults.shape(buttonShape),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Secondary.copy(alpha = 0.16f),
             focusedContainerColor = Secondary.copy(alpha = 0.35f)
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(
+                border = BorderStroke(FocusSpec.BorderWidth, Color.White),
+                shape = buttonShape
+            )
         )
     ) {
         Text(
@@ -223,9 +239,10 @@ private fun ProviderActionButton(
     filled: Boolean = false,
     contentColor: Color = accent
 ) {
+    val buttonShape = afterglowButtonShape(AppStyles.value.button)
     TvClickableSurface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(6.dp)),
+        shape = ClickableSurfaceDefaults.shape(buttonShape),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (filled) accent else accent.copy(alpha = 0.2f),
             focusedContainerColor = if (filled) accent.copy(alpha = 0.8f) else accent.copy(alpha = 0.5f),
@@ -235,7 +252,7 @@ private fun ProviderActionButton(
         border = ClickableSurfaceDefaults.border(
             focusedBorder = Border(
                 border = BorderStroke(FocusSpec.BorderWidth, Color.White),
-                shape = RoundedCornerShape(6.dp)
+                shape = buttonShape
             )
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)

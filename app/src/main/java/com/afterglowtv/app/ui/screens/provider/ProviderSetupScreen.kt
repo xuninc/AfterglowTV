@@ -68,8 +68,10 @@ import com.afterglowtv.app.ui.components.dialogs.PremiumDialog
 import com.afterglowtv.app.ui.components.dialogs.PremiumDialogFooterButton
 import com.afterglowtv.app.ui.components.shell.StatusPill
 import androidx.compose.ui.draw.clip
+import com.afterglowtv.app.ui.design.AppStyles
 import com.afterglowtv.app.ui.design.GlowSpec
 import com.afterglowtv.app.ui.design.afterglow
+import com.afterglowtv.app.ui.design.afterglowButtonShape
 import com.afterglowtv.app.ui.screens.settings.BackupImportPreviewDialog
 import com.afterglowtv.app.ui.theme.*
 import com.afterglowtv.data.util.ProviderInputSanitizer
@@ -2100,6 +2102,7 @@ private fun ProviderActionButton(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (isFocused) 1.03f else 1f, tween(150), label = "scale")
+    val buttonShape = afterglowButtonShape(AppStyles.value.button)
 
     Surface(
         onClick = { if (!isLoading) onClick() },
@@ -2114,18 +2117,24 @@ private fun ProviderActionButton(
                 ) else if (!isLoading) listOf(
                     GlowSpec(com.afterglowtv.app.ui.design.AppColors.TiviAccent, 8.dp, 0.30f),
                 ) else emptyList(),
-                shape = RoundedCornerShape(4.dp),
+                shape = buttonShape,
             )
             .onFocusEvent { isFocused = it.hasFocus }
             .mouseClickable(enabled = !isLoading, onClick = onClick),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
+        shape = ClickableSurfaceDefaults.shape(buttonShape),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (!isLoading) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent.copy(alpha = 0.95f) else SurfaceHighlight,
             focusedContainerColor = if (!isLoading) com.afterglowtv.app.ui.design.AppColors.SurfaceAccent else SurfaceHighlight,
         ),
         border = ClickableSurfaceDefaults.border(
-            border = Border(BorderStroke(1.dp, com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.45f))),
-            focusedBorder = Border(BorderStroke(2.dp, com.afterglowtv.app.ui.design.AppColors.TiviAccent)),
+            border = Border(
+                border = BorderStroke(1.dp, com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.45f)),
+                shape = buttonShape,
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(2.dp, com.afterglowtv.app.ui.design.AppColors.TiviAccent),
+                shape = buttonShape,
+            ),
         )
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {

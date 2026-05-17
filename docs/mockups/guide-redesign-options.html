@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AfterglowTV Guide Redesign Mockups</title>
+  <style>
+    :root {
+      --bg: #050914;
+      --panel: #0d1424;
+      --panel-2: #172238;
+      --panel-3: #263a5a;
+      --line: rgba(255, 228, 216, .18);
+      --line-soft: rgba(255, 228, 216, .08);
+      --text: #fff7f0;
+      --muted: rgba(255, 228, 216, .74);
+      --dim: rgba(255, 228, 216, .48);
+      --orange: #ff7a18;
+      --orange-2: #ffb15f;
+      --pink: #ff2d7a;
+      --mint: #62d491;
+      --blue: #7fa7ff;
+      --cream: #feeecd;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 88% 0%, rgba(255, 122, 24, .18), transparent 34%),
+        radial-gradient(circle at 10% 98%, rgba(255, 45, 122, .16), transparent 32%),
+        linear-gradient(135deg, #030509, #0d1424 46%, #172238);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .wrap {
+      width: min(1660px, calc(100vw - 48px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.08;
+    }
+
+    .sub {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .picker {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .picker button {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, .14);
+      background: rgba(255, 255, 255, .07);
+      color: var(--text);
+      border-radius: 8px;
+      min-width: 92px;
+      height: 42px;
+      padding: 0 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .picker button.active {
+      color: #160b04;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      border-color: rgba(255, 177, 95, .85);
+      box-shadow: 0 0 0 3px rgba(255, 122, 24, .18), 0 14px 36px rgba(255, 122, 24, .22);
+    }
+
+    .mock {
+      display: none;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, .46);
+      aspect-ratio: 16 / 9;
+      min-height: 620px;
+      position: relative;
+    }
+
+    .mock.active { display: block; }
+
+    .topbar {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(5, 9, 20, .78);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 900;
+      font-size: 24px;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--orange), var(--pink));
+      box-shadow: 0 0 28px rgba(255, 122, 24, .36);
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chip {
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 7px;
+      padding: 0 12px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .055);
+      font-weight: 750;
+      font-size: 13px;
+    }
+
+    .chip.on {
+      color: #160b04;
+      background: var(--orange);
+      border-color: var(--orange-2);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 328px;
+      gap: 18px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--line-soft);
+      background:
+        radial-gradient(circle at 70% 0%, rgba(255, 122, 24, .13), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, .045), transparent);
+    }
+
+    .hero-title {
+      font-size: 30px;
+      line-height: 1.08;
+      font-weight: 900;
+      margin: 0 0 8px;
+    }
+
+    .meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .preview {
+      border-radius: 10px;
+      background:
+        linear-gradient(135deg, rgba(127, 167, 255, .24), rgba(255, 122, 24, .16)),
+        linear-gradient(145deg, #111720, #050914);
+      border: 1px solid rgba(255, 255, 255, .14);
+      min-height: 118px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview:after {
+      content: "LIVE";
+      position: absolute;
+      right: 12px;
+      bottom: 10px;
+      color: white;
+      background: var(--pink);
+      border-radius: 5px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .guide {
+      padding: 14px 20px 20px;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: 220px repeat(6, 1fr);
+      height: 38px;
+      align-items: center;
+      color: var(--dim);
+      font-size: 13px;
+      font-weight: 800;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 220px repeat(6, 1fr);
+      min-height: 58px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .channel {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      background: rgba(255, 255, 255, .045);
+      border-right: 1px solid var(--line);
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, .1);
+      border: 1px solid rgba(255, 255, 255, .1);
+      color: var(--cream);
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .channel strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 148px;
+    }
+
+    .channel span {
+      display: block;
+      color: var(--dim);
+      margin-top: 3px;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 148px;
+    }
+
+    .cell {
+      margin: 5px 3px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .055);
+      border: 1px solid rgba(255, 255, 255, .08);
+      color: var(--muted);
+      min-width: 0;
+    }
+
+    .cell strong {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.16;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cell span {
+      display: block;
+      color: var(--dim);
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .nowline {
+      position: absolute;
+      top: 260px;
+      bottom: 20px;
+      left: 52%;
+      width: 3px;
+      background: var(--pink);
+      box-shadow: 0 0 22px rgba(255, 45, 122, .72);
+      border-radius: 2px;
+    }
+
+    .focus {
+      background: linear-gradient(135deg, rgba(255, 122, 24, .34), rgba(255, 45, 122, .18));
+      color: var(--text);
+      border: 3px solid var(--orange-2);
+      box-shadow: 0 0 0 2px rgba(255, 122, 24, .18), 0 0 34px rgba(255, 122, 24, .42);
+      padding: 6px 8px;
+    }
+
+    .mock-b .shell {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      height: calc(100% - 74px);
+    }
+
+    .rail {
+      padding: 18px;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .rail-item {
+      height: 62px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      border-radius: 8px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      background: rgba(255, 255, 255, .045);
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .rail-item.active {
+      color: var(--text);
+      border-color: var(--orange-2);
+      background: rgba(255, 122, 24, .2);
+      box-shadow: inset 5px 0 0 var(--orange), 0 0 28px rgba(255, 122, 24, .22);
+    }
+
+    .cinema-main {
+      display: grid;
+      grid-template-rows: 230px 1fr;
+      min-width: 0;
+    }
+
+    .cinema-hero {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 20px;
+      padding: 22px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(255, 122, 24, .16), rgba(127, 167, 255, .08));
+    }
+
+    .cinema-hero h2 {
+      font-size: 42px;
+      line-height: 1.02;
+      margin: 10px 0;
+    }
+
+    .cinema-grid {
+      padding: 16px 18px 20px;
+    }
+
+    .cinema-grid .row,
+    .cinema-grid .timeline {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .mock-c .hero {
+      grid-template-columns: 1fr;
+      padding: 12px 20px;
+    }
+
+    .mock-c .hero-title {
+      font-size: 22px;
+    }
+
+    .mock-c .guide {
+      padding: 8px 14px 14px;
+    }
+
+    .mock-c .timeline,
+    .mock-c .row {
+      grid-template-columns: 168px repeat(7, 1fr);
+    }
+
+    .mock-c .row {
+      min-height: 44px;
+    }
+
+    .mock-c .cell {
+      border-radius: 4px;
+      margin: 2px 1px;
+      padding: 6px 7px;
+    }
+
+    .mock-c .cell strong {
+      font-size: 11px;
+    }
+
+    .mock-c .channel {
+      padding: 0 8px;
+    }
+
+    .mock-c .badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .mock-c .focus {
+      border: 2px solid var(--orange-2);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35), 0 0 20px rgba(255, 122, 24, .32);
+    }
+
+    .footnote {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="header">
+      <div>
+        <h1>Guide Direction Picker</h1>
+        <div class="sub">Pick one overall direction or call out pieces from each.</div>
+      </div>
+      <div class="picker" aria-label="Mockup options">
+        <button class="active" data-target="a">A: Glass Grid</button>
+        <button data-target="b">B: Cinema Rail</button>
+        <button data-target="c">C: Dense Pro</button>
+      </div>
+    </div>
+
+    <section id="a" class="mock mock-a active">
+      <div class="topbar">
+        <div class="brand"><div class="logo"></div>Afterglow Guide</div>
+        <div class="chips">
+          <div class="chip on">All Channels</div>
+          <div class="chip">Favorites</div>
+          <div class="chip">Sports</div>
+          <div class="chip">Movies</div>
+          <div class="chip">Options</div>
+        </div>
+      </div>
+      <div class="hero">
+        <div>
+          <h2 class="hero-title">Tonight Live with Mina Cruz</h2>
+          <div class="meta">
+            <span>234 Newsline HD</span><span>8:00 PM - 9:00 PM</span><span>Live</span><span>Recording available</span>
+          </div>
+        </div>
+        <div class="preview"></div>
+      </div>
+      <div class="guide">
+        <div class="timeline">
+          <div></div><div>7:30</div><div>8:00</div><div>8:30</div><div>9:00</div><div>9:30</div><div>10:00</div>
+        </div>
+        <div class="row">
+          <div class="channel"><div class="badge">234</div><div><strong>Newsline HD</strong><span>Tonight Live</span></div></div>
+          <div class="cell"><strong>World Brief</strong><span>7:30 - 8:00</span></div>
+          <div class="cell focus"><strong>Tonight Live with Mina Cruz</strong><span>8:00 - 9:00</span></div>
+          <div class="cell"><strong>Night Desk</strong><span>9:00 - 10:00</span></div>
+          <div class="cell"><strong>Market Close</strong><span>10:00</span></div>
+          <div class="cell"><strong>Replay</strong><span>10:30</span></div>
+          <div class="cell"><strong>Late Feed</strong><span>11:00</span></div>
+        </div>
+        <div class="row">
+          <div class="channel"><div class="badge">235</div><div><strong>ActionMax</strong><span>High Voltage</span></div></div>
+          <div class="cell"><strong>Rescue One</strong><span>7:20</span></div><div class="cell"><strong>High Voltage</strong><span>8:00</span></div><div class="cell"><strong>Final Mile</strong><span>9:10</span></div><div class="cell"><strong>After Dark</strong><span>10:00</span></div><div class="cell"><strong>Stunt Line</strong><span>10:40</span></div><div class="cell"><strong>Overdrive</strong><span>11:15</span></div>
+        </div>
+        <div class="row">
+          <div class="channel"><div class="badge">236</div><div><strong>Sports Central</strong><span>Postgame Live</span></div></div>
+          <div class="cell"><strong>Pregame</strong><span>7:00</span></div><div class="cell"><strong>Basketball</strong><span>7:30</span></div><div class="cell"><strong>Postgame Live</strong><span>9:45</span></div><div class="cell"><strong>Highlights</strong><span>10:15</span></div><div class="cell"><strong>Replay</strong><span>10:45</span></div><div class="cell"><strong>Overtime</strong><span>11:30</span></div>
+        </div>
+        <div class="row">
+          <div class="channel"><div class="badge">237</div><div><strong>Retro TV</strong><span>Arcade Hour</span></div></div>
+          <div class="cell"><strong>Classic Ads</strong><span>7:30</span></div><div class="cell"><strong>Arcade Hour</strong><span>8:00</span></div><div class="cell"><strong>Neon Nights</strong><span>9:00</span></div><div class="cell"><strong>Time Capsule</strong><span>9:45</span></div><div class="cell"><strong>Retro News</strong><span>10:30</span></div><div class="cell"><strong>Sign Off</strong><span>11:00</span></div>
+        </div>
+      </div>
+      <div class="nowline"></div>
+    </section>
+
+    <section id="b" class="mock mock-b">
+      <div class="topbar">
+        <div class="brand"><div class="logo"></div>Afterglow Guide</div>
+        <div class="chips"><div class="chip on">Now</div><div class="chip">Tonight</div><div class="chip">Tomorrow</div><div class="chip">Search</div></div>
+      </div>
+      <div class="shell">
+        <aside class="rail">
+          <div class="rail-item"><div class="badge">232</div><div><strong>Local 12</strong><span>Weather Watch</span></div></div>
+          <div class="rail-item"><div class="badge">233</div><div><strong>City Plus</strong><span>Neighborhood</span></div></div>
+          <div class="rail-item active"><div class="badge">234</div><div><strong>Newsline HD</strong><span>Tonight Live</span></div></div>
+          <div class="rail-item"><div class="badge">235</div><div><strong>ActionMax</strong><span>High Voltage</span></div></div>
+          <div class="rail-item"><div class="badge">236</div><div><strong>Sports Central</strong><span>Postgame Live</span></div></div>
+          <div class="rail-item"><div class="badge">237</div><div><strong>Retro TV</strong><span>Arcade Hour</span></div></div>
+        </aside>
+        <div class="cinema-main">
+          <div class="cinema-hero">
+            <div>
+              <div class="meta"><span>Focused now</span><span>Newsline HD</span><span>8:00 PM - 9:00 PM</span></div>
+              <h2>Tonight Live with Mina Cruz</h2>
+              <div class="meta"><span>One button opens actions</span><span>Right/left changes time</span><span>Down browses next channels</span></div>
+            </div>
+            <div class="preview"></div>
+          </div>
+          <div class="cinema-grid">
+            <div class="timeline"><div>8:00</div><div>8:30</div><div>9:00</div><div>9:30</div><div>10:00</div></div>
+            <div class="row"><div class="cell focus"><strong>Tonight Live with Mina Cruz</strong><span>8:00 - 9:00</span></div><div class="cell"><strong>Night Desk</strong><span>9:00</span></div><div class="cell"><strong>Market Close</strong><span>10:00</span></div><div class="cell"><strong>Replay</strong><span>10:30</span></div><div class="cell"><strong>Late Feed</strong><span>11:00</span></div></div>
+            <div class="row"><div class="cell"><strong>High Voltage</strong><span>8:00</span></div><div class="cell"><strong>Final Mile</strong><span>9:10</span></div><div class="cell"><strong>After Dark</strong><span>10:00</span></div><div class="cell"><strong>Stunt Line</strong><span>10:40</span></div><div class="cell"><strong>Overdrive</strong><span>11:15</span></div></div>
+            <div class="row"><div class="cell"><strong>Basketball</strong><span>7:30</span></div><div class="cell"><strong>Postgame Live</strong><span>9:45</span></div><div class="cell"><strong>Highlights</strong><span>10:15</span></div><div class="cell"><strong>Replay</strong><span>10:45</span></div><div class="cell"><strong>Overtime</strong><span>11:30</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="c" class="mock mock-c">
+      <div class="topbar">
+        <div class="brand"><div class="logo"></div>Afterglow Guide</div>
+        <div class="chips"><div class="chip on">All</div><div class="chip">Live</div><div class="chip">Catch-up</div><div class="chip">Sort</div><div class="chip">EPG</div></div>
+      </div>
+      <div class="hero">
+        <div>
+          <h2 class="hero-title">234 Newsline HD - Tonight Live with Mina Cruz</h2>
+          <div class="meta"><span>Focused: 8:00 PM - 9:00 PM</span><span>Now line and selection are intentionally louder</span></div>
+        </div>
+      </div>
+      <div class="guide">
+        <div class="timeline">
+          <div></div><div>7:30</div><div>8:00</div><div>8:30</div><div>9:00</div><div>9:30</div><div>10:00</div><div>10:30</div>
+        </div>
+        <div class="row">
+          <div class="channel"><div class="badge">234</div><div><strong>Newsline HD</strong><span>Tonight Live</span></div></div>
+          <div class="cell"><strong>World Brief</strong></div><div class="cell focus"><strong>Tonight Live</strong></div><div class="cell"><strong>Night Desk</strong></div><div class="cell"><strong>Markets</strong></div><div class="cell"><strong>Replay</strong></div><div class="cell"><strong>Late Feed</strong></div><div class="cell"><strong>Headlines</strong></div>
+        </div>
+        <div class="row"><div class="channel"><div class="badge">235</div><div><strong>ActionMax</strong><span>High Voltage</span></div></div><div class="cell"><strong>Rescue One</strong></div><div class="cell"><strong>High Voltage</strong></div><div class="cell"><strong>Final Mile</strong></div><div class="cell"><strong>After Dark</strong></div><div class="cell"><strong>Stunt Line</strong></div><div class="cell"><strong>Overdrive</strong></div><div class="cell"><strong>Breakout</strong></div></div>
+        <div class="row"><div class="channel"><div class="badge">236</div><div><strong>Sports Central</strong><span>Postgame</span></div></div><div class="cell"><strong>Pregame</strong></div><div class="cell"><strong>Basketball</strong></div><div class="cell"><strong>Postgame</strong></div><div class="cell"><strong>Highlights</strong></div><div class="cell"><strong>Replay</strong></div><div class="cell"><strong>Overtime</strong></div><div class="cell"><strong>Best Plays</strong></div></div>
+        <div class="row"><div class="channel"><div class="badge">237</div><div><strong>Retro TV</strong><span>Arcade Hour</span></div></div><div class="cell"><strong>Classic Ads</strong></div><div class="cell"><strong>Arcade Hour</strong></div><div class="cell"><strong>Neon Nights</strong></div><div class="cell"><strong>Capsule</strong></div><div class="cell"><strong>Retro News</strong></div><div class="cell"><strong>Sign Off</strong></div><div class="cell"><strong>Loop</strong></div></div>
+        <div class="row"><div class="channel"><div class="badge">238</div><div><strong>Documentary</strong><span>Deep Oceans</span></div></div><div class="cell"><strong>Wild Shores</strong></div><div class="cell"><strong>Deep Oceans</strong></div><div class="cell"><strong>Planet Work</strong></div><div class="cell"><strong>Archive</strong></div><div class="cell"><strong>Expedition</strong></div><div class="cell"><strong>Night Earth</strong></div><div class="cell"><strong>Origins</strong></div></div>
+        <div class="row"><div class="channel"><div class="badge">239</div><div><strong>Kids Mix</strong><span>Robot Club</span></div></div><div class="cell"><strong>Rocket Pals</strong></div><div class="cell"><strong>Robot Club</strong></div><div class="cell"><strong>Snack Lab</strong></div><div class="cell"><strong>Story Time</strong></div><div class="cell"><strong>Moon Camp</strong></div><div class="cell"><strong>Sleepy</strong></div><div class="cell"><strong>Loop</strong></div></div>
+      </div>
+      <div class="nowline"></div>
+    </section>
+
+    <div class="footnote">My read: A is the safest app-wide upgrade, B is the coolest if you want the guide to feel more premium, C is best for people who browse hundreds of channels fast.</div>
+  </main>
+
+  <script>
+    const buttons = document.querySelectorAll(".picker button");
+    const mockups = document.querySelectorAll(".mock");
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        buttons.forEach((b) => b.classList.remove("active"));
+        mockups.forEach((m) => m.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.target).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>

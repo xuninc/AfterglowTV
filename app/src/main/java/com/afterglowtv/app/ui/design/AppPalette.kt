@@ -771,6 +771,37 @@ data class AppPalette(
             outline = Color(0x66D0B99A),
         )
 
+        /** Golden Slate — theme built from the navy, steel, cream, sand, and copper swatch reference image. */
+        val GoldenSlate = AppPalette(
+            id = "golden_slate",
+            displayName = "Golden Slate",
+            description = "Navy slate, steel blue, soft cream, sand, and copper.",
+            surfaceDeep = Color(0xFF2E3D50),
+            surfaceBase = Color(0xFF394B61),
+            surfaceCool = Color(0xFF5D6B7A),
+            surfaceAccent = Color(0xFF8894A2),
+            accent = Color(0xFFC4762B),
+            accentLight = Color(0xFFFEEECD),
+            accentMuted = Color(0x66C4762B),
+            panelScrim = Color(0xD62E3D50),
+            osdScrim = Color(0xA62E3D50),
+            nowLine = Color(0xFFD7B791),
+            nowFill = Color(0x33C4762B),
+            live = Color(0xFFC4762B),
+            pipPreviewOutline = Color(0xFFD7B791),
+            focusFill = Color(0x40C4762B),
+            textPrimary = Color(0xFFFEEECD),
+            textSecondary = Color(0xD9E7D9C0),
+            textTertiary = Color(0x99E7D9C0),
+            textDisabled = Color(0x66E7D9C0),
+            success = Color(0xFF8894A2),
+            warning = Color(0xFFD7B791),
+            info = Color(0xFFFEEECD),
+            divider = Color(0x22FEEECD),
+            outline = Color(0x66D7B791),
+            glowIntensity = 0.35f,
+        )
+
         /** All available presets, in display order. Afterglow Dark 1-4 first
          *  in numerical order (Dark 2 is the default), then the gray
          *  variant, then Afterglow Light 1-4, then the gray light, then the
@@ -795,6 +826,7 @@ data class AppPalette(
             Synthwave,
             NeonDusk,
             MineralSlate,
+            GoldenSlate,
             CyberPunk,
             ForestMist,
             PureOnyx,

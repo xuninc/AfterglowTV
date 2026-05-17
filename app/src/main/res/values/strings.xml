@@ -610,7 +610,10 @@
 
     <string name="settings_backup_restore">Backup &amp; Restore</string>
     <string name="settings_backup_subtitle">Export or import favorites, groups, and preferences.</string>
-    <string name="settings_backup_data">Export Data</string>
+    <string name="settings_backup_data">Save Backup</string>
+    <string name="settings_backup_export_subtitle">Saves directly to Downloads/AfterglowTV without opening the Android file picker.</string>
+    <string name="settings_backup_export_prepare_failed">Could not prepare the backup file.</string>
+    <string name="settings_backup_export_saved_to">Backup saved to %1$s</string>
     <string name="settings_backup_share_data">Share Backup</string>
     <string name="settings_backup_share_subtitle">Send a backup file to a TV file manager or another app.</string>
     <string name="settings_backup_share_prepare_failed">Could not prepare the backup file.</string>

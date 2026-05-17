@@ -20,7 +20,12 @@ internal class SettingsBackupActions(
     private val importBackup: ImportBackup,
     private val uiState: MutableStateFlow<SettingsUiState>
 ) {
-    fun exportConfig(scope: CoroutineScope, uriString: String, onSuccess: (() -> Unit)? = null) {
+    fun exportConfig(
+        scope: CoroutineScope,
+        uriString: String,
+        successMessage: String? = null,
+        onSuccess: (() -> Unit)? = null
+    ) {
         scope.launch {
             uiState.update { it.copy(isSyncing = true) }
             val result = exportBackup(ExportBackupCommand(uriString))
@@ -33,7 +38,7 @@ internal class SettingsBackupActions(
                     userMessage = if (result is ExportBackupResult.Error) {
                         "Export failed: ${result.message}"
                     } else {
-                        "Configuration exported successfully"
+                        successMessage ?: "Configuration exported successfully"
                     }
                 )
             }

@@ -3,6 +3,7 @@ package com.afterglowtv.app
 import android.app.Application
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -27,6 +28,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import okio.Path.Companion.toOkioPath
 
 import androidx.work.Constraints
@@ -50,6 +53,7 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         CrashReportStore.install(this)
+        applySavedVisualPreferencesBeforeUi()
         applicationScope.launch {
             cancelColdStartMaintenanceWork()
         }
@@ -74,33 +78,49 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
         val entryPoint = startupEntryPoint()
         val preferencesRepository = entryPoint.preferencesRepository()
         TimeshiftDiskManager(applicationContext).cleanupStaleDirectories(activeSessionDir = null)
-        applySavedVisualPreferences(preferencesRepository)
         refreshCachedAppUpdateIfNeeded(preferencesRepository, entryPoint.gitHubReleaseChecker())
         enqueueMaintenanceWorkers()
     }
 
+    private fun applySavedVisualPreferencesBeforeUi() {
+        runBlocking {
+            runCatching {
+                applySavedVisualPreferences(startupEntryPoint().preferencesRepository())
+            }.onFailure { error ->
+                Log.w(TAG, "Unable to apply saved visual preferences during startup", error)
+            }
+        }
+    }
+
     private suspend fun applySavedVisualPreferences(preferencesRepository: PreferencesRepository) {
-        val storedId = preferencesRepository.themePalette.first()
-        AppColors.applyPalette(AppPalette.byId(storedId))
-
-        val shapeSetId = preferencesRepository.themeShapeSet.first()
-        com.afterglowtv.app.ui.design.AppStyles.apply(
-            com.afterglowtv.app.ui.design.AppShapeSet.byId(shapeSetId)
-        )
-        applyPerAxisStyleOverrides(preferencesRepository)
-
-        val intensity = preferencesRepository.glowIntensity.first()
-        com.afterglowtv.app.ui.design.Glows.applyIntensity(intensity)
-
-        preferencesRepository.glowFocusSpecs.first()
+        val visualPreferences = preferencesRepository.visualPreferencesSnapshot()
+        val focusSpecs = visualPreferences.glowFocusSpecs
             .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
-            ?.let { com.afterglowtv.app.ui.design.Glows.overrideFocus(it) }
-        preferencesRepository.glowLiveSpecs.first()
+        val liveSpecs = visualPreferences.glowLiveSpecs
             .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
-            ?.let { com.afterglowtv.app.ui.design.Glows.overrideLive(it) }
-        preferencesRepository.glowAmbientSpecs.first()
+        val ambientSpecs = visualPreferences.glowAmbientSpecs
             .let { com.afterglowtv.app.ui.design.GlowSerialization.deserialize(it) }
-            ?.let { com.afterglowtv.app.ui.design.Glows.overrideAmbient(it) }
+
+        withContext(Dispatchers.Main.immediate) {
+            AppColors.applyPalette(AppPalette.byId(visualPreferences.themePalette))
+            com.afterglowtv.app.ui.design.AppStyles.apply(
+                com.afterglowtv.app.ui.design.AppShapeSet.byId(visualPreferences.themeShapeSet)
+            )
+            applyPerAxisStyleOverrides(
+                styleButton = visualPreferences.styleButton,
+                styleEpgCell = visualPreferences.styleEpgCell,
+                styleEpgLiveCell = visualPreferences.styleEpgLiveCell,
+                styleTextField = visualPreferences.styleTextField,
+                styleChannelRow = visualPreferences.styleChannelRow,
+                stylePill = visualPreferences.stylePill,
+                styleFocus = visualPreferences.styleFocus,
+                styleProgress = visualPreferences.styleProgress,
+            )
+            com.afterglowtv.app.ui.design.Glows.applyIntensity(visualPreferences.glowIntensity)
+            focusSpecs?.let { com.afterglowtv.app.ui.design.Glows.overrideFocus(it) }
+            liveSpecs?.let { com.afterglowtv.app.ui.design.Glows.overrideLive(it) }
+            ambientSpecs?.let { com.afterglowtv.app.ui.design.Glows.overrideAmbient(it) }
+        }
     }
 
     private fun enqueueMaintenanceWorkers() {
@@ -154,36 +174,45 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
         super.onTerminate()
     }
 
-    private suspend fun applyPerAxisStyleOverrides(preferencesRepository: PreferencesRepository) {
-        preferencesRepository.styleButton.first()?.let { saved ->
+    private fun applyPerAxisStyleOverrides(
+        styleButton: String?,
+        styleEpgCell: String?,
+        styleEpgLiveCell: String?,
+        styleTextField: String?,
+        styleChannelRow: String?,
+        stylePill: String?,
+        styleFocus: String?,
+        styleProgress: String?,
+    ) {
+        styleButton?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.ButtonStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setButton)
         }
-        preferencesRepository.styleEpgCell.first()?.let { saved ->
+        styleEpgCell?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.EpgCellStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setEpgCell)
         }
-        preferencesRepository.styleEpgLiveCell.first()?.let { saved ->
+        styleEpgLiveCell?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.EpgLiveCellStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setEpgLiveCell)
         }
-        preferencesRepository.styleTextField.first()?.let { saved ->
+        styleTextField?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.TextFieldStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setTextField)
         }
-        preferencesRepository.styleChannelRow.first()?.let { saved ->
+        styleChannelRow?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.ChannelRowStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setChannelRow)
         }
-        preferencesRepository.stylePill.first()?.let { saved ->
+        stylePill?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.PillStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setPill)
         }
-        preferencesRepository.styleFocus.first()?.let { saved ->
+        styleFocus?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.FocusStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setFocus)
         }
-        preferencesRepository.styleProgress.first()?.let { saved ->
+        styleProgress?.let { saved ->
             runCatching { com.afterglowtv.app.ui.design.AppShapeSet.ProgressStyle.valueOf(saved) }
                 .getOrNull()?.let(com.afterglowtv.app.ui.design.AppStyles::setProgress)
         }
@@ -248,6 +277,7 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
     }
 
     companion object {
+        private const val TAG = "AfterglowTVApp"
         private const val DATA_MAINTENANCE_WORK_NAME = "DataMaintenanceWorker"
         private const val MAINTENANCE_WORK_INITIAL_DELAY_MINUTES = 15L
         private const val STARTUP_BACKGROUND_WORK_DELAY_MS = 5_000L

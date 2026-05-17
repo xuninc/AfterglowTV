@@ -43,7 +43,7 @@ internal fun LazyListScope.settingsBackupSection(
                 BackupActionCard(
                     icon = "\u2191",
                     title = stringResource(R.string.settings_backup_data),
-                    subtitle = stringResource(R.string.settings_backup_subtitle),
+                    subtitle = stringResource(R.string.settings_backup_export_subtitle),
                     accent = Primary,
                     onClick = onCreateBackup,
                     modifier = Modifier.weight(1f)
