@@ -24,7 +24,7 @@ import com.afterglowtv.app.ui.design.LocalAppSpacing
 /**
  * Tiny corner PiP preview pinned to the top-right of the EPG grid. Silently
  * plays the focused channel's stream so the user can preview without
- * leaving the guide. TiViMate v5.2.0 dimensions: ~260 x 146 dp (16:9), 6 dp
+ * leaving the guide. Afterglow TV dimensions: ~260 x 146 dp (16:9), 6 dp
  * corner radius, 2 dp accent outline.
  *
  * The ExoPlayer is recreated on URL change to avoid surface juggling on

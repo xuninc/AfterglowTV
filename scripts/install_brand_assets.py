@@ -3,8 +3,8 @@
 Install the Afterglow TV brand artwork into the Android resource tree.
 
 Inputs:
-  C:/Users/Corey/Downloads/114x114.png           — icon-only (right reference)
-  C:/Users/Corey/Downloads/512x512-afterglow.png — icon + wordmark (banner reference)
+  Set AFTERGLOW_ICON_SRC to the icon-only PNG.
+  Set AFTERGLOW_BANNER_SRC to the icon + wordmark PNG.
 
 Outputs (all under app/src/main/res/):
   mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/ic_launcher_vault.png       (square icon)
@@ -13,14 +13,15 @@ Outputs (all under app/src/main/res/):
   drawable-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/app_banner.png             (320×180 banner per density)
 """
 from __future__ import annotations
+import os
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "app" / "src" / "main" / "res"
 
-ICON_SRC = Path("C:/Users/Corey/Downloads/114x114.png")
-BANNER_SRC = Path("C:/Users/Corey/Downloads/512x512-afterglow.png")
+ICON_SRC = Path(os.environ.get("AFTERGLOW_ICON_SRC", ROOT / "docs" / "branding" / "source" / "114x114.png"))
+BANNER_SRC = Path(os.environ.get("AFTERGLOW_BANNER_SRC", ROOT / "docs" / "branding" / "source" / "512x512-afterglow.png"))
 
 DENSITIES = {
     "mdpi":     1.0,
@@ -38,15 +39,9 @@ ACCENT_PINK = (255, 122, 200)  # text accent — matches the source wordmark
 
 
 def find_font(size: int) -> ImageFont.FreeTypeFont:
-    candidates = [
-        "C:/Windows/Fonts/segoeuib.ttf",
-        "C:/Windows/Fonts/segoeui.ttf",
-        "C:/Windows/Fonts/arialbd.ttf",
-        "C:/Windows/Fonts/arial.ttf",
-    ]
-    for path in candidates:
-        if Path(path).exists():
-            return ImageFont.truetype(path, size)
+    configured = os.environ.get("AFTERGLOW_FONT")
+    if configured and Path(configured).exists():
+        return ImageFont.truetype(configured, size)
     return ImageFont.load_default()
 
 

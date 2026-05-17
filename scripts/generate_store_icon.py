@@ -6,11 +6,12 @@ a solid color, no transparency. Composes the supplied Afterglow icon onto
 a solid deep-purple background matching the icon's own body color, then
 flattens to RGB.
 
-Source: C:/Users/Corey/Downloads/512x512-afterglow.png (or 114x114.png as
-        fallback — both are scaled cleanly to 512x512).
+Source: set AFTERGLOW_STORE_ICON_SRC, or place source PNGs under
+        docs/branding/source/.
 Output: docs/branding/afterglow-firetv-icon-512.png
 """
 from pathlib import Path
+import os
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -21,8 +22,9 @@ OUT = OUT_DIR / "afterglow-firetv-icon-512.png"
 # want JUST the icon — so prefer the icon-only 114×114 source upscaled. If
 # the user has a higher-res icon-only file, drop it at the path below.
 SOURCES = [
-    Path("C:/Users/Corey/Downloads/afterglow-icon-square.png"),  # preferred
-    Path("C:/Users/Corey/Downloads/114x114.png"),                # fallback
+    Path(os.environ["AFTERGLOW_STORE_ICON_SRC"]) if os.environ.get("AFTERGLOW_STORE_ICON_SRC") else None,
+    ROOT / "docs" / "branding" / "source" / "afterglow-icon-square.png",
+    ROOT / "docs" / "branding" / "source" / "114x114.png",
 ]
 
 # Deep aubergine matching the icon's own rounded-square body color
@@ -30,7 +32,7 @@ BG = (22, 4, 39)  # #160427
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    src_path = next((p for p in SOURCES if p.exists()), None)
+    src_path = next((p for p in SOURCES if p is not None and p.exists()), None)
     if src_path is None:
         raise SystemExit(f"No source icon found. Checked: {[str(p) for p in SOURCES]}")
     print(f"Source: {src_path}")

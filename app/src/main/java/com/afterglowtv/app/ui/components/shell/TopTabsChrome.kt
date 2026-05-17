@@ -17,11 +17,11 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.app.ui.design.LocalAppSpacing
-import com.afterglowtv.app.ui.design.TivimateFocusRole
-import com.afterglowtv.app.ui.design.tivimateFocus
+import com.afterglowtv.app.ui.design.AfterglowFocusRole
+import com.afterglowtv.app.ui.design.afterglowFocus
 
 /**
- * TiViMate-style top tabs row. Alternative chrome to the existing left rail —
+ * Afterglow TV top tabs row. Alternative chrome to the existing left rail —
  * meant for the Home / Live TV / Guide / Movies / Series / Recordings /
  * Search / Settings landing screens. The player route ignores this and
  * renders full-bleed.
@@ -60,8 +60,8 @@ fun TopTabsChrome(
             val selected = tab.id == selectedId
             Row(
                 modifier = Modifier
-                    .tivimateFocus(
-                        role = TivimateFocusRole.Pill,
+                    .afterglowFocus(
+                        role = AfterglowFocusRole.Pill,
                         shape = RoundedCornerShape(999.dp),
                     )
                     .clickable { onTabClick(tab) }

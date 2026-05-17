@@ -106,15 +106,20 @@ fun AppScreenScaffold(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        AppColors.Canvas,
-                        AppColors.CanvasElevated,
-                        AppColors.Surface,
-                        AppColors.SurfaceAccent
+            .then(
+                if (AppColors.backgroundGradientsEnabled) {
+                    Modifier.background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                AppColors.Canvas,
+                                AppColors.CanvasElevated,
+                                AppColors.Surface,
+                            )
+                        )
                     )
-                )
+                } else {
+                    Modifier.background(AppColors.Canvas)
+                }
             )
             .let { if (fullBleed) it else it.padding(safeArea) }
     ) {
@@ -399,14 +404,20 @@ fun AppHeroHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(28.dp))
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            AppColors.Canvas,
-                            AppColors.SurfaceAccent,
-                            AppColors.SurfaceEmphasis
+                .then(
+                    if (AppColors.backgroundGradientsEnabled) {
+                        Modifier.background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    AppColors.Canvas,
+                                    AppColors.Surface,
+                                    AppColors.SurfaceEmphasis,
+                                )
+                            )
                         )
-                    )
+                    } else {
+                        Modifier.background(AppColors.SurfaceElevated)
+                    }
                 )
                 .padding(32.dp)
         ) {

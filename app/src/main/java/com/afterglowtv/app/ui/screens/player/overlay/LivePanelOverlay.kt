@@ -27,11 +27,11 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.app.ui.design.LocalAppSpacing
-import com.afterglowtv.app.ui.design.TivimateFocusRole
-import com.afterglowtv.app.ui.design.tivimateFocus
+import com.afterglowtv.app.ui.design.AfterglowFocusRole
+import com.afterglowtv.app.ui.design.afterglowFocus
 
 /**
- * TiViMate-style left-anchored two-column overlay panel.
+ * Afterglow TV left-anchored two-column overlay panel.
  *
  *  Categories column (320 dp)  |  Channels column (320 dp)
  *
@@ -102,7 +102,7 @@ private fun CategoryColumn(
             Row(
                 modifier = Modifier
                     .padding(vertical = 2.dp)
-                    .tivimateFocus(TivimateFocusRole.Row)
+                    .afterglowFocus(AfterglowFocusRole.Row)
                     .clickable { onSelect(cat) }
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,

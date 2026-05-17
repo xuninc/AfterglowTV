@@ -41,45 +41,55 @@ import com.afterglowtv.app.ui.design.afterglow
  */
 @Composable
 fun AfterglowBackdrop(modifier: Modifier = Modifier) {
+    val gradientsEnabled = AppColors.backgroundGradientsEnabled
     Box(modifier = modifier) {
         Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    listOf(
-                        AppColors.TiviSurfaceDeep,
-                        AppColors.TiviSurfaceBase,
-                        AppColors.TiviSurfaceCool,
-                        AppColors.TiviSurfaceAccent,
-                    ),
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (gradientsEnabled) {
+                        Modifier.background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    AppColors.TiviSurfaceDeep,
+                                    AppColors.TiviSurfaceBase,
+                                    AppColors.TiviSurfaceCool,
+                                ),
+                            )
+                        )
+                    } else {
+                        Modifier.background(AppColors.TiviSurfaceDeep)
+                    }
+                )
+        )
+        if (gradientsEnabled) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            AppColors.TiviAccentLight.copy(alpha = AppColors.palette.glowAlpha(0.18f)),
+                            AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.10f)),
+                            AppColors.TiviAccent.copy(alpha = 0f),
+                        ),
+                        center = Offset(2400f, -200f),
+                        radius = 1400f,
+                    )
                 )
             )
-        )
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.TiviAccentLight.copy(alpha = AppColors.palette.glowAlpha(0.22f)),
-                        AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.16f)),
-                        AppColors.TiviAccent.copy(alpha = 0f),
-                    ),
-                    center = Offset(2400f, -200f),
-                    radius = 1400f,
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            AppColors.EpgNowLine.copy(alpha = AppColors.palette.glowAlpha(0.14f)),
+                            AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.06f)),
+                            AppColors.EpgNowLine.copy(alpha = 0f),
+                        ),
+                        center = Offset(300f, 1900f),
+                        radius = 1100f,
+                    )
                 )
             )
-        )
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.EpgNowLine.copy(alpha = AppColors.palette.glowAlpha(0.18f)),
-                        AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.10f)),
-                        AppColors.EpgNowLine.copy(alpha = 0f),
-                    ),
-                    center = Offset(300f, 1900f),
-                    radius = 1100f,
-                )
-            )
-        )
+        }
     }
 }
 

@@ -69,6 +69,7 @@ data class VisualPreferencesSnapshot(
     val stylePill: String?,
     val styleFocus: String?,
     val styleProgress: String?,
+    val backgroundGradientsEnabled: Boolean,
     val glowIntensity: Float,
     val glowFocusSpecs: String,
     val glowLiveSpecs: String,
@@ -116,6 +117,7 @@ class PreferencesRepository @Inject constructor(
         val STYLE_PILL = stringPreferencesKey("style_pill")
         val STYLE_FOCUS = stringPreferencesKey("style_focus")
         val STYLE_PROGRESS = stringPreferencesKey("style_progress")
+        val BACKGROUND_GRADIENTS_ENABLED = booleanPreferencesKey("background_gradients_enabled")
         val GLOW_INTENSITY = stringPreferencesKey("glow_intensity")
         val GLOW_FOCUS_SPECS = stringPreferencesKey("glow_focus_specs")
         val GLOW_LIVE_SPECS = stringPreferencesKey("glow_live_specs")
@@ -180,6 +182,9 @@ class PreferencesRepository @Inject constructor(
         val XTREAM_BASE64_TEXT_COMPATIBILITY = booleanPreferencesKey("xtream_base64_text_compatibility")
         val XTREAM_TEXT_IMPORT_GENERATION = longPreferencesKey("xtream_text_import_generation")
         val ZAP_AUTO_REVERT = booleanPreferencesKey("zap_auto_revert")
+        val REMOTE_DPAD_CHANNEL_ZAPPING = booleanPreferencesKey("remote_dpad_channel_zapping")
+        val REMOTE_DPAD_INVERT_CHANNEL_ZAPPING = booleanPreferencesKey("remote_dpad_invert_channel_zapping")
+        val REMOTE_SHOW_INFO_ON_ZAP = booleanPreferencesKey("remote_show_info_on_zap")
         val PREVENT_STANDBY_DURING_PLAYBACK = booleanPreferencesKey("prevent_standby_during_playback")
         val AUTO_PLAY_NEXT_EPISODE = booleanPreferencesKey("auto_play_next_episode")
         val AUTO_CHECK_APP_UPDATES = booleanPreferencesKey("auto_check_app_updates")
@@ -415,7 +420,7 @@ class PreferencesRepository @Inject constructor(
 
     val parentalControlLevel: Flow<Int> = context.dataStore.data
         .map { preferences ->
-            val stored = preferences[PreferencesKeys.PARENTAL_CONTROL_LEVEL] ?: 2 // Default to 2 = PRIVATE
+            val stored = preferences[PreferencesKeys.PARENTAL_CONTROL_LEVEL] ?: return@map 0
             // Migration: users who had the old HIDDEN level (stored as 2) are promoted to the new
             // HIDDEN level (3). The v2-migrated flag prevents re-mapping after the user explicitly
             // sets level 2 (PRIVATE) in the new scheme.
@@ -594,6 +599,18 @@ class PreferencesRepository @Inject constructor(
         preferences[PreferencesKeys.ZAP_AUTO_REVERT] ?: true
     }
 
+    val remoteDpadChannelZapping: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.REMOTE_DPAD_CHANNEL_ZAPPING] ?: true
+    }
+
+    val remoteDpadInvertChannelZapping: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.REMOTE_DPAD_INVERT_CHANNEL_ZAPPING] ?: false
+    }
+
+    val remoteShowInfoOnZap: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.REMOTE_SHOW_INFO_ON_ZAP] ?: false
+    }
+
     val recordingWifiOnly: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[PreferencesKeys.RECORDING_WIFI_ONLY] ?: false
     }
@@ -609,6 +626,24 @@ class PreferencesRepository @Inject constructor(
     suspend fun setZapAutoRevert(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.ZAP_AUTO_REVERT] = enabled
+        }
+    }
+
+    suspend fun setRemoteDpadChannelZapping(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.REMOTE_DPAD_CHANNEL_ZAPPING] = enabled
+        }
+    }
+
+    suspend fun setRemoteDpadInvertChannelZapping(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.REMOTE_DPAD_INVERT_CHANNEL_ZAPPING] = enabled
+        }
+    }
+
+    suspend fun setRemoteShowInfoOnZap(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.REMOTE_SHOW_INFO_ON_ZAP] = enabled
         }
     }
 
@@ -1137,6 +1172,16 @@ class PreferencesRepository @Inject constructor(
         }
     }
 
+    val backgroundGradientsEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.BACKGROUND_GRADIENTS_ENABLED] ?: false
+    }
+
+    suspend fun setBackgroundGradientsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BACKGROUND_GRADIENTS_ENABLED] = enabled
+        }
+    }
+
     /** AfterglowTV component shape-set id (see `AppShapeSet.ALL`). Defaults to "halo". */
     val themeShapeSet: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[PreferencesKeys.THEME_SHAPE_SET] ?: "halo"
@@ -1171,6 +1216,7 @@ class PreferencesRepository @Inject constructor(
             stylePill = preferences[PreferencesKeys.STYLE_PILL],
             styleFocus = preferences[PreferencesKeys.STYLE_FOCUS],
             styleProgress = preferences[PreferencesKeys.STYLE_PROGRESS],
+            backgroundGradientsEnabled = preferences[PreferencesKeys.BACKGROUND_GRADIENTS_ENABLED] ?: false,
             glowIntensity = preferences[PreferencesKeys.GLOW_INTENSITY]?.toFloatOrNull() ?: 1f,
             glowFocusSpecs = preferences[PreferencesKeys.GLOW_FOCUS_SPECS] ?: "",
             glowLiveSpecs = preferences[PreferencesKeys.GLOW_LIVE_SPECS] ?: "",

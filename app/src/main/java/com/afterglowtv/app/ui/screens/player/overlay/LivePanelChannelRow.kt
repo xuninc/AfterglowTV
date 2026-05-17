@@ -25,13 +25,13 @@ import androidx.tv.material3.Text
 import com.afterglowtv.app.ui.components.ChannelLogoBadge
 import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.app.ui.design.LocalAppSpacing
-import com.afterglowtv.app.ui.design.TivimateFocusRole
-import com.afterglowtv.app.ui.design.tivimateFocus
+import com.afterglowtv.app.ui.design.AfterglowFocusRole
+import com.afterglowtv.app.ui.design.afterglowFocus
 
 /**
- * TiViMate-style channel row: # | logo | name (+ now title) (+ progress).
+ * Afterglow TV channel row: # | logo | name (+ now title) (+ progress).
  *
- * Dimensions match decompiled TiViMate v5.2.0:
+ * Compact TV dimensions:
  *  - row height: 56 dp
  *  - logo cell: 40 dp square, 6 dp radius
  *  - channel-number column: 42 dp
@@ -58,7 +58,7 @@ fun LivePanelChannelRow(
         modifier = modifier
             .fillMaxWidth()
             .height(spacing.livePanelRowHeight)
-            .tivimateFocus(role = TivimateFocusRole.Row)
+            .afterglowFocus(role = AfterglowFocusRole.Row)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

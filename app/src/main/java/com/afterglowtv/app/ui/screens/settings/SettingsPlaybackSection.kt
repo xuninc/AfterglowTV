@@ -196,6 +196,32 @@ internal fun LazyListScope.settingsPlaybackSection(
                 Switch(checked = uiState.zapAutoRevert, onCheckedChange = { viewModel.setZapAutoRevert(it) })
             }
         }
+        HorizontalDivider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(vertical = 4.dp))
+        Text(
+            text = "Remote control",
+            style = MaterialTheme.typography.titleSmall,
+            color = Primary,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+        )
+        SwitchSettingsRow(
+            label = "D-pad channel zapping",
+            value = "Use Up and Down to change live channels",
+            checked = uiState.remoteDpadChannelZapping,
+            onCheckedChange = viewModel::setRemoteDpadChannelZapping
+        )
+        SwitchSettingsRow(
+            label = "Invert D-pad zapping",
+            value = "Swap the Up and Down channel direction",
+            checked = uiState.remoteDpadInvertChannelZapping,
+            enabled = uiState.remoteDpadChannelZapping,
+            onCheckedChange = viewModel::setRemoteDpadInvertChannelZapping
+        )
+        SwitchSettingsRow(
+            label = "Full info on channel change",
+            value = "Show the full channel panel instead of the compact zap banner",
+            checked = uiState.remoteShowInfoOnZap,
+            onCheckedChange = viewModel::setRemoteShowInfoOnZap
+        )
         ClickableSettingsRow(
             label = stringResource(R.string.settings_decoder_mode),
             value = decoderModeLabel,

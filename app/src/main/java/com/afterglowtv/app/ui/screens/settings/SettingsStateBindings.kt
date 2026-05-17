@@ -81,6 +81,9 @@ internal fun observeSettingsPreferenceSnapshot(
             guideDefaultCategoryOptions = emptyList(),
             preventStandbyDuringPlayback = true,
             zapAutoRevert = true,
+            remoteDpadChannelZapping = true,
+            remoteDpadInvertChannelZapping = false,
+            remoteShowInfoOnZap = false,
             autoPlayNextEpisode = true,
             autoCheckAppUpdates = true,
             autoDownloadAppUpdates = false,
@@ -186,6 +189,12 @@ internal fun observeSettingsPreferenceSnapshot(
         snapshot.copy(preventStandbyDuringPlayback = preventStandby)
     }.combine(preferencesRepository.zapAutoRevert) { snapshot, zapAutoRevert ->
         snapshot.copy(zapAutoRevert = zapAutoRevert)
+    }.combine(preferencesRepository.remoteDpadChannelZapping) { snapshot, enabled ->
+        snapshot.copy(remoteDpadChannelZapping = enabled)
+    }.combine(preferencesRepository.remoteDpadInvertChannelZapping) { snapshot, enabled ->
+        snapshot.copy(remoteDpadInvertChannelZapping = enabled)
+    }.combine(preferencesRepository.remoteShowInfoOnZap) { snapshot, enabled ->
+        snapshot.copy(remoteShowInfoOnZap = enabled)
     }.combine(preferencesRepository.autoPlayNextEpisode) { snapshot, autoPlayNextEpisode ->
         snapshot.copy(autoPlayNextEpisode = autoPlayNextEpisode)
     }.combine(preferencesRepository.autoCheckAppUpdates) { snapshot, autoCheckAppUpdates ->

@@ -33,6 +33,15 @@ class AppPaletteTest {
         }
     }
 
+    @Test
+    fun `violet spectrum stays violet instead of becoming a blue theme`() {
+        val palette = AppPalette.UltravioletSpectrum
+
+        assertThat(palette.description.lowercase()).doesNotContain("blue")
+        assertThat(palette.accent).isEqualTo(Color(0xFF7D64DC))
+        assertThat(palette.live).isEqualTo(Color(0xFF5C36E2))
+    }
+
     private fun contrastRatio(a: Color, b: Color): Float {
         val lighter = maxOf(a.luminance(), b.luminance())
         val darker = minOf(a.luminance(), b.luminance())

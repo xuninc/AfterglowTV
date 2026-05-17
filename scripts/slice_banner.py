@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Slice the user-provided 1360x768 Afterglow TV banner into Android density variants.
 
-Source: C:/Users/Corey/Downloads/app_banner.png
+Source: set AFTERGLOW_BANNER_SRC or place app_banner.png under docs/branding/source/.
 Targets: app/src/main/res/{drawable,drawable-mdpi,...drawable-xxxhdpi}/app_banner.png
 
 Android TV's <application android:banner=...> resource picks the right
@@ -9,11 +9,12 @@ density at runtime from the bucket. We supply LANCZOS-downscaled copies
 of the real banner art instead of programmatically composing.
 """
 from pathlib import Path
+import os
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "app" / "src" / "main" / "res"
-SRC = Path("C:/Users/Corey/Downloads/app_banner.png")
+SRC = Path(os.environ.get("AFTERGLOW_BANNER_SRC", ROOT / "docs" / "branding" / "source" / "app_banner.png"))
 
 # (relative dir, target dimensions)
 TARGETS = [

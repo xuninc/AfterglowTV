@@ -324,6 +324,9 @@ class PlayerViewModel @Inject constructor(
     internal var zapBufferWatchdogJob: Job? = null
     internal var autoPlayCountdownJob: Job? = null
     internal var zapAutoRevertEnabled: Boolean = true
+    internal var remoteDpadChannelZappingEnabled: Boolean = true
+    internal var remoteDpadInvertChannelZapping: Boolean = false
+    internal var remoteShowInfoOnZap: Boolean = false
     internal var autoPlayNextEpisodeEnabled: Boolean = true
     internal var isAppInForeground: Boolean = true
     internal var shouldResumeAfterForeground: Boolean = false
@@ -552,6 +555,15 @@ class PlayerViewModel @Inject constructor(
         }
         viewModelScope.launch {
             preferencesRepository.zapAutoRevert.collect { zapAutoRevertEnabled = it }
+        }
+        viewModelScope.launch {
+            preferencesRepository.remoteDpadChannelZapping.collect { remoteDpadChannelZappingEnabled = it }
+        }
+        viewModelScope.launch {
+            preferencesRepository.remoteDpadInvertChannelZapping.collect { remoteDpadInvertChannelZapping = it }
+        }
+        viewModelScope.launch {
+            preferencesRepository.remoteShowInfoOnZap.collect { remoteShowInfoOnZap = it }
         }
         viewModelScope.launch {
             preferencesRepository.autoPlayNextEpisode.collect { autoPlayNextEpisodeEnabled = it }

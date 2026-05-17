@@ -4,7 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,19 +20,26 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -41,8 +49,10 @@ import com.afterglowtv.app.R
 import com.afterglowtv.app.ui.components.shell.AfterglowBackdrop
 import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.app.ui.design.AppPalette
+import com.afterglowtv.app.ui.design.FocusSpec
 import com.afterglowtv.app.ui.design.GlowSpec
 import com.afterglowtv.app.ui.design.afterglow
+import com.afterglowtv.app.ui.interaction.TvClickableSurface
 import com.afterglowtv.data.preferences.PreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -75,6 +85,15 @@ fun ThemePickerScreen(
 ) {
     val activeId by viewModel.activePaletteId.collectAsState()
     val palettes = AppPalette.ALL
+    val initialIndex = palettes.indexOfFirst { it.id == activeId }.coerceAtLeast(0)
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+
+    LaunchedEffect(activeId, palettes) {
+        val index = palettes.indexOfFirst { it.id == activeId }
+        if (index >= 0) {
+            listState.animateScrollToItem(index)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AfterglowBackdrop(modifier = Modifier.fillMaxSize())
@@ -124,6 +143,7 @@ fun ThemePickerScreen(
             }
 
             LazyColumn(
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 contentPadding = PaddingValues(bottom = 32.dp),
             ) {
@@ -146,77 +166,118 @@ private fun PaletteCard(
     onSelect: () -> Unit,
 ) {
     val shape = RoundedCornerShape(10.dp)
-    Row(
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val focusGlow = when {
+        isFocused -> listOf(
+            GlowSpec(AppColors.Focus, 18.dp, 0.90f),
+            GlowSpec(palette.accent, 36.dp, 0.45f),
+        )
+        isSelected -> listOf(
+            GlowSpec(palette.accent, 16.dp, 0.70f),
+            GlowSpec(palette.accent, 32.dp, 0.35f),
+        )
+        else -> emptyList()
+    }
+
+    TvClickableSurface(
+        onClick = onSelect,
+        interactionSource = interactionSource,
         modifier = Modifier
             .fillMaxWidth()
-            .let { base ->
-                if (isSelected) base.afterglow(
-                    specs = listOf(
-                        GlowSpec(palette.accent, 16.dp, 0.7f),
-                        GlowSpec(palette.accent, 32.dp, 0.35f),
-                    ),
-                    shape = shape,
-                ) else base
-            }
-            .clip(shape)
-            .background(palette.surfaceBase)
-            .border(
-                BorderStroke(
+            .then(
+                if (focusGlow.isNotEmpty()) {
+                    Modifier.afterglow(focusGlow, shape)
+                } else {
+                    Modifier
+                }
+            ),
+        shape = ClickableSurfaceDefaults.shape(shape),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.Transparent,
+            contentColor = palette.textPrimary,
+            focusedContainerColor = Color.Transparent,
+            focusedContentColor = palette.textPrimary,
+            pressedContainerColor = Color.Transparent,
+            pressedContentColor = palette.textPrimary,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(
                     width = if (isSelected) 2.dp else 1.dp,
-                    color = if (isSelected) palette.accent else palette.surfaceAccent,
+                    color = if (isSelected) palette.accent else palette.outline.copy(alpha = 0.85f),
                 ),
-                shape,
-            )
-            .clickable { onSelect() }
-            .padding(20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                shape = shape,
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(FocusSpec.BorderWidth + 1.dp, AppColors.Focus),
+                shape = shape,
+            ),
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.012f),
     ) {
-        // Larger swatch preview — feels more deliberate
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Swatch(palette.surfaceDeep, size = 40.dp)
-            Swatch(palette.surfaceCool, size = 40.dp)
-            Swatch(palette.accent, size = 52.dp, isFeatured = true)
-            Swatch(palette.accentLight, size = 40.dp)
-            Swatch(palette.nowLine, size = 40.dp)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(Brush.horizontalGradient(themeSelectionGradient(palette))),
+        )
+        if (isFocused) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(AppColors.FocusFill.copy(alpha = 0.36f)),
+            )
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = palette.displayName,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = palette.textPrimary,
-                )
-                if (isSelected) {
-                    Spacer(Modifier.width(12.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(palette.accent)
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                    ) {
-                        Text(
-                            text = "ACTIVE",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = TextUnit(1f, TextUnitType.Sp),
-                            ),
-                            color = palette.surfaceDeep,
-                        )
-                    }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                themePreviewSwatches(palette).forEachIndexed { index, color ->
+                    Swatch(color, size = if (index == 2) 52.dp else 40.dp, isFeatured = index == 2)
                 }
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = palette.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = palette.textSecondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = palette.displayName,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = palette.textPrimary,
+                    )
+                    if (isSelected) {
+                        Spacer(Modifier.width(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(palette.accent)
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = "ACTIVE",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = TextUnit(1f, TextUnitType.Sp),
+                                ),
+                                color = palette.surfaceDeep,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = palette.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

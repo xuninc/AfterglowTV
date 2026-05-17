@@ -199,7 +199,7 @@
   .sunset-aurora    { --surface-deep:#160A12; --surface-base:#22121A; --surface-cool:#301B26; --surface-accent:#402533; --accent:#FF8A4C; --accent-light:#FFC799; --accent-muted:#66FF8A4C; --now-line:#FFC83D; --now-fill:#33FF8A4C; --pip-outline:#FF8A4C; --focus-fill:#33FF8A4C; --text-primary:#FFF7ED; --text-secondary:#CCFFE8D6; --text-tertiary:#99FFE8D6; }
   .forest-mist      { --surface-deep:#0A1310; --surface-base:#101F1A; --surface-cool:#182B25; --surface-accent:#223830; --accent:#8FCFA1; --accent-light:#C2E7CC; --accent-muted:#668FCFA1; --now-line:#FFD166; --now-fill:#338FCFA1; --pip-outline:#8FCFA1; --focus-fill:#338FCFA1; --text-primary:#F0FAF4; --text-secondary:#CCE3F0E7; --text-tertiary:#99E3F0E7; }
   .pure-onyx        { --surface-deep:#050505; --surface-base:#0F0F0F; --surface-cool:#1A1A1A; --surface-accent:#252525; --accent:#E8E8E8; --accent-light:#FFFFFF; --accent-muted:#66E8E8E8; --now-line:#E5484D; --now-fill:#33FFFFFF; --pip-outline:#E8E8E8; --focus-fill:#33FFFFFF; --text-primary:#FFFFFF; --text-secondary:#CCFFFFFF; --text-tertiary:#99FFFFFF; }
-  .tivimate-classic { --surface-deep:#060606; --surface-base:#131313; --surface-cool:#1C232C; --surface-accent:#2C333C; --accent:#2196F3; --accent-light:#90CAF9; --accent-muted:#662196F3; --now-line:#F44336; --now-fill:#602196F3; --pip-outline:#2C333C; --focus-fill:#402196F3; --text-primary:#FFFFFF; --text-secondary:#B3EEEEEE; --text-tertiary:#80EEEEEE; }
+  .classic-blue { --surface-deep:#060606; --surface-base:#131313; --surface-cool:#1C232C; --surface-accent:#2C333C; --accent:#2196F3; --accent-light:#90CAF9; --accent-muted:#662196F3; --now-line:#F44336; --now-fill:#602196F3; --pip-outline:#2C333C; --focus-fill:#402196F3; --text-primary:#FFFFFF; --text-secondary:#B3EEEEEE; --text-tertiary:#80EEEEEE; }
 
   .theme-card { color: var(--text-primary); }
   .theme-card .screen { background: var(--surface-deep); }
@@ -235,7 +235,7 @@
   <button onclick="setView('sunset-aurora')">Sunset Aurora</button>
   <button onclick="setView('forest-mist')">Forest Mist</button>
   <button onclick="setView('pure-onyx')">Pure Onyx</button>
-  <button onclick="setView('tivimate-classic')">TiViMate Classic</button>
+  <button onclick="setView('classic-blue')">Classic Blue</button>
 </div>
 
 <div class="theme-grid" id="grid">
@@ -251,7 +251,7 @@ const PALETTES = [
   { id: 'sunset-aurora',    name: 'Sunset Aurora',     desc: 'Warm maroon + amber-orange + gold now-line' },
   { id: 'forest-mist',      name: 'Forest Mist',       desc: 'Teal-black + sage-green + amber now-line' },
   { id: 'pure-onyx',        name: 'Pure Onyx',         desc: 'Mono on near-black; minimal & content-first' },
-  { id: 'tivimate-classic', name: 'TiViMate Classic',  desc: 'Decompiled v5.2.0 reference palette' },
+  { id: 'classic-blue', name: 'Classic Blue',  desc: 'Classic blue-black IPTV palette' },
 ];
 
 function cardHtml(p) {

@@ -103,6 +103,7 @@ class AfterglowTVApp : Application(), SingletonImageLoader.Factory {
 
         withContext(Dispatchers.Main.immediate) {
             AppColors.applyPalette(AppPalette.byId(visualPreferences.themePalette))
+            AppColors.applyBackgroundGradientsEnabled(visualPreferences.backgroundGradientsEnabled)
             com.afterglowtv.app.ui.design.AppStyles.apply(
                 com.afterglowtv.app.ui.design.AppShapeSet.byId(visualPreferences.themeShapeSet)
             )

@@ -18,11 +18,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 
-enum class TivimateFocusRole { Row, Card, Pill }
+enum class AfterglowFocusRole { Row, Card, Pill }
 
 /**
- * TiViMate-style focus highlight in one place. Matches the decompiled v5.2.0
- * visual convention: a 4 dp solid accent border at 4 dp corner radius,
+ * Afterglow TV focus highlight in one place: a solid accent border at 4 dp corner radius,
  * filled with a translucent accent over the dark surface. 150 ms crossfade.
  *
  *  - Row:  flat (no scale), full border + fill.
@@ -32,8 +31,8 @@ enum class TivimateFocusRole { Row, Card, Pill }
  * Caller owns the size/shape of its container. Apply this *before* any
  * `clip` / `background` modifiers — order matters in Compose.
  */
-fun Modifier.tivimateFocus(
-    role: TivimateFocusRole,
+fun Modifier.afterglowFocus(
+    role: AfterglowFocusRole,
     shape: Shape = RoundedCornerShape(FocusSpec.CornerRadius),
     enabled: Boolean = true,
 ): Modifier = composed {
@@ -42,23 +41,23 @@ fun Modifier.tivimateFocus(
     val focused by interaction.collectIsFocusedAsState()
     val targetScale = when {
         !focused -> 1f
-        role == TivimateFocusRole.Card -> FocusSpec.CardFocusedScale
+        role == AfterglowFocusRole.Card -> FocusSpec.CardFocusedScale
         else -> FocusSpec.RowFocusedScale
     }
     val scale by animateFloatAsState(
         targetValue = targetScale,
         animationSpec = AppMotion.FocusFade,
-        label = "tivimate-focus-scale",
+        label = "afterglow-focus-scale",
     )
     val fillColor by animateColorAsState(
         targetValue = if (focused) AppColors.FocusFill else Color.Transparent,
         animationSpec = tween(150, easing = FastOutSlowInEasing),
-        label = "tivimate-focus-fill",
+        label = "afterglow-focus-fill",
     )
     val borderColor by animateColorAsState(
         targetValue = if (focused) AppColors.Focus else Color.Transparent,
         animationSpec = tween(150, easing = FastOutSlowInEasing),
-        label = "tivimate-focus-border",
+        label = "afterglow-focus-border",
     )
 
     val style = AppStyles.value.focus

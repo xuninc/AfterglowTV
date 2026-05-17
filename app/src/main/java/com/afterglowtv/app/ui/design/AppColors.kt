@@ -19,9 +19,17 @@ object AppColors {
     var palette: AppPalette by mutableStateOf(AppPalette.AfterglowSunset)
         private set
 
+    /** Whether large app backdrops should use blended gradients instead of solid surfaces. */
+    var backgroundGradientsEnabled: Boolean by mutableStateOf(false)
+        private set
+
     /** Swap the active palette. Triggers a Compose recomposition. */
     fun applyPalette(next: AppPalette) {
         palette = next
+    }
+
+    fun applyBackgroundGradientsEnabled(enabled: Boolean) {
+        backgroundGradientsEnabled = enabled
     }
 
     // --- AfterglowTV identity palette accessors (delegate to active palette) --

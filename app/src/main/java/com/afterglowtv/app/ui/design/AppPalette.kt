@@ -217,11 +217,11 @@ data class AppPalette(
             glowIntensity = 0.35f,
         )
 
-        /** Reference: TiViMate's actual decompiled v5.2.0 palette. Homage option. */
-        val TiviMateClassic = AppPalette(
-            id = "tivimate_classic",
-            displayName = "TiViMate Classic",
-            description = "Decompiled-from-source TiViMate v5.2.0 palette. For users who liked the original.",
+        /** Classic blue-black IPTV palette. */
+        val ClassicBlue = AppPalette(
+            id = "classic_blue",
+            displayName = "Classic Blue",
+            description = "Blue-black classic IPTV chrome with crisp red live markers and restrained glow.",
             surfaceDeep = Color(0xFF060606),
             surfaceBase = Color(0xFF131313),
             surfaceCool = Color(0xFF1C232C),
@@ -654,30 +654,30 @@ data class AppPalette(
         val UltravioletSpectrum = AppPalette(
             id = "ultraviolet_spectrum",
             displayName = "Afterglow Violet Spectrum",
-            description = "Afterglow six-swatch violet spectrum: lavender, electric violet, royal blue, and deep night.",
+            description = "Afterglow six-swatch violet spectrum: lavender, electric violet, royal indigo, and deep night.",
             surfaceDeep = Color(0xFF07042F),
-            surfaceBase = Color(0xFF1808A9),
-            surfaceCool = Color(0xFF431DCD),
-            surfaceAccent = Color(0xFF5C36E2),
-            accent = Color(0xFFC4B6EE),
+            surfaceBase = Color(0xFF11085B),
+            surfaceCool = Color(0xFF1A0E78),
+            surfaceAccent = Color(0xFF26129A),
+            accent = Color(0xFF7D64DC),
             accentLight = Color(0xFFF1ECFF),
-            accentMuted = Color(0x66C4B6EE),
+            accentMuted = Color(0x667D64DC),
             panelScrim = Color(0xD607042F),
             osdScrim = Color(0xA607042F),
-            nowLine = Color(0xFF7D64DC),
-            nowFill = Color(0x335C36E2),
-            live = Color(0xFFC4B6EE),
-            pipPreviewOutline = Color(0xFFF1ECFF),
-            focusFill = Color(0x405C36E2),
+            nowLine = Color(0xFFC4B6EE),
+            nowFill = Color(0x337D64DC),
+            live = Color(0xFF5C36E2),
+            pipPreviewOutline = Color(0xFF7D64DC),
+            focusFill = Color(0x407D64DC),
             textPrimary = Color(0xFFF8F5FF),
             textSecondary = Color(0xD9DCD4FF),
             textTertiary = Color(0x99DCD4FF),
             textDisabled = Color(0x66DCD4FF),
-            success = Color(0xFF7D64DC),
+            success = Color(0xFFC4B6EE),
             warning = Color(0xFFC4B6EE),
             info = Color(0xFFF1ECFF),
             divider = Color(0x22DCD4FF),
-            outline = Color(0x66C4B6EE),
+            outline = Color(0x667D64DC),
         )
 
         /** Mineral Slate — theme built from the neutral slate/brown swatch reference image. */
@@ -830,7 +830,7 @@ data class AppPalette(
             CyberPunk,
             ForestMist,
             PureOnyx,
-            TiviMateClassic,
+            ClassicBlue,
         )
 
         fun byId(id: String?): AppPalette = ALL.firstOrNull { it.id == id } ?: AfterglowSunset

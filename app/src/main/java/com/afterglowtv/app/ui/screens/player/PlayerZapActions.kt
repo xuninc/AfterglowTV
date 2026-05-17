@@ -28,6 +28,19 @@ internal fun isLinearLiveChannelZapAllowed(
     hasChannels: Boolean
 ): Boolean = currentContentType == ContentType.LIVE && !isCatchUpPlayback && hasChannels
 
+internal enum class RemoteDpadVerticalDirection {
+    UP,
+    DOWN
+}
+
+internal fun remoteDpadZapDelta(
+    direction: RemoteDpadVerticalDirection,
+    inverted: Boolean
+): Int = when (direction) {
+    RemoteDpadVerticalDirection.UP -> if (inverted) -1 else 1
+    RemoteDpadVerticalDirection.DOWN -> if (inverted) 1 else -1
+}
+
 internal data class LivePlaybackRecordCandidate(
     val playbackKey: Pair<Long, Long>,
     val history: PlaybackHistory
@@ -86,19 +99,29 @@ internal suspend fun <T> withScopedScrubbingMode(
 }
 
 fun PlayerViewModel.playNext() {
-    clearNumericChannelInput()
-    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return
-    val nextIndex = wrappedChannelIndex(1)
-    if (nextIndex == -1) return
-    changeChannel(nextIndex)
+    playChannelOffset(1)
 }
 
 fun PlayerViewModel.playPrevious() {
+    playChannelOffset(-1)
+}
+
+internal fun PlayerViewModel.playRemoteDpadChannel(direction: RemoteDpadVerticalDirection): Boolean {
+    if (!remoteDpadChannelZappingEnabled) return false
+    return playChannelOffset(remoteDpadZapDelta(direction, remoteDpadInvertChannelZapping))
+}
+
+internal fun PlayerViewModel.playDedicatedChannelButton(direction: RemoteDpadVerticalDirection): Boolean {
+    return playChannelOffset(remoteDpadZapDelta(direction, inverted = false))
+}
+
+internal fun PlayerViewModel.playChannelOffset(offset: Int): Boolean {
     clearNumericChannelInput()
-    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return
-    val prevIndex = wrappedChannelIndex(-1)
-    if (prevIndex == -1) return
-    changeChannel(prevIndex)
+    if (!isLinearLiveChannelZapAllowed(currentContentType, isCatchUpPlayback(), channelList.isNotEmpty())) return false
+    val nextIndex = wrappedChannelIndex(offset)
+    if (nextIndex == -1) return false
+    changeChannel(nextIndex)
+    return true
 }
 
 fun PlayerViewModel.zapToChannel(channelId: Long) {
@@ -233,9 +256,18 @@ internal fun PlayerViewModel.changeChannel(index: Int, isAutoFallback: Boolean =
         internalChannelId = channel.id
     )
 
-    showZapOverlayFlow.value = false
     showControlsFlow.value = false
-    openChannelInfoOverlay()
+    if (remoteShowInfoOnZap) {
+        showZapOverlayFlow.value = false
+        openChannelInfoOverlay()
+    } else {
+        showChannelInfoOverlayFlow.value = false
+        showChannelListOverlayFlow.value = false
+        showCategoryListOverlayFlow.value = false
+        showEpgOverlayFlow.value = false
+        showZapOverlayFlow.value = true
+        hideZapOverlayAfterDelay()
+    }
 
     triedAlternativeStreams.clear()
     triedAlternativeStreams.add(channel.streamUrl)

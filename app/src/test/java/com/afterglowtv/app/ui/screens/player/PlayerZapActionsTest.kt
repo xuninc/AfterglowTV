@@ -67,6 +67,22 @@ class PlayerZapActionsTest {
     }
 
     @Test
+    fun `remote dpad up advances by default`() {
+        assertThat(remoteDpadZapDelta(RemoteDpadVerticalDirection.UP, inverted = false)).isEqualTo(1)
+    }
+
+    @Test
+    fun `remote dpad down goes backward by default`() {
+        assertThat(remoteDpadZapDelta(RemoteDpadVerticalDirection.DOWN, inverted = false)).isEqualTo(-1)
+    }
+
+    @Test
+    fun `remote dpad zapping can be inverted`() {
+        assertThat(remoteDpadZapDelta(RemoteDpadVerticalDirection.UP, inverted = true)).isEqualTo(-1)
+        assertThat(remoteDpadZapDelta(RemoteDpadVerticalDirection.DOWN, inverted = true)).isEqualTo(1)
+    }
+
+    @Test
     fun `withScopedScrubbingMode disables scrubbing after success`() = runTest {
         val states = mutableListOf<Boolean>()
 

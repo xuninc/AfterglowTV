@@ -295,49 +295,57 @@ fun ProviderSetupScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        com.afterglowtv.app.ui.design.AppColors.TiviSurfaceDeep,
-                        com.afterglowtv.app.ui.design.AppColors.TiviSurfaceBase,
-                        com.afterglowtv.app.ui.design.AppColors.TiviSurfaceCool,
+            .then(
+                if (com.afterglowtv.app.ui.design.AppColors.backgroundGradientsEnabled) {
+                    Modifier.background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                com.afterglowtv.app.ui.design.AppColors.TiviSurfaceDeep,
+                                com.afterglowtv.app.ui.design.AppColors.TiviSurfaceBase,
+                                com.afterglowtv.app.ui.design.AppColors.TiviSurfaceCool,
+                            )
+                        )
                     )
-                )
+                } else {
+                    Modifier.background(com.afterglowtv.app.ui.design.AppColors.TiviSurfaceDeep)
+                }
             )
     ) {
-        // Off-screen accent melt in the top-right corner.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(
-                                alpha = com.afterglowtv.app.ui.design.AppColors.palette.glowAlpha(0.32f),
+        if (com.afterglowtv.app.ui.design.AppColors.backgroundGradientsEnabled) {
+            // Off-screen accent melt in the top-right corner.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(
+                                    alpha = com.afterglowtv.app.ui.design.AppColors.palette.glowAlpha(0.24f),
+                                ),
+                                com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.0f),
                             ),
-                            com.afterglowtv.app.ui.design.AppColors.TiviAccent.copy(alpha = 0.0f),
-                        ),
-                        center = androidx.compose.ui.geometry.Offset(x = 2400f, y = -200f),
-                        radius = 1400f,
+                            center = androidx.compose.ui.geometry.Offset(x = 2400f, y = -200f),
+                            radius = 1400f,
+                        )
                     )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            com.afterglowtv.app.ui.design.AppColors.EpgNowLine.copy(
-                                alpha = com.afterglowtv.app.ui.design.AppColors.palette.glowAlpha(0.22f),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                com.afterglowtv.app.ui.design.AppColors.EpgNowLine.copy(
+                                    alpha = com.afterglowtv.app.ui.design.AppColors.palette.glowAlpha(0.16f),
+                                ),
+                                com.afterglowtv.app.ui.design.AppColors.EpgNowLine.copy(alpha = 0.0f),
                             ),
-                            com.afterglowtv.app.ui.design.AppColors.EpgNowLine.copy(alpha = 0.0f),
-                        ),
-                        center = androidx.compose.ui.geometry.Offset(x = 400f, y = 1900f),
-                        radius = 1100f,
+                            center = androidx.compose.ui.geometry.Offset(x = 400f, y = 1900f),
+                            radius = 1100f,
+                        )
                     )
-                )
-        )
+            )
+        }
         val isWide = maxWidth >= 700.dp
         val hPad = if (isWide) 24.dp else 16.dp
 

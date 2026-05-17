@@ -639,6 +639,24 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setRemoteDpadChannelZapping(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setRemoteDpadChannelZapping(enabled)
+        }
+    }
+
+    fun setRemoteDpadInvertChannelZapping(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setRemoteDpadInvertChannelZapping(enabled)
+        }
+    }
+
+    fun setRemoteShowInfoOnZap(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setRemoteShowInfoOnZap(enabled)
+        }
+    }
+
     fun setRecordingWifiOnly(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setRecordingWifiOnly(enabled)

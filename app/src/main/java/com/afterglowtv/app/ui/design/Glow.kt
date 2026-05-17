@@ -39,7 +39,7 @@ data class GlowSpec(
  * The Settings screen lets users override any of these without code changes.
  */
 object Glows {
-    /** Used by `tivimateFocus(role = Card | Pill)` when the user's focus style is GLOW. */
+    /** Used by `afterglowFocus(role = Card | Pill)` when the user's focus style is GLOW. */
     var focus: List<GlowSpec> by mutableStateOf(
         listOf(
             GlowSpec(color = AppColors.TiviAccent, radius = 12.dp, opacity = 0.55f),

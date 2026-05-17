@@ -22,6 +22,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,8 @@ import com.afterglowtv.app.ui.design.Glows
 import com.afterglowtv.app.ui.design.afterglow
 import com.afterglowtv.data.preferences.PreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -54,6 +57,17 @@ import javax.inject.Inject
 class GlowSettingsViewModel @Inject constructor(
     private val preferences: PreferencesRepository,
 ) : ViewModel() {
+    val backgroundGradientsEnabled = preferences.backgroundGradientsEnabled.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        false,
+    )
+
+    fun setBackgroundGradientsEnabled(enabled: Boolean) {
+        AppColors.applyBackgroundGradientsEnabled(enabled)
+        viewModelScope.launch { preferences.setBackgroundGradientsEnabled(enabled) }
+    }
+
     fun saveIntensity(value: Float) {
         viewModelScope.launch { preferences.setGlowIntensity(value) }
     }
@@ -80,45 +94,54 @@ fun GlowSettingsScreen(
     onBack: () -> Unit = {},
     viewModel: GlowSettingsViewModel = hiltViewModel(),
 ) {
+    val backgroundGradientsEnabled by viewModel.backgroundGradientsEnabled.collectAsState()
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Layered backdrop matching the Themes picker
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                        listOf(
-                            AppColors.TiviSurfaceDeep,
-                            AppColors.TiviSurfaceBase,
-                            AppColors.TiviSurfaceCool,
+                .then(
+                    if (backgroundGradientsEnabled) {
+                        Modifier.background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(
+                                    AppColors.TiviSurfaceDeep,
+                                    AppColors.TiviSurfaceBase,
+                                    AppColors.TiviSurfaceCool,
+                                ),
+                            )
+                        )
+                    } else {
+                        Modifier.background(AppColors.TiviSurfaceDeep)
+                    }
+                )
+        )
+        if (backgroundGradientsEnabled) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    androidx.compose.ui.graphics.Brush.radialGradient(
+                        colors = listOf(
+                            AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.24f)),
+                            AppColors.TiviAccent.copy(alpha = 0f),
                         ),
+                        center = androidx.compose.ui.geometry.Offset(2400f, -200f),
+                        radius = 1400f,
                     )
                 )
-        )
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                androidx.compose.ui.graphics.Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.TiviAccent.copy(alpha = AppColors.palette.glowAlpha(0.30f)),
-                        AppColors.TiviAccent.copy(alpha = 0f),
-                    ),
-                    center = androidx.compose.ui.geometry.Offset(2400f, -200f),
-                    radius = 1400f,
+            )
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    androidx.compose.ui.graphics.Brush.radialGradient(
+                        colors = listOf(
+                            AppColors.EpgNowLine.copy(alpha = AppColors.palette.glowAlpha(0.16f)),
+                            AppColors.EpgNowLine.copy(alpha = 0f),
+                        ),
+                        center = androidx.compose.ui.geometry.Offset(300f, 1900f),
+                        radius = 1100f,
+                    )
                 )
             )
-        )
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                androidx.compose.ui.graphics.Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.EpgNowLine.copy(alpha = AppColors.palette.glowAlpha(0.20f)),
-                        AppColors.EpgNowLine.copy(alpha = 0f),
-                    ),
-                    center = androidx.compose.ui.geometry.Offset(300f, 1900f),
-                    radius = 1100f,
-                )
-            )
-        )
+        }
 
         LazyColumn(
             modifier = Modifier
@@ -168,6 +191,19 @@ fun GlowSettingsScreen(
             }
 
             item { MasterIntensityCard(onPersist = viewModel::saveIntensity) }
+
+            item {
+                SwitchSettingsRow(
+                    label = "Background gradients",
+                    value = if (backgroundGradientsEnabled) {
+                        "Blend theme colors behind full screens"
+                    } else {
+                        "Use solid backgrounds and keep gradients inside theme previews"
+                    },
+                    checked = backgroundGradientsEnabled,
+                    onCheckedChange = viewModel::setBackgroundGradientsEnabled,
+                )
+            }
 
             item {
                 GlowRoleCard(

@@ -6,7 +6,7 @@ brand logo and a 512x512 store icon.
 Usage:
     python scripts/install_icon_from_banner.py [path/to/banner.png]
 
-Default banner source: C:/Users/Corey/Downloads/app_banner.png
+Default banner source: AFTERGLOW_BANNER_SRC or docs/branding/source/app_banner.png.
 
 The icon is the rounded-square on the left edge of the banner — bright
 violet/orange against the darker purple backdrop. We auto-detect its
@@ -16,6 +16,7 @@ if auto-detection fails, falls back to hard-coded coordinates.
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
 
 from PIL import Image
@@ -143,7 +144,7 @@ def write_brand_logo(icon: Image.Image) -> Path:
 def main() -> int:
     banner_path = (
         Path(sys.argv[1]) if len(sys.argv) > 1
-        else Path(r"C:/Users/Corey/Downloads/app_banner.png")
+        else Path(os.environ.get("AFTERGLOW_BANNER_SRC", REPO_ROOT / "docs" / "branding" / "source" / "app_banner.png"))
     )
     if not banner_path.exists():
         print(f"banner not found: {banner_path}", file=sys.stderr)

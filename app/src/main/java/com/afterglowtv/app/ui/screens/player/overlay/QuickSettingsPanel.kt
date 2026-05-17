@@ -25,13 +25,13 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.app.ui.design.LocalAppSpacing
-import com.afterglowtv.app.ui.design.TivimateFocusRole
-import com.afterglowtv.app.ui.design.tivimateFocus
+import com.afterglowtv.app.ui.design.AfterglowFocusRole
+import com.afterglowtv.app.ui.design.afterglowFocus
 
 /**
- * TiViMate-style right-anchored quick-settings panel. Slides in from the
+ * Afterglow TV right-anchored quick-settings panel. Slides in from the
  * right (275 ms) over a 75% black scrim. Each row shows a label + the
- * currently-selected value tinted in the TiViMate accent.
+ * currently-selected value tinted in the theme accent.
  */
 data class QuickSettingItem(
     val id: String,
@@ -67,7 +67,7 @@ fun QuickSettingsPanel(
                     items(items, key = { it.id }) { item ->
                         Row(
                             modifier = Modifier
-                                .tivimateFocus(TivimateFocusRole.Row)
+                                .afterglowFocus(AfterglowFocusRole.Row)
                                 .clickable { onItemClick(item) }
                                 .padding(horizontal = 12.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,

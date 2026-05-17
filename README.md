@@ -6,7 +6,6 @@
 	<a href="https://github.com/xuninc/AfterglowTV/releases"><img src="https://img.shields.io/github/downloads/xuninc/AfterglowTV/total?style=for-the-badge&color=8b5cf6" alt="Total Downloads" /></a>
 	<a href="docs/CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-View-2563eb?style=for-the-badge" alt="View changelog" /></a>
 	<a href="https://github.com/xuninc/AfterglowTV/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/xuninc/AfterglowTV/release.yml?branch=master&style=for-the-badge&label=CI" alt="GitHub Actions status" /></a>
-	<a href="https://ko-fi.com/afterglowlabs"><img src="https://img.shields.io/badge/Support-Ko--fi-ff5f5f?style=for-the-badge&logo=kofi" alt="Support on Ko-fi" /></a>
 	<a href="LICENSE"><img src="https://img.shields.io/badge/License-Afterglow_OSL-0284c7?style=for-the-badge" alt="License" /></a>
 </p>
 
@@ -153,7 +152,6 @@ Built for Android TV first, Afterglow TV focuses on the things generic IPTV apps
 
 If Afterglow TV is useful to you, you can support development here:
 
-- [Support on Ko-fi](https://ko-fi.com/afterglowlabs)
 
 ## Project Structure
 
