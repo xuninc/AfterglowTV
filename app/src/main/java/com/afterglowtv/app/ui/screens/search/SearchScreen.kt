@@ -181,13 +181,13 @@ class SearchViewModel @Inject constructor(
                 val filterAdult = !AdultContentVisibilityPolicy.showInAggregatedSurfaces(level)
                 SearchUiState(
                     channels = if (filterAdult)
-                        results.channels.filterNot { it.isAdult || it.isUserProtected }
+                        results.channels.filterNot { it.isUserProtected }
                     else results.channels,
                     movies = if (filterAdult)
-                        results.movies.filterNot { it.isAdult || it.isUserProtected }
+                        results.movies.filterNot { it.isUserProtected }
                     else results.movies,
                     series = if (filterAdult)
-                        results.series.filterNot { it.isAdult || it.isUserProtected }
+                        results.series.filterNot { it.isUserProtected }
                     else results.series,
                     isLoading = false,
                     hasSearched = true,
@@ -412,7 +412,7 @@ fun SearchScreen(
         if (uiState.parentalControlLevel != 1) {
             return false
         }
-        if (!isAdult && !isUserProtected) {
+        if (!isUserProtected) {
             return false
         }
         return categoryId == null || categoryId !in uiState.unlockedCategoryIds

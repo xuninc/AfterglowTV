@@ -108,7 +108,6 @@ class ParentalControlGroupViewModel @Inject constructor(
     }
 
     fun toggleCategoryProtection(category: Category) {
-        if (category.isAdult) return
         val key = categoryControlKey(category)
         val original = category.isUserProtected
         val current = _pendingProtection.value[key] ?: original
@@ -182,7 +181,7 @@ class ParentalControlGroupViewModel @Inject constructor(
             var failed = false
             currentItems
                 .filter { item ->
-                    !item.category.isAdult && item.isProtected != item.category.isUserProtected
+                    item.isProtected != item.category.isUserProtected
                 }
                 .forEach { item ->
                     when (
@@ -236,12 +235,8 @@ private fun buildUiState(
     isLoading: Boolean
 ): ParentalControlGroupUiState {
     val items = inputs.categories.map { category ->
-        val isInitiallyProtected = category.isAdult || category.isUserProtected
-        val isProtected = if (category.isAdult) {
-            true
-        } else {
-            inputs.pendingProtection[categoryControlKey(category)] ?: category.isUserProtected
-        }
+        val isInitiallyProtected = category.isUserProtected
+        val isProtected = inputs.pendingProtection[categoryControlKey(category)] ?: category.isUserProtected
         CategoryControlItem(
             category = category,
             isProtected = isProtected,

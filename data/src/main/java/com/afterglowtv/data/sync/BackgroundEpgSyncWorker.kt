@@ -60,10 +60,19 @@ class BackgroundEpgSyncWorker(
                     // WorkManager backoff can heal it without manual intervention.
                     val syncState = entryPoint.syncManager().currentSyncState(providerId)
                     if (syncState is com.afterglowtv.domain.model.SyncState.Partial &&
-                            syncState.hasRetryableEpgFailure) {
-                        Log.i(TAG, "Scheduling retry for provider $providerId: EPG completed with retryable failure")
+                            syncState.hasRetryableEpgFailure &&
+                            shouldRetryPartialEpgFailure(runAttemptCount)) {
+                        Log.i(
+                            TAG,
+                            "Scheduling retry for provider $providerId: EPG completed with retryable failure " +
+                                "(attempt ${runAttemptCount + 1}/$MAX_RETRYABLE_EPG_ATTEMPTS)"
+                        )
                         Result.retry()
                     } else {
+                        if (syncState is com.afterglowtv.domain.model.SyncState.Partial &&
+                            syncState.hasRetryableEpgFailure) {
+                            Log.w(TAG, "Stopping background EPG retries for provider $providerId after capped attempts")
+                        }
                         Result.success()
                     }
                 }
@@ -99,6 +108,7 @@ class BackgroundEpgSyncWorker(
         private const val KEY_FORCE_REFRESH = "force_refresh"
         private const val INVALID_PROVIDER_ID = -1L
         private const val UNIQUE_WORK_PREFIX = "background-epg-sync-"
+        private const val MAX_RETRYABLE_EPG_ATTEMPTS = 2
         /**
          * Default delay before the first background EPG sync runs after enqueue. This
          * replaces the in-process [kotlinx.coroutines.delay] previously used by the
@@ -155,3 +165,6 @@ class BackgroundEpgSyncWorker(
         private fun uniqueWorkName(providerId: Long): String = "$UNIQUE_WORK_PREFIX$providerId"
     }
 }
+
+internal fun shouldRetryPartialEpgFailure(runAttemptCount: Int): Boolean =
+    runAttemptCount < 2

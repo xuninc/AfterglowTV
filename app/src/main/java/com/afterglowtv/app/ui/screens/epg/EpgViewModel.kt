@@ -1804,10 +1804,7 @@ class EpgViewModel @Inject constructor(
         parentalControlLevel: Int,
         unlockedCategoryIds: Set<Long>
     ): Boolean {
-        // Non-adult/protected categories are always accessible
-        if (!category.isAdult && !category.isUserProtected) return true
-        // Adult/protected: accessible if level permits aggregated surfaces (OFF or LOCKED),
-        // OR if the user has explicitly unlocked this category
+        if (!category.isUserProtected) return true
         return AdultContentVisibilityPolicy.showInAggregatedSurfaces(parentalControlLevel) ||
             unlockedCategoryIds.contains(category.id)
     }

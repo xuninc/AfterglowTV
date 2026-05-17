@@ -53,6 +53,7 @@ import com.afterglowtv.app.ui.components.SearchInput
 import com.afterglowtv.app.ui.components.dialogs.PinDialog
 import com.afterglowtv.app.ui.components.shell.AppNavigationChrome
 import com.afterglowtv.app.ui.components.shell.AppScreenScaffold
+import com.afterglowtv.app.ui.design.AppColors
 import com.afterglowtv.domain.model.ContentType
 import com.afterglowtv.app.ui.interaction.TvClickableSurface
 import com.afterglowtv.app.ui.interaction.TvIconButton
@@ -321,16 +322,15 @@ private fun CategoryModeChip(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Color(0xFF3E7BFA).copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant,
-            focusedContainerColor = Color(0xFF3E7BFA).copy(alpha = 0.28f)
+            containerColor = if (selected) AppColors.Brand.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant,
+            focusedContainerColor = AppColors.Brand.copy(alpha = 0.28f)
         ),
-        border = ClickableSurfaceDefaults.border(),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) Color(0xFF7EB1FF) else MaterialTheme.colorScheme.onSurface,
+            color = if (selected) AppColors.BrandStrong else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
         )
     }
@@ -355,7 +355,7 @@ private fun ProtectionSummaryCard(
         Text(
             text = selectedTypeLabel,
             style = MaterialTheme.typography.labelMedium,
-            color = Color(0xFF7EB1FF)
+            color = AppColors.BrandStrong
         )
         Text(
             text = stringResource(R.string.settings_category_protection_summary_title),
@@ -413,7 +413,7 @@ private fun VisibilitySummaryCard(
         Text(
             text = selectedTypeLabel,
             style = MaterialTheme.typography.labelMedium,
-            color = Color(0xFF7EB1FF)
+            color = AppColors.BrandStrong
         )
         Text(
             text = stringResource(R.string.settings_category_visibility_summary_title),
@@ -459,11 +459,11 @@ private fun SettingsActionButton(
         colors = ClickableSurfaceDefaults.colors(
             containerColor = when {
                 !enabled -> MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
-                emphasized -> Color(0xFF3E7BFA).copy(alpha = 0.18f)
+                emphasized -> AppColors.Brand.copy(alpha = 0.18f)
                 else -> MaterialTheme.colorScheme.surface
             },
             focusedContainerColor = if (enabled) {
-                if (emphasized) Color(0xFF3E7BFA).copy(alpha = 0.28f) else MaterialTheme.colorScheme.surface
+                if (emphasized) AppColors.Brand.copy(alpha = 0.28f) else MaterialTheme.colorScheme.surface
             } else {
                 MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
             }
@@ -475,7 +475,7 @@ private fun SettingsActionButton(
             style = MaterialTheme.typography.labelLarge,
             color = when {
                 !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                emphasized -> Color(0xFF7EB1FF)
+                emphasized -> AppColors.BrandStrong
                 else -> MaterialTheme.colorScheme.onSurface
             },
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
@@ -493,7 +493,6 @@ private fun CategoryProtectionCard(
 
     TvClickableSurface(
         onClick = onToggle,
-        enabled = !item.category.isAdult,
         modifier = Modifier
             .fillMaxWidth()
             .onFocusChanged { isFocused = it.isFocused }
@@ -525,9 +524,9 @@ private fun CategoryProtectionCard(
                     TypeBadge(type = item.category.type)
                     if (item.category.isAdult) {
                         Text(
-                            text = stringResource(R.string.parental_group_auto_protected),
+                            text = stringResource(R.string.parental_group_adult_tagged),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
+                            color = AppColors.BrandStrong,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -543,17 +542,13 @@ private fun CategoryProtectionCard(
             }
 
             Text(
-                text = when {
-                    item.category.isAdult -> stringResource(R.string.settings_category_status_auto_locked)
-                    item.isProtected -> stringResource(R.string.settings_category_status_locked)
-                    else -> stringResource(R.string.settings_category_status_unlocked)
+                text = if (item.isProtected) {
+                    stringResource(R.string.settings_category_status_locked)
+                } else {
+                    stringResource(R.string.settings_category_status_unlocked)
                 },
                 style = MaterialTheme.typography.labelLarge,
-                color = when {
-                    item.category.isAdult -> MaterialTheme.colorScheme.error
-                    item.isProtected -> Color(0xFF7EB1FF)
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                color = if (item.isProtected) AppColors.BrandStrong else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -602,7 +597,7 @@ private fun CategoryVisibilityCard(
                         Text(
                             text = stringResource(R.string.settings_category_status_hidden),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF7EB1FF)
+                            color = AppColors.BrandStrong
                         )
                     }
                 }
@@ -622,7 +617,7 @@ private fun CategoryVisibilityCard(
                     stringResource(R.string.settings_hide_category)
                 },
                 style = MaterialTheme.typography.labelLarge,
-                color = if (item.isHidden) Color(0xFF7EB1FF) else MaterialTheme.colorScheme.onSurface
+                color = if (item.isHidden) AppColors.BrandStrong else MaterialTheme.colorScheme.onSurface
             )
         }
     }

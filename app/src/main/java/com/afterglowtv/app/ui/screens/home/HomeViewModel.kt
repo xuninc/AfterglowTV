@@ -826,7 +826,7 @@ class HomeViewModel @Inject constructor(
                     if (isAggregatedSurface) {
                         AdultContentVisibilityPolicy.filterForAggregatedSurface(
                             numbered, level
-                        ) { isAdult || isUserProtected }
+                        ) { isUserProtected }
                     } else numbered
                 }.collect { displayedChannels ->
                     val currentQuery = _uiState.value.channelSearchQuery.trim()
@@ -1276,7 +1276,7 @@ class HomeViewModel @Inject constructor(
             ) { channels, level ->
                 AdultContentVisibilityPolicy.filterForAggregatedSurface(
                     channels, level
-                ) { isAdult || isUserProtected }
+                ) { isUserProtected }
             }.collect { visible ->
                 _uiState.update { it.copy(recentChannels = visible) }
                 updateRecentCategoryCount(visible.size)
@@ -1295,7 +1295,7 @@ class HomeViewModel @Inject constructor(
             ) { channels, level ->
                 AdultContentVisibilityPolicy.filterForAggregatedSurface(
                     channels, level
-                ) { isAdult || isUserProtected }
+                ) { isUserProtected }
             }.collect { visible ->
                 _uiState.update { it.copy(recentChannels = visible) }
                 updateRecentCategoryCount(visible.size)

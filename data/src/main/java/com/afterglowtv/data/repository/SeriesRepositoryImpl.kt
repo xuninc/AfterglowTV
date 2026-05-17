@@ -181,7 +181,7 @@ class SeriesRepositoryImpl @Inject constructor(
             preferencesRepository.parentalControlLevel
         ) { categories, level ->
             val requestedIds = categoryIds.toSet()
-            val filtered = if (level >= 3) categories.filter { !it.isAdult && !it.isUserProtected } else categories
+            val filtered = if (level >= 3) categories.filter { !it.isUserProtected } else categories
             filtered.filter { it.categoryId in requestedIds } to level
         }.flatMapLatest { (filteredCategories, level) ->
             if (filteredCategories.isEmpty()) {
@@ -264,7 +264,7 @@ class SeriesRepositoryImpl @Inject constructor(
         ) { entities: List<CategoryEntity>, level: Int ->
             val mapped = entities.map { it.toDomain() }
             if (level >= 3) {
-                mapped.filter { !it.isAdult && !it.isUserProtected }
+                mapped.filter { !it.isUserProtected }
             } else {
                 mapped
             }

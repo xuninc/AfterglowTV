@@ -50,7 +50,7 @@ object AppColors {
     val Brand: Color get() = palette.accent
     val BrandMuted: Color get() = palette.accentMuted
     val BrandStrong: Color get() = palette.accentLight
-    val Focus: Color get() = palette.accent
+    val Focus: Color get() = palette.accentLight
 
     val TextPrimary: Color get() = palette.textPrimary
     val TextSecondary: Color get() = palette.textSecondary

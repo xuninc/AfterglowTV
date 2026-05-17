@@ -851,7 +851,7 @@ private fun GuideProviderTroubleshootingCard(
 }
 
 internal fun isGuideCategoryLocked(category: Category, parentalControlLevel: Int): Boolean =
-    parentalControlLevel in 1..2 && (category.isAdult || category.isUserProtected)
+    parentalControlLevel in 1..2 && category.isUserProtected
 
 private fun isGuideChannelLocked(
     channel: Channel,
@@ -862,9 +862,8 @@ private fun isGuideChannelLocked(
         return false
     }
     val categoryLocked = channel.categoryId?.let(categoriesById::get)?.let { category ->
-        category.isAdult || category.isUserProtected
+        category.isUserProtected
     } ?: false
-    return channel.isAdult || channel.isUserProtected || categoryLocked
+    return channel.isUserProtected || categoryLocked
 }
-
 

@@ -286,7 +286,7 @@ class DashboardViewModel @Inject constructor(
         ) { channels, level ->
             AdultContentVisibilityPolicy.filterForAggregatedSurface(
                 channels, level
-            ) { isAdult || isUserProtected }
+            ) { isUserProtected }
         }
 
     private fun observeContinueWatching(providerIds: Set<Long>): Flow<ContinueWatchingShelf> =
@@ -535,20 +535,12 @@ class DashboardViewModel @Inject constructor(
 
     private fun shouldHideVodFromHome(movie: Movie, level: Int): Boolean {
         if (AdultContentVisibilityPolicy.showInAggregatedSurfaces(level)) return false
-        if (movie.isAdult || movie.isUserProtected) return true
-        return titleLooksExplicit(movie.name)
+        return movie.isUserProtected
     }
 
     private fun shouldHideVodFromHome(series: Series, level: Int): Boolean {
         if (AdultContentVisibilityPolicy.showInAggregatedSurfaces(level)) return false
-        if (series.isAdult || series.isUserProtected) return true
-        return titleLooksExplicit(series.name)
-    }
-
-    private fun titleLooksExplicit(title: String): Boolean {
-        val normalized = title.lowercase()
-        val explicitTerms = listOf("porn", "porno", "xxx", "adult", "18+", "sex", "erotic", "hentai")
-        return explicitTerms.any { term -> normalized.contains(term) }
+        return series.isUserProtected
     }
 
     private fun parseDateScore(raw: String?): Long? {

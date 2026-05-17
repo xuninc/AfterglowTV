@@ -1298,7 +1298,7 @@ fun PlayerScreen(
                     currentCategoryId = activeCategoryId,
                     overlayFocusRequester = categoryListFocusRequester,
                     isCategoryLocked = { category ->
-                        parentalControlLevel in 1..2 && (category.isAdult || category.isUserProtected)
+                        parentalControlLevel in 1..2 && category.isUserProtected
                     },
                     onSelectCategory = { category ->
                         viewModel.selectCategoryFromOverlay(category)

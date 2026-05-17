@@ -147,6 +147,40 @@ class ChannelRepositoryImplTest {
     }
 
     @Test
+    fun `getCategories keeps adult tagged category visible at hidden level until user locks it`() = runTest {
+        whenever(categoryDao.getByProviderAndType(7L, ContentType.LIVE.name)).thenReturn(
+            flowOf(
+                listOf(
+                    categoryEntity(id = 10L, name = "News"),
+                    categoryEntity(id = 20L, name = "Adult", isAdult = true, isUserProtected = false)
+                )
+            )
+        )
+        whenever(channelDao.getGroupedCategoryCounts(7L)).thenReturn(
+            flowOf(
+                listOf(
+                    CategoryCount(categoryId = 10L, item_count = 3),
+                    CategoryCount(categoryId = 20L, item_count = 5)
+                )
+            )
+        )
+        whenever(preferencesRepository.parentalControlLevel).thenReturn(flowOf(3))
+        whenever(parentalControlManager.unlockedCategoriesForProvider(eq(7L))).thenReturn(flowOf(emptySet()))
+
+        val repository = createRepository()
+
+        val result = repository.getCategories(7L).first()
+
+        assertThat(result.map { it.name to it.count }).containsExactly(
+            "All Channels" to 8,
+            "News" to 3,
+            "Adult" to 5
+        ).inOrder()
+        assertThat(result.first { it.id == 20L }.isUserProtected).isFalse()
+        assertThat(result.first { it.id == 20L }.isAdult).isTrue()
+    }
+
+    @Test
     fun `getChannelsByCategory hides numbering with zero instead of negative sentinel`() = runTest {
         whenever(channelDao.getByCategory(7L, 10L)).thenReturn(
             flowOf(
@@ -281,12 +315,14 @@ class ChannelRepositoryImplTest {
     private fun categoryEntity(
         id: Long,
         name: String,
+        isAdult: Boolean = false,
         isUserProtected: Boolean = false
     ) = CategoryEntity(
         categoryId = id,
         name = name,
         type = ContentType.LIVE,
         providerId = 7L,
+        isAdult = isAdult,
         isUserProtected = isUserProtected
     )
 }

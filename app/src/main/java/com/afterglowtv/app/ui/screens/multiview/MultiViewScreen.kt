@@ -761,7 +761,7 @@ private fun ReplaceSlotDialog(
     var pendingLockedCategory by remember { mutableStateOf<com.afterglowtv.domain.model.Category?>(null) }
 
     fun isCategoryLocked(cat: com.afterglowtv.domain.model.Category): Boolean =
-        parentalControlLevel in 1..2 && (cat.isAdult || cat.isUserProtected)
+        parentalControlLevel in 1..2 && cat.isUserProtected
 
     PremiumDialog(
         title = if (selectedCategory == null) stringResource(R.string.multiview_replace_title) else selectedCategory.name,

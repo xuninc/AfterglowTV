@@ -1,11 +1,14 @@
 package com.afterglowtv.app.ui.interaction
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonBorder
@@ -23,6 +26,8 @@ import androidx.tv.material3.ClickableSurfaceShape
 import androidx.tv.material3.IconButton
 import androidx.tv.material3.IconButtonDefaults
 import androidx.tv.material3.Surface
+import com.afterglowtv.app.ui.design.AppColors
+import com.afterglowtv.app.ui.design.FocusSpec
 
 /**
  * Drop-in replacement for TV Material3 Surface(onClick) that automatically adds
@@ -36,7 +41,7 @@ fun TvClickableSurface(
     enabled: Boolean = true,
     shape: ClickableSurfaceShape = ClickableSurfaceDefaults.shape(),
     colors: ClickableSurfaceColors = ClickableSurfaceDefaults.colors(),
-    border: ClickableSurfaceBorder = ClickableSurfaceDefaults.border(),
+    border: ClickableSurfaceBorder = defaultClickableSurfaceBorder(),
     scale: ClickableSurfaceScale = ClickableSurfaceDefaults.scale(),
     glow: ClickableSurfaceGlow = ClickableSurfaceDefaults.glow(),
     interactionSource: MutableInteractionSource? = null,
@@ -72,7 +77,7 @@ fun TvButton(
     interactionSource: MutableInteractionSource? = null,
     shape: ButtonShape = ButtonDefaults.shape(),
     colors: ButtonColors = ButtonDefaults.colors(),
-    border: ButtonBorder = ButtonDefaults.border(),
+    border: ButtonBorder = defaultButtonBorder(),
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -106,7 +111,7 @@ fun TvIconButton(
     interactionSource: MutableInteractionSource? = null,
     shape: ButtonShape = IconButtonDefaults.shape(),
     colors: ButtonColors = IconButtonDefaults.colors(),
-    border: ButtonBorder = IconButtonDefaults.border(),
+    border: ButtonBorder = defaultIconButtonBorder(),
     content: @Composable BoxScope.() -> Unit,
 ) {
     IconButton(
@@ -123,3 +128,30 @@ fun TvIconButton(
         content = content,
     )
 }
+
+@Composable
+private fun defaultClickableSurfaceBorder(): ClickableSurfaceBorder =
+    ClickableSurfaceDefaults.border(
+        border = Border(
+            border = BorderStroke(0.dp, AppColors.Outline.copy(alpha = 0f)),
+            shape = RoundedCornerShape(8.dp)
+        ),
+        focusedBorder = Border(
+            border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus),
+            shape = RoundedCornerShape(8.dp)
+        )
+    )
+
+@Composable
+private fun defaultButtonBorder(): ButtonBorder =
+    ButtonDefaults.border(
+        border = Border(border = BorderStroke(0.dp, AppColors.Outline.copy(alpha = 0f))),
+        focusedBorder = Border(border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus))
+    )
+
+@Composable
+private fun defaultIconButtonBorder(): ButtonBorder =
+    IconButtonDefaults.border(
+        border = Border(border = BorderStroke(0.dp, AppColors.Outline.copy(alpha = 0f))),
+        focusedBorder = Border(border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus))
+    )

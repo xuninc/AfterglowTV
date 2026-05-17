@@ -56,7 +56,7 @@ fun Modifier.tivimateFocus(
         label = "tivimate-focus-fill",
     )
     val borderColor by animateColorAsState(
-        targetValue = if (focused) AppColors.TiviAccent else Color.Transparent,
+        targetValue = if (focused) AppColors.Focus else Color.Transparent,
         animationSpec = tween(150, easing = FastOutSlowInEasing),
         label = "tivimate-focus-border",
     )

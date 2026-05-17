@@ -1263,6 +1263,7 @@
     <string name="parental_group_title">Protected Groups</string>
     <string name="parental_group_search">Search categories...</string>
     <string name="parental_group_auto_protected">Adult Category (Auto-Protected)</string>
+    <string name="parental_group_adult_tagged">Adult tagged</string>
     <string name="parental_group_back">Back</string>
     <string name="settings_category_mode_protection">Lock / Unlock</string>
     <string name="settings_category_mode_visibility">Hide / Unhide</string>

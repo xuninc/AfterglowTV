@@ -371,7 +371,7 @@ fun HomeScreen(
                 }
                 val isCategoryLocked: (Category) -> Boolean = remember(uiState.parentalControlLevel, uiState.unlockedCategoryIds) {
                     { category ->
-                        (category.isAdult || category.isUserProtected) &&
+                        category.isUserProtected &&
                             uiState.parentalControlLevel in 1..2 &&
                             kotlin.math.abs(category.id) !in uiState.unlockedCategoryIds
                     }
@@ -381,7 +381,6 @@ fun HomeScreen(
                     uiState.unlockedCategoryIds,
                     uiState.categories,
                     uiState.selectedCategory?.id,
-                    uiState.selectedCategory?.isAdult,
                     uiState.selectedCategory?.isUserProtected
                 ) {
                     { channel ->
@@ -394,11 +393,8 @@ fun HomeScreen(
                             selectedCategory != null && kotlin.math.abs(selectedCategory.id) in uiState.unlockedCategoryIds
                         val unlocked = unlockedByChannelCategory || unlockedBySelectedCategory
                         (
-                            channel.isAdult ||
-                                channel.isUserProtected ||
-                                (selectedCategory?.isAdult == true) ||
+                            channel.isUserProtected ||
                                 (selectedCategory?.isUserProtected == true) ||
-                                (sourceCategory?.isAdult == true) ||
                                 (sourceCategory?.isUserProtected == true)
                             ) &&
                             uiState.parentalControlLevel in 1..2 &&

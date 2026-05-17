@@ -392,14 +392,14 @@ private fun MoviesVodContent(
     }
     val isCategoryLocked = remember(uiState.parentalControlLevel, uiState.unlockedCategoryIds, categoryByName) {
         { category: Category ->
-            (category.isAdult || category.isUserProtected) &&
+            category.isUserProtected &&
                 uiState.parentalControlLevel in 1..2 &&
                 kotlin.math.abs(category.id) !in uiState.unlockedCategoryIds
         }
     }
     val isCategoryHidden = remember(uiState.parentalControlLevel, uiState.unlockedCategoryIds, categoryByName) {
         { category: Category ->
-            (category.isAdult || category.isUserProtected) &&
+            category.isUserProtected &&
                 uiState.parentalControlLevel >= 3 &&
                 kotlin.math.abs(category.id) !in uiState.unlockedCategoryIds
         }
@@ -407,7 +407,7 @@ private fun MoviesVodContent(
     val isMovieLocked = remember(uiState.parentalControlLevel, uiState.unlockedCategoryIds) {
         { movie: Movie ->
             val categoryId = movie.categoryId
-            (movie.isAdult || movie.isUserProtected) &&
+            movie.isUserProtected &&
                 uiState.parentalControlLevel in 1..2 &&
                 (categoryId == null || kotlin.math.abs(categoryId) !in uiState.unlockedCategoryIds)
         }
@@ -448,12 +448,13 @@ private fun MoviesVodContent(
     val categoryOptions = remember(visibleCategoryNames, uiState.categoryCounts, categoryByName, uiState.parentalControlLevel, uiState.unlockedCategoryIds) {
         visibleCategoryNames.map { name ->
             val matchedCategory = categoryByName[name]
-            val locked = matchedCategory?.let(isCategoryLocked) == true
+            val lockedCategory = matchedCategory?.takeIf(isCategoryLocked)
+            val locked = lockedCategory != null
             VodCategoryOption(
                 name = name,
                 count = uiState.categoryCounts[name] ?: 0,
                 onClick = {
-                    if (locked && matchedCategory != null) openProtectedCategory(matchedCategory) else onSelectCategory(name)
+                    if (lockedCategory != null) openProtectedCategory(lockedCategory) else onSelectCategory(name)
                 },
                 onLongClick = matchedCategory?.takeIf { !locked }?.let { category ->
                     { onShowCategoryOptions(category.name) }
@@ -661,12 +662,12 @@ private fun MoviesVodContent(
                 val categoryName = entry.key
                 val movies = entry.value
                 val matchedCategory = categoryByName[categoryName]
-                val lockedCategory = matchedCategory?.let(isCategoryLocked) == true
+                val lockedCategory = matchedCategory?.takeIf(isCategoryLocked)
                 CategoryRow(
                     title = categoryName,
                     items = movies,
                     onSeeAll = {
-                        if (lockedCategory && matchedCategory != null) openProtectedCategory(matchedCategory) else onSelectCategory(categoryName)
+                        if (lockedCategory != null) openProtectedCategory(lockedCategory) else onSelectCategory(categoryName)
                     },
                     keySelector = { it.id }
                 ) { movie ->
@@ -946,14 +947,14 @@ private fun MoviesVodClassicContent(
     }
     val isCategoryLocked = remember(uiState.parentalControlLevel, uiState.unlockedCategoryIds, categoryByName) {
         { category: Category ->
-            (category.isAdult || category.isUserProtected) &&
+            category.isUserProtected &&
                 uiState.parentalControlLevel in 1..2 &&
                 kotlin.math.abs(category.id) !in uiState.unlockedCategoryIds
         }
     }
     val isCategoryHidden = remember(uiState.parentalControlLevel, uiState.unlockedCategoryIds, categoryByName) {
         { category: Category ->
-            (category.isAdult || category.isUserProtected) &&
+            category.isUserProtected &&
                 uiState.parentalControlLevel >= 3 &&
                 kotlin.math.abs(category.id) !in uiState.unlockedCategoryIds
         }
@@ -961,7 +962,7 @@ private fun MoviesVodClassicContent(
     val isMovieLocked = remember(uiState.parentalControlLevel, uiState.unlockedCategoryIds) {
         { movie: Movie ->
             val categoryId = movie.categoryId
-            (movie.isAdult || movie.isUserProtected) &&
+            movie.isUserProtected &&
                 uiState.parentalControlLevel in 1..2 &&
                 (categoryId == null || kotlin.math.abs(categoryId) !in uiState.unlockedCategoryIds)
         }
@@ -1083,7 +1084,8 @@ private fun MoviesVodClassicContent(
                 .filterNot { it == uiState.favoriteCategoryName }
                 .forEach { name ->
                     val matchedCategory = categoryByName[name]
-                    val locked = matchedCategory?.let(isCategoryLocked) == true
+                    val lockedCategory = matchedCategory?.takeIf(isCategoryLocked)
+                    val locked = lockedCategory != null
                     add(
                         VodClassicCategoryOption(
                             key = "category:$name",
@@ -1091,7 +1093,7 @@ private fun MoviesVodClassicContent(
                             count = uiState.categoryCounts[name] ?: 0,
                             isSelected = selectedKey == "category:$name",
                             onClick = {
-                                if (locked && matchedCategory != null) openProtectedCategory(matchedCategory) else onSelectCategory(name)
+                                if (lockedCategory != null) openProtectedCategory(lockedCategory) else onSelectCategory(name)
                             },
                             onLongClick = matchedCategory?.takeIf { !locked }?.let { { onShowCategoryOptions(name) } },
                             isLocked = locked
@@ -1272,5 +1274,3 @@ private fun movieSortChips(): List<SelectionChip> {
         )
     }
 }
-
-

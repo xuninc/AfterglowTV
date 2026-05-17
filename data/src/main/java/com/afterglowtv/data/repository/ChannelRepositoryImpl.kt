@@ -174,7 +174,7 @@ class ChannelRepositoryImpl @Inject constructor(
                 entity.toDomain().copy(count = countMap[entity.categoryId] ?: 0)
             }
             val visibleCategories = if (level >= 3) {
-                countedCategories.filter { category -> !category.isAdult && !category.isUserProtected }
+                countedCategories.filter { category -> !category.isUserProtected }
             } else {
                 countedCategories
             }
@@ -636,7 +636,7 @@ class ChannelRepositoryImpl @Inject constructor(
     ): List<ChannelBrowseEntity> = if (level >= 3) {
         entities.filter { entity ->
             val isUnlocked = entity.categoryId != null && unlockedCats.contains(entity.categoryId)
-            (!entity.isAdult && !entity.isUserProtected) || isUnlocked
+            !entity.isUserProtected || isUnlocked
         }
     } else {
         entities
