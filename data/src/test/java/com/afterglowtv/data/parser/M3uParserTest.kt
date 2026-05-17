@@ -210,6 +210,20 @@ class M3uParserTest {
     }
 
     @Test
+    fun `parse_blankTvgId_treatsAsMissingSoTvgNameCanDriveEpgMatching`() {
+        val entry = parseEntries(
+            """
+            #EXTM3U
+            #EXTINF:-1 tvg-id="" tvg-name="Adult Asian" group-title="XXX",Adult Asian
+            http://stream.example.com/adult-asian.ts
+            """.trimIndent()
+        ).single()
+
+        assertThat(entry.tvgId).isNull()
+        assertThat(entry.tvgName).isEqualTo("Adult Asian")
+    }
+
+    @Test
     fun `parse_catchUpAttributes_extracted`() {
         val m3u = """
             #EXTM3U

@@ -195,6 +195,56 @@ class EpgViewModelTest {
     }
 
     @Test
+    fun `guide shows channel description placeholder when no programme data exists`() = runTest {
+        val provider = Provider(
+            id = 1L,
+            name = "Provider",
+            type = ProviderType.M3U,
+            serverUrl = "https://provider.example.com"
+        )
+        val channel = Channel(
+            id = 1L,
+            name = "Adult Asian",
+            providerId = provider.id,
+            epgChannelId = "Adult Asian",
+            categoryId = 10L,
+            categoryName = "XXX"
+        )
+        whenever(providerRepository.getActiveProvider()).thenReturn(flowOf(provider))
+        whenever(preferencesRepository.getHiddenCategoryIds(provider.id, ContentType.LIVE)).thenReturn(flowOf(emptySet()))
+        whenever(preferencesRepository.getCategorySortMode(provider.id, ContentType.LIVE)).thenReturn(flowOf(CategorySortMode.DEFAULT))
+        whenever(parentalControlManager.unlockedCategoriesForProvider(provider.id)).thenReturn(flowOf(emptySet()))
+        whenever(channelRepository.getCategories(provider.id)).thenReturn(flowOf(listOf(Category(id = 10L, name = "XXX"))))
+        whenever(channelRepository.getChannels(provider.id)).thenReturn(flowOf(listOf(channel)))
+        whenever(channelRepository.getChannelsByCategoryPage(provider.id, ChannelRepository.ALL_CHANNELS_ID, EpgViewModel.MAX_CHANNELS)).thenReturn(flowOf(listOf(channel)))
+        whenever(channelRepository.getChannelsWithoutErrorsPage(provider.id, ChannelRepository.ALL_CHANNELS_ID, EpgViewModel.MAX_CHANNELS)).thenReturn(flowOf(listOf(channel)))
+        whenever(favoriteRepository.getFavorites(provider.id, ContentType.LIVE)).thenReturn(flowOf(emptyList()))
+        whenever(preferencesRepository.guideDensity).thenReturn(flowOf(null))
+        whenever(preferencesRepository.guideChannelMode).thenReturn(flowOf(null))
+        whenever(preferencesRepository.guideDefaultCategoryId).thenReturn(flowOf(ChannelRepository.ALL_CHANNELS_ID))
+        whenever(preferencesRepository.guideFavoritesOnly).thenReturn(flowOf(false))
+        whenever(preferencesRepository.guideScheduledOnly).thenReturn(flowOf(false))
+        whenever(preferencesRepository.guideAnchorTime).thenReturn(flowOf(null))
+        whenever(epgRepository.getResolvedProgramsForChannels(eq(provider.id), any(), any(), any())).thenReturn(emptyMap())
+        whenever(epgRepository.getProgramsForChannelsSnapshot(eq(provider.id), eq(listOf("Adult Asian")), any(), any())).thenReturn(emptyMap())
+
+        val viewModel = createViewModel()
+
+        advanceUntilIdle()
+        waitForUiState {
+            viewModel.uiState.value.programsByChannel["Adult Asian"].orEmpty().isNotEmpty()
+        }
+
+        val placeholder = viewModel.uiState.value.programsByChannel.getValue("Adult Asian").single()
+        assertThat(placeholder.isPlaceholder).isTrue()
+        assertThat(placeholder.title).isEqualTo("Adult Asian")
+        assertThat(placeholder.description).contains("No guide data")
+        assertThat(placeholder.description).contains("XXX")
+        assertThat(placeholder.category).isEqualTo("No guide data")
+        assertThat(viewModel.uiState.value.channelsWithSchedule).isEqualTo(0)
+    }
+
+    @Test
     fun `guide fallback loads native programs keyed by stream id`() = runTest {
         val provider = Provider(
             id = 1L,

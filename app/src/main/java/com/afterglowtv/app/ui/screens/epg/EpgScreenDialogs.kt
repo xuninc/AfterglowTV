@@ -316,10 +316,13 @@ internal fun CompactGuideProgramDialog(
     onScheduleDailyRecording: (() -> Unit)?,
     onScheduleWeeklyRecording: (() -> Unit)?
 ) {
-    var showDetails by rememberSaveable(program.startTime, program.endTime, program.title) { mutableStateOf(false) }
+    var showDetails by rememberSaveable(program.startTime, program.endTime, program.title, program.isPlaceholder) {
+        mutableStateOf(program.isPlaceholder)
+    }
     val appTimeFormat = LocalAppTimeFormat.current
     val format = remember(appTimeFormat) { appTimeFormat.createTimeFormat() }
     val firstButtonFocusRequester = remember { FocusRequester() }
+    val noScheduleLabel = stringResource(R.string.epg_no_schedule_short)
     LaunchedEffect(Unit) { firstButtonFocusRequester.requestFocus() }
     GuideModalDialog(onDismiss = onDismiss) {
         Surface(
@@ -345,10 +348,15 @@ internal fun CompactGuideProgramDialog(
                     text = buildString {
                         if (channel.number > 0) { append(channel.number); append(". ") }
                         append(channel.name)
-                        append("  |  ")
-                        append(format.format(Date(program.startTime)))
-                        append(" - ")
-                        append(format.format(Date(program.endTime)))
+                        if (program.isPlaceholder) {
+                            append("  |  ")
+                            append(program.category ?: noScheduleLabel)
+                        } else {
+                            append("  |  ")
+                            append(format.format(Date(program.startTime)))
+                            append(" - ")
+                            append(format.format(Date(program.endTime)))
+                        }
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = OnSurfaceDim,
@@ -362,7 +370,7 @@ internal fun CompactGuideProgramDialog(
                         color = Primary
                     )
                 }
-                if (now in program.startTime until program.endTime) {
+                if (!program.isPlaceholder && now in program.startTime until program.endTime) {
                     LinearProgressIndicator(
                         progress = { ((now - program.startTime).toFloat() / (program.endTime - program.startTime).toFloat()).coerceIn(0f, 1f) },
                         modifier = Modifier
@@ -857,4 +865,3 @@ internal fun GuideCategoryPickerDialog(
 internal fun epgCategoryKey(category: Category, index: Int): String {
     return "category:${category.id}:${category.name.trim()}:$index"
 }
-

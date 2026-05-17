@@ -277,6 +277,7 @@ class EpgViewModel @Inject constructor(
         const val DAY_SHIFT_MS = 24 * 60 * 60 * 1000L
         const val PRIME_TIME_HOUR = 20
         const val NO_ACTIVE_PROVIDER = "NO_ACTIVE_PROVIDER"
+        private const val NO_GUIDE_DATA_CATEGORY = "No guide data"
     }
 
     private val _uiState = MutableStateFlow(EpgUiState())
@@ -477,6 +478,10 @@ class EpgViewModel @Inject constructor(
     }
 
     fun loadProgramReminderState(channel: Channel, program: Program) {
+        if (program.isPlaceholder) {
+            _programReminderUiState.value = ProgramReminderUiState()
+            return
+        }
         val providerId = program.providerId.takeIf { it > 0L } ?: channel.providerId
         val channelId = program.channelId
         if (providerId <= 0L || channelId.isBlank()) {
@@ -511,6 +516,7 @@ class EpgViewModel @Inject constructor(
     }
 
     fun toggleProgramReminder(channel: Channel, program: Program) {
+        if (program.isPlaceholder) return
         val providerId = program.providerId.takeIf { it > 0L } ?: channel.providerId
         val channelId = program.channelId
         if (providerId <= 0L || channelId.isBlank()) return
@@ -547,6 +553,7 @@ class EpgViewModel @Inject constructor(
     }
 
     fun scheduleRecording(channel: Channel, program: Program, recurrence: RecordingRecurrence = RecordingRecurrence.NONE) {
+        if (program.isPlaceholder) return
         viewModelScope.launch {
             val command = ScheduleRecordingCommand(
                 contentType = ContentType.LIVE,
@@ -1606,7 +1613,7 @@ class EpgViewModel @Inject constructor(
     ): Int =
         channels.mapNotNull(Channel::guideLookupKey)
             .distinct()
-            .count { lookupKey -> programsByChannel[lookupKey].isNullOrEmpty() }
+            .count { lookupKey -> !programsByChannel[lookupKey].orEmpty().hasRealGuidePrograms() }
 
     private fun countChannelsWithSchedule(
         channels: List<Channel>,
@@ -1614,7 +1621,7 @@ class EpgViewModel @Inject constructor(
     ): Int =
         channels.count { channel ->
             channel.guideLookupKey()
-                ?.let { lookupKey -> programsByChannel[lookupKey].orEmpty().isNotEmpty() }
+                ?.let { lookupKey -> programsByChannel[lookupKey].orEmpty().hasRealGuidePrograms() }
                 ?: false
         }
 
@@ -1623,7 +1630,7 @@ class EpgViewModel @Inject constructor(
         windowStart: Long
     ): Boolean =
         programsByChannel.values.any { programs ->
-            programs.any { program -> program.endTime > windowStart }
+            programs.any { program -> !program.isPlaceholder && program.endTime > windowStart }
         }
 
     private suspend fun buildGuideDisplaySnapshot(
@@ -1643,35 +1650,89 @@ class EpgViewModel @Inject constructor(
             val programs = channel.guideLookupKey()
                 ?.let { lookupKey -> candidateProgramsByChannel[lookupKey].orEmpty() }
                 .orEmpty()
-            val matchesScheduled = !scheduledOnly || programs.isNotEmpty()
+            val matchesScheduled = !scheduledOnly || programs.hasRealGuidePrograms()
             val matchesMode = when (channelMode) {
                 GuideChannelMode.ALL -> true
                 GuideChannelMode.ANCHORED -> programs.any { program ->
-                    baseSnapshot.guideAnchorTime in program.startTime until program.endTime
+                    !program.isPlaceholder && baseSnapshot.guideAnchorTime in program.startTime until program.endTime
                 }
                 GuideChannelMode.ARCHIVE_READY -> programs.any { program ->
-                    channel.isArchivePlayable(program, baseSnapshot.guideAnchorTime)
+                    !program.isPlaceholder && channel.isArchivePlayable(program, baseSnapshot.guideAnchorTime)
                 }
             }
             matchesScheduled && matchesMode
         }
         val channelsWithSchedule = candidateChannels.count { channel ->
             channel.guideLookupKey()
-                ?.let { lookupKey -> candidateProgramsByChannel[lookupKey].orEmpty().isNotEmpty() }
+                ?.let { lookupKey -> candidateProgramsByChannel[lookupKey].orEmpty().hasRealGuidePrograms() }
                 ?: false
         }
         val hasUpcomingData = candidateProgramsByChannel.values.any { programs ->
-            programs.any { program -> program.endTime > baseSnapshot.guideWindowStart }
+            programs.any { program -> !program.isPlaceholder && program.endTime > baseSnapshot.guideWindowStart }
         }
+        val displayProgramsByChannel = candidateProgramsByChannel.withChannelGuidePlaceholders(
+            channels = displayChannels,
+            windowStart = baseSnapshot.guideWindowStart,
+            windowEnd = baseSnapshot.guideWindowEnd
+        )
 
         return GuideDisplaySnapshot(
             channels = displayChannels,
-            programsByChannel = candidateProgramsByChannel,
+            programsByChannel = displayProgramsByChannel,
             totalChannelCount = candidateChannels.size,
             channelsWithSchedule = channelsWithSchedule,
             isGuideStale = candidateChannels.isNotEmpty() && (channelsWithSchedule == 0 || !hasUpcomingData)
         )
     }
+
+    private fun Map<String, List<Program>>.withChannelGuidePlaceholders(
+        channels: List<Channel>,
+        windowStart: Long,
+        windowEnd: Long
+    ): Map<String, List<Program>> {
+        if (channels.isEmpty()) return this
+        val placeholders = channels.mapNotNull { channel ->
+            val lookupKey = channel.guideLookupKey() ?: return@mapNotNull null
+            if (this[lookupKey].orEmpty().hasRealGuidePrograms()) return@mapNotNull null
+            lookupKey to listOf(channel.toGuidePlaceholderProgram(lookupKey, windowStart, windowEnd))
+        }
+        if (placeholders.isEmpty()) return this
+        return this + placeholders
+    }
+
+    private fun Channel.toGuidePlaceholderProgram(
+        lookupKey: String,
+        windowStart: Long,
+        windowEnd: Long
+    ): Program =
+        Program(
+            channelId = lookupKey,
+            title = name,
+            description = buildGuidePlaceholderDescription(),
+            startTime = windowStart,
+            endTime = windowEnd,
+            category = NO_GUIDE_DATA_CATEGORY,
+            providerId = providerId,
+            isPlaceholder = true
+        )
+
+    private fun Channel.buildGuidePlaceholderDescription(): String {
+        val categoryLabel = categoryName
+            ?.trim()
+            ?.takeIf(String::isNotEmpty)
+            ?: groupTitle?.trim()?.takeIf(String::isNotEmpty)
+        return buildString {
+            append("No guide data is available for this channel.")
+            categoryLabel?.let {
+                append(" Category: ")
+                append(it)
+                append('.')
+            }
+        }
+    }
+
+    private fun List<Program>.hasRealGuidePrograms(): Boolean =
+        any { !it.isPlaceholder }
 
     private suspend fun buildSearchGuideSnapshot(
         baseSnapshot: GuideBaseSnapshot,

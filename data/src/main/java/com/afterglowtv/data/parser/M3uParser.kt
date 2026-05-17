@@ -256,23 +256,26 @@ class M3uParser {
         return ParsedExtinf(
             name = name,
             durationSeconds = extractDuration(metadata),
-            tvgId = attributes["tvg-id"],
-            tvgName = attributes["tvg-name"],
-            tvgLogo = attributes["tvg-logo"],
-            groupTitle = attributes["group-title"],
-            tvgChno = attributes["tvg-chno"],
-            tvgLanguage = attributes["tvg-language"],
-            tvgCountry = attributes["tvg-country"],
-            catchUp = attributes["catchup"],
-            catchUpDays = attributes["catchup-days"],
-            catchUpSource = attributes["catchup-source"],
-            timeshift = attributes["timeshift"],
-            userAgent = attributes["user-agent"],
-            rating = attributes["rating"],
-            year = attributes["year"],
-            genre = attributes["genre"]
+            tvgId = attributes.nonBlank("tvg-id"),
+            tvgName = attributes.nonBlank("tvg-name"),
+            tvgLogo = attributes.nonBlank("tvg-logo"),
+            groupTitle = attributes.nonBlank("group-title"),
+            tvgChno = attributes.nonBlank("tvg-chno"),
+            tvgLanguage = attributes.nonBlank("tvg-language"),
+            tvgCountry = attributes.nonBlank("tvg-country"),
+            catchUp = attributes.nonBlank("catchup"),
+            catchUpDays = attributes.nonBlank("catchup-days"),
+            catchUpSource = attributes.nonBlank("catchup-source"),
+            timeshift = attributes.nonBlank("timeshift"),
+            userAgent = attributes.nonBlank("user-agent"),
+            rating = attributes.nonBlank("rating"),
+            year = attributes.nonBlank("year"),
+            genre = attributes.nonBlank("genre")
         )
     }
+
+    private fun Map<String, String>.nonBlank(key: String): String? =
+        this[key]?.trim()?.takeIf { it.isNotEmpty() }
 
     private fun extractDuration(metadata: String): Int? {
         val attributeStart = findAttributeStart(metadata)

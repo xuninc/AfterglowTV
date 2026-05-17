@@ -521,7 +521,8 @@ fun ProgramItem(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val now = currentGuideNow()
-    val isCurrent = now in program.startTime until program.endTime
+    val isPlaceholder = program.isPlaceholder
+    val isCurrent = !isPlaceholder && now in program.startTime until program.endTime
     val cellStyle = AppStyles.value.epgCell
     val liveStyle = AppStyles.value.epgLiveCell
     val cellShape = remember(cellStyle) { epgCellShape(cellStyle) }
@@ -720,13 +721,17 @@ fun ProgramItem(
                 Text(
                     text = program.title,
                     style = titleStyle,
-                    color = epgProgramTitleColor(liveStyle, isCurrent, isFocused),
+                    color = if (isPlaceholder && !isFocused) OnSurfaceDim else epgProgramTitleColor(liveStyle, isCurrent, isFocused),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (!isVeryCompactCell && !showCornerTag) {
                     Text(
-                        text = "$startStr - $endStr",
+                        text = if (isPlaceholder) {
+                            program.description.ifBlank { stringResource(R.string.epg_no_schedule_short) }
+                        } else {
+                            "$startStr - $endStr"
+                        },
                         style = timeStyle,
                         color = if (isFocused) TextSecondary else OnSurfaceDim,
                         maxLines = 1,

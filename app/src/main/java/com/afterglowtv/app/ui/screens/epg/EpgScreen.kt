@@ -612,9 +612,12 @@ fun FullEpgScreen(
     if (dialogState != null) {
         GuideNowProvider {
             val (channel, program) = dialogState
+            val isPlaceholderProgram = program.isPlaceholder
             val reminderProviderId = program.providerId.takeIf { it > 0L } ?: channel.providerId
-            LaunchedEffect(channel.id, reminderProviderId, program.channelId, program.title, program.startTime) {
-                viewModel.loadProgramReminderState(channel, program)
+            LaunchedEffect(channel.id, reminderProviderId, program.channelId, program.title, program.startTime, isPlaceholderProgram) {
+                if (!isPlaceholderProgram) {
+                    viewModel.loadProgramReminderState(channel, program)
+                }
             }
             val reminderStateMatches = programReminderUiState.matches(
                 providerId = reminderProviderId,
@@ -623,6 +626,7 @@ fun FullEpgScreen(
                 programStartTime = program.startTime
             )
             val reminderButtonLabel = if (
+                !isPlaceholderProgram &&
                 reminderProviderId > 0L &&
                 program.channelId.isNotBlank() &&
                 program.startTime > currentGuideNow() + 60_000L
@@ -637,7 +641,7 @@ fun FullEpgScreen(
             } else {
                 null
             }
-            val canWatchArchive = channel.isArchivePlayable(program, currentGuideNow())
+            val canWatchArchive = !isPlaceholderProgram && channel.isArchivePlayable(program, currentGuideNow())
             CompactGuideProgramDialog(
                 channel = channel,
                 program = program,
@@ -689,7 +693,7 @@ fun FullEpgScreen(
                         }
                     }
                 },
-                onScheduleRecording = if (channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
+                onScheduleRecording = if (!isPlaceholderProgram && channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
                     {
                         notificationPermissionGate.runRecordingAction {
                             viewModel.scheduleRecording(channel, program)
@@ -698,7 +702,7 @@ fun FullEpgScreen(
                 } else {
                     null
                 },
-                onScheduleDailyRecording = if (channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
+                onScheduleDailyRecording = if (!isPlaceholderProgram && channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
                     {
                         notificationPermissionGate.runRecordingAction {
                             viewModel.scheduleRecording(channel, program, com.afterglowtv.domain.model.RecordingRecurrence.DAILY)
@@ -707,7 +711,7 @@ fun FullEpgScreen(
                 } else {
                     null
                 },
-                onScheduleWeeklyRecording = if (channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
+                onScheduleWeeklyRecording = if (!isPlaceholderProgram && channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
                     {
                         notificationPermissionGate.runRecordingAction {
                             viewModel.scheduleRecording(channel, program, com.afterglowtv.domain.model.RecordingRecurrence.WEEKLY)
@@ -866,4 +870,3 @@ private fun isGuideChannelLocked(
     } ?: false
     return channel.isUserProtected || categoryLocked
 }
-
