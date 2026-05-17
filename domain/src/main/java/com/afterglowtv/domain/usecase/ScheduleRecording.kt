@@ -10,6 +10,8 @@ import com.afterglowtv.domain.model.RecordingRequest
 import com.afterglowtv.domain.model.Result
 import javax.inject.Inject
 
+private const val MIN_PLACEHOLDER_RECORDING_MS = 60 * 60_000L
+
 data class ScheduleRecordingCommand(
     val contentType: ContentType,
     val providerId: Long,
@@ -39,7 +41,8 @@ class ScheduleRecording @Inject constructor(
         }
 
         val scheduledStartMs = maxOf(command.nowMs, targetProgram.startTime)
-        if (scheduledStartMs >= targetProgram.endTime) {
+        val scheduledEndMs = resolveScheduledEndMs(targetProgram, scheduledStartMs)
+        if (scheduledStartMs >= scheduledEndMs) {
             return Result.error("The selected program has already ended. Refresh the guide and try again.")
         }
 
@@ -50,10 +53,16 @@ class ScheduleRecording @Inject constructor(
                 channelName = channel.name,
                 streamUrl = command.streamUrl,
                 scheduledStartMs = scheduledStartMs,
-                scheduledEndMs = targetProgram.endTime,
+                scheduledEndMs = scheduledEndMs,
                 programTitle = targetProgram.title,
                 recurrence = command.recurrence
             )
         )
+    }
+
+    private fun resolveScheduledEndMs(program: Program, scheduledStartMs: Long): Long {
+        if (!program.isPlaceholder) return program.endTime
+        val minimumEndMs = scheduledStartMs + MIN_PLACEHOLDER_RECORDING_MS
+        return maxOf(program.endTime, minimumEndMs)
     }
 }

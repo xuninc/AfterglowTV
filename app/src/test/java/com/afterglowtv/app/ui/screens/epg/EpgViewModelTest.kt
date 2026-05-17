@@ -80,6 +80,8 @@ class EpgViewModelTest {
         whenever(preferencesRepository.showAllChannelsCategory).thenReturn(flowOf(true))
         whenever(combinedM3uRepository.getActiveLiveSource()).thenReturn(flowOf(null))
         whenever(preferencesRepository.guideDefaultCategoryId).thenReturn(flowOf(null))
+        whenever(preferencesRepository.guideNoDataBlockMinutes).thenReturn(flowOf(60))
+        whenever(preferencesRepository.guideNoDataShowChannelText).thenReturn(flowOf(true))
         runBlocking {
             whenever(epgRepository.getResolvedProgramsForChannels(any(), any(), any(), any())).thenReturn(emptyMap())
             whenever(epgRepository.getProgramsForChannelsSnapshot(any(), any(), any(), any())).thenReturn(emptyMap())
@@ -195,7 +197,7 @@ class EpgViewModelTest {
     }
 
     @Test
-    fun `guide shows two-hour channel description placeholders when no programme data exists`() = runTest {
+    fun `guide shows one-hour channel description placeholders when no programme data exists`() = runTest {
         val provider = Provider(
             id = 1L,
             name = "Provider",
@@ -237,7 +239,7 @@ class EpgViewModelTest {
 
         val state = viewModel.uiState.value
         val placeholders = state.programsByChannel.getValue("Adult Asian")
-        val placeholderSlotMs = 2 * 60 * 60 * 1000L
+        val placeholderSlotMs = 60 * 60 * 1000L
         val expectedSlotCount = ((state.guideWindowEnd - state.guideWindowStart + placeholderSlotMs - 1) / placeholderSlotMs).toInt()
         assertThat(placeholders).hasSize(expectedSlotCount)
         assertThat(placeholders.map { it.startTime }).containsExactlyElementsIn(
@@ -254,6 +256,60 @@ class EpgViewModelTest {
         assertThat(placeholders.first().description).contains("XXX")
         assertThat(placeholders.all { it.category == "No guide data" }).isTrue()
         assertThat(viewModel.uiState.value.channelsWithSchedule).isEqualTo(0)
+    }
+
+    @Test
+    fun `guide can leave no-data placeholders blank in two-hour chunks`() = runTest {
+        val provider = Provider(
+            id = 1L,
+            name = "Provider",
+            type = ProviderType.M3U,
+            serverUrl = "https://provider.example.com"
+        )
+        val channel = Channel(
+            id = 1L,
+            name = "Channel Without Data",
+            providerId = provider.id,
+            epgChannelId = "Channel Without Data",
+            categoryId = 10L,
+            categoryName = "Live"
+        )
+        whenever(providerRepository.getActiveProvider()).thenReturn(flowOf(provider))
+        whenever(preferencesRepository.getHiddenCategoryIds(provider.id, ContentType.LIVE)).thenReturn(flowOf(emptySet()))
+        whenever(preferencesRepository.getCategorySortMode(provider.id, ContentType.LIVE)).thenReturn(flowOf(CategorySortMode.DEFAULT))
+        whenever(preferencesRepository.guideNoDataBlockMinutes).thenReturn(flowOf(120))
+        whenever(preferencesRepository.guideNoDataShowChannelText).thenReturn(flowOf(false))
+        whenever(parentalControlManager.unlockedCategoriesForProvider(provider.id)).thenReturn(flowOf(emptySet()))
+        whenever(channelRepository.getCategories(provider.id)).thenReturn(flowOf(listOf(Category(id = 10L, name = "Live"))))
+        whenever(channelRepository.getChannels(provider.id)).thenReturn(flowOf(listOf(channel)))
+        whenever(channelRepository.getChannelsByCategoryPage(provider.id, ChannelRepository.ALL_CHANNELS_ID, EpgViewModel.MAX_CHANNELS)).thenReturn(flowOf(listOf(channel)))
+        whenever(channelRepository.getChannelsWithoutErrorsPage(provider.id, ChannelRepository.ALL_CHANNELS_ID, EpgViewModel.MAX_CHANNELS)).thenReturn(flowOf(listOf(channel)))
+        whenever(favoriteRepository.getFavorites(provider.id, ContentType.LIVE)).thenReturn(flowOf(emptyList()))
+        whenever(preferencesRepository.guideDensity).thenReturn(flowOf(null))
+        whenever(preferencesRepository.guideChannelMode).thenReturn(flowOf(null))
+        whenever(preferencesRepository.guideDefaultCategoryId).thenReturn(flowOf(ChannelRepository.ALL_CHANNELS_ID))
+        whenever(preferencesRepository.guideFavoritesOnly).thenReturn(flowOf(false))
+        whenever(preferencesRepository.guideScheduledOnly).thenReturn(flowOf(false))
+        whenever(preferencesRepository.guideAnchorTime).thenReturn(flowOf(null))
+        whenever(epgRepository.getResolvedProgramsForChannels(eq(provider.id), any(), any(), any())).thenReturn(emptyMap())
+        whenever(epgRepository.getProgramsForChannelsSnapshot(eq(provider.id), eq(listOf("Channel Without Data")), any(), any())).thenReturn(emptyMap())
+
+        val viewModel = createViewModel()
+
+        advanceUntilIdle()
+        waitForUiState {
+            viewModel.uiState.value.programsByChannel["Channel Without Data"].orEmpty().isNotEmpty()
+        }
+
+        val state = viewModel.uiState.value
+        val placeholders = state.programsByChannel.getValue("Channel Without Data")
+        val placeholderSlotMs = 2 * 60 * 60 * 1000L
+        val expectedSlotCount = ((state.guideWindowEnd - state.guideWindowStart + placeholderSlotMs - 1) / placeholderSlotMs).toInt()
+        assertThat(placeholders).hasSize(expectedSlotCount)
+        assertThat(placeholders.all { it.isPlaceholder }).isTrue()
+        assertThat(placeholders.all { it.title.isBlank() }).isTrue()
+        assertThat(placeholders.all { it.description.isBlank() }).isTrue()
+        assertThat(placeholders.all { it.category == null }).isTrue()
     }
 
     @Test

@@ -21,6 +21,7 @@ internal class SettingsScreenDialogState(
     private val showLiveVariantPreferenceDialogState: MutableState<Boolean>,
     private val showVodViewModeDialogState: MutableState<Boolean>,
     private val showGuideDefaultCategoryDialogState: MutableState<Boolean>,
+    private val showGuideNoDataBlockDialogState: MutableState<Boolean>,
     private val showPlaybackSpeedDialogState: MutableState<Boolean>,
     private val showAudioVideoOffsetDialogState: MutableState<Boolean>,
     private val showDecoderModeDialogState: MutableState<Boolean>,
@@ -28,6 +29,8 @@ internal class SettingsScreenDialogState(
     private val showTimeshiftDepthDialogState: MutableState<Boolean>,
     private val showDefaultStopTimerDialogState: MutableState<Boolean>,
     private val showDefaultIdleTimerDialogState: MutableState<Boolean>,
+    private val showRemoteChannelUpButtonDialogState: MutableState<Boolean>,
+    private val showRemoteChannelDownButtonDialogState: MutableState<Boolean>,
     private val showControlsTimeoutDialogState: MutableState<Boolean>,
     private val showLiveOverlayTimeoutDialogState: MutableState<Boolean>,
     private val showNoticeTimeoutDialogState: MutableState<Boolean>,
@@ -73,6 +76,7 @@ internal class SettingsScreenDialogState(
     var showLiveVariantPreferenceDialog by showLiveVariantPreferenceDialogState
     var showVodViewModeDialog by showVodViewModeDialogState
     var showGuideDefaultCategoryDialog by showGuideDefaultCategoryDialogState
+    var showGuideNoDataBlockDialog by showGuideNoDataBlockDialogState
     var showPlaybackSpeedDialog by showPlaybackSpeedDialogState
     var showAudioVideoOffsetDialog by showAudioVideoOffsetDialogState
     var showDecoderModeDialog by showDecoderModeDialogState
@@ -80,6 +84,8 @@ internal class SettingsScreenDialogState(
     var showTimeshiftDepthDialog by showTimeshiftDepthDialogState
     var showDefaultStopTimerDialog by showDefaultStopTimerDialogState
     var showDefaultIdleTimerDialog by showDefaultIdleTimerDialogState
+    var showRemoteChannelUpButtonDialog by showRemoteChannelUpButtonDialogState
+    var showRemoteChannelDownButtonDialog by showRemoteChannelDownButtonDialogState
     var showControlsTimeoutDialog by showControlsTimeoutDialogState
     var showLiveOverlayTimeoutDialog by showLiveOverlayTimeoutDialogState
     var showNoticeTimeoutDialog by showNoticeTimeoutDialogState
@@ -193,6 +199,7 @@ internal fun rememberSettingsScreenDialogState(): SettingsScreenDialogState {
     val showLiveVariantPreferenceDialogState = rememberSaveable { mutableStateOf(false) }
     val showVodViewModeDialogState = rememberSaveable { mutableStateOf(false) }
     val showGuideDefaultCategoryDialogState = rememberSaveable { mutableStateOf(false) }
+    val showGuideNoDataBlockDialogState = rememberSaveable { mutableStateOf(false) }
     val showPlaybackSpeedDialogState = rememberSaveable { mutableStateOf(false) }
     val showAudioVideoOffsetDialogState = rememberSaveable { mutableStateOf(false) }
     val showDecoderModeDialogState = rememberSaveable { mutableStateOf(false) }
@@ -200,6 +207,8 @@ internal fun rememberSettingsScreenDialogState(): SettingsScreenDialogState {
     val showTimeshiftDepthDialogState = rememberSaveable { mutableStateOf(false) }
     val showDefaultStopTimerDialogState = rememberSaveable { mutableStateOf(false) }
     val showDefaultIdleTimerDialogState = rememberSaveable { mutableStateOf(false) }
+    val showRemoteChannelUpButtonDialogState = rememberSaveable { mutableStateOf(false) }
+    val showRemoteChannelDownButtonDialogState = rememberSaveable { mutableStateOf(false) }
     val showControlsTimeoutDialogState = rememberSaveable { mutableStateOf(false) }
     val showLiveOverlayTimeoutDialogState = rememberSaveable { mutableStateOf(false) }
     val showNoticeTimeoutDialogState = rememberSaveable { mutableStateOf(false) }
@@ -254,6 +263,7 @@ internal fun rememberSettingsScreenDialogState(): SettingsScreenDialogState {
         showLiveVariantPreferenceDialogState = showLiveVariantPreferenceDialogState,
         showVodViewModeDialogState = showVodViewModeDialogState,
         showGuideDefaultCategoryDialogState = showGuideDefaultCategoryDialogState,
+        showGuideNoDataBlockDialogState = showGuideNoDataBlockDialogState,
         showPlaybackSpeedDialogState = showPlaybackSpeedDialogState,
         showAudioVideoOffsetDialogState = showAudioVideoOffsetDialogState,
         showDecoderModeDialogState = showDecoderModeDialogState,
@@ -261,6 +271,8 @@ internal fun rememberSettingsScreenDialogState(): SettingsScreenDialogState {
         showTimeshiftDepthDialogState = showTimeshiftDepthDialogState,
         showDefaultStopTimerDialogState = showDefaultStopTimerDialogState,
         showDefaultIdleTimerDialogState = showDefaultIdleTimerDialogState,
+        showRemoteChannelUpButtonDialogState = showRemoteChannelUpButtonDialogState,
+        showRemoteChannelDownButtonDialogState = showRemoteChannelDownButtonDialogState,
         showControlsTimeoutDialogState = showControlsTimeoutDialogState,
         showLiveOverlayTimeoutDialogState = showLiveOverlayTimeoutDialogState,
         showNoticeTimeoutDialogState = showNoticeTimeoutDialogState,

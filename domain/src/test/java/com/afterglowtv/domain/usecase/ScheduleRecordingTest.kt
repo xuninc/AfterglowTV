@@ -86,6 +86,33 @@ class ScheduleRecordingTest {
     }
 
     @Test
+    fun extends_placeholder_current_program_to_minimum_recording_window() = runTest {
+        val manager = FakeRecordingManager()
+        val useCase = ScheduleRecording(manager)
+
+        useCase(
+            ScheduleRecordingCommand(
+                contentType = ContentType.LIVE,
+                providerId = 7L,
+                channel = channel(),
+                streamUrl = "https://example.com/live.ts",
+                currentProgram = program(
+                    title = "Channel 11",
+                    startTime = 1_000L,
+                    endTime = 61_000L,
+                    isPlaceholder = true
+                ),
+                nextProgram = null,
+                recurrence = RecordingRecurrence.NONE,
+                nowMs = 30_000L
+            )
+        )
+
+        assertThat(manager.lastScheduledRequest?.scheduledStartMs).isEqualTo(30_000L)
+        assertThat(manager.lastScheduledRequest?.scheduledEndMs).isEqualTo(30_000L + 60 * 60_000L)
+    }
+
+    @Test
     fun returns_error_when_program_has_already_ended() = runTest {
         val manager = FakeRecordingManager()
         val useCase = ScheduleRecording(manager)
@@ -115,13 +142,19 @@ class ScheduleRecordingTest {
         providerId = 7L
     )
 
-    private fun program(title: String, startTime: Long, endTime: Long) = Program(
+    private fun program(
+        title: String,
+        startTime: Long,
+        endTime: Long,
+        isPlaceholder: Boolean = false
+    ) = Program(
         id = 1L,
         channelId = "11",
         title = title,
         startTime = startTime,
         endTime = endTime,
-        providerId = 7L
+        providerId = 7L,
+        isPlaceholder = isPlaceholder
     )
 
     private class FakeRecordingManager : RecordingManager {

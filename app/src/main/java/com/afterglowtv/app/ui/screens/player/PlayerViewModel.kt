@@ -14,6 +14,7 @@ import com.afterglowtv.app.player.PlayerNowPlayingStore
 import com.afterglowtv.app.util.isPlaybackComplete
 import com.afterglowtv.app.tv.LauncherRecommendationsManager
 import com.afterglowtv.app.tv.WatchNextManager
+import com.afterglowtv.app.ui.model.RemoteChannelButtonAction
 import com.afterglowtv.data.remote.stalker.StalkerUrlFactory
 import com.afterglowtv.data.remote.xtream.XtreamStreamUrlResolver
 import com.afterglowtv.data.security.CredentialDecryptionException
@@ -327,6 +328,8 @@ class PlayerViewModel @Inject constructor(
     internal var remoteDpadChannelZappingEnabled: Boolean = true
     internal var remoteDpadInvertChannelZapping: Boolean = false
     internal var remoteShowInfoOnZap: Boolean = false
+    internal var remoteChannelUpButtonAction: RemoteChannelButtonAction = RemoteChannelButtonAction.CHANGE_CHANNELS
+    internal var remoteChannelDownButtonAction: RemoteChannelButtonAction = RemoteChannelButtonAction.CHANGE_CHANNELS
     internal var autoPlayNextEpisodeEnabled: Boolean = true
     internal var isAppInForeground: Boolean = true
     internal var shouldResumeAfterForeground: Boolean = false
@@ -564,6 +567,16 @@ class PlayerViewModel @Inject constructor(
         }
         viewModelScope.launch {
             preferencesRepository.remoteShowInfoOnZap.collect { remoteShowInfoOnZap = it }
+        }
+        viewModelScope.launch {
+            preferencesRepository.remoteChannelUpButtonAction.collect { action ->
+                remoteChannelUpButtonAction = RemoteChannelButtonAction.fromStorage(action)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.remoteChannelDownButtonAction.collect { action ->
+                remoteChannelDownButtonAction = RemoteChannelButtonAction.fromStorage(action)
+            }
         }
         viewModelScope.launch {
             preferencesRepository.autoPlayNextEpisode.collect { autoPlayNextEpisodeEnabled = it }

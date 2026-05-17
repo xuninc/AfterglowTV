@@ -121,9 +121,21 @@ internal fun SettingsPlayerPreferenceDialogs(
     if (showSurfaceModeDialog) {
         val surfaceOptions = remember(context) {
             listOf(
-                PlayerSurfaceMode.AUTO to context.getString(R.string.settings_surface_auto),
-                PlayerSurfaceMode.SURFACE_VIEW to context.getString(R.string.settings_surface_surface_view),
-                PlayerSurfaceMode.TEXTURE_VIEW to context.getString(R.string.settings_surface_texture_view)
+                Triple(
+                    PlayerSurfaceMode.AUTO,
+                    context.getString(R.string.settings_surface_auto),
+                    context.getString(R.string.settings_surface_auto_desc)
+                ),
+                Triple(
+                    PlayerSurfaceMode.SURFACE_VIEW,
+                    context.getString(R.string.settings_surface_surface_view),
+                    context.getString(R.string.settings_surface_surface_view_desc)
+                ),
+                Triple(
+                    PlayerSurfaceMode.TEXTURE_VIEW,
+                    context.getString(R.string.settings_surface_texture_view),
+                    context.getString(R.string.settings_surface_texture_view_desc)
+                )
             )
         }
         PremiumSelectionDialog(
@@ -134,6 +146,7 @@ internal fun SettingsPlayerPreferenceDialogs(
                 LevelOption(
                     level = index,
                     text = option.second,
+                    subtitle = option.third,
                     currentLevel = if (uiState.playerSurfaceMode == option.first) index else -1,
                     onSelect = {
                         viewModel.setPlayerSurfaceMode(option.first)

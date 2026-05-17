@@ -159,7 +159,9 @@ private data class GuideBaseRequest(
     val anchorTime: Long,
     val favoritesOnly: Boolean,
     val windowStart: Long,
-    val windowEnd: Long
+    val windowEnd: Long,
+    val noDataBlockMinutes: Int,
+    val noDataShowChannelText: Boolean
 )
 
 private data class GuideBaseSnapshot(
@@ -182,6 +184,8 @@ private data class GuideBaseSnapshot(
     val guideAnchorTime: Long,
     val guideWindowStart: Long,
     val guideWindowEnd: Long,
+    val noDataBlockMinutes: Int,
+    val noDataShowChannelText: Boolean,
     val hiddenCategoryIds: Set<Long> = emptySet(),
     val nextRawChannelOffset: Int = 0,
     val hasMoreChannels: Boolean = false
@@ -212,9 +216,16 @@ private data class GuideSelectionRequest(
     val requestedCategoryId: Long,
     val anchorTime: Long,
     val favoritesOnly: Boolean,
+    val noDataBlockMinutes: Int,
+    val noDataShowChannelText: Boolean,
     val parentalControlLevel: Int,
     val unlockedCategoryIds: Set<Long>,
     val isStartupSelection: Boolean
+)
+
+private data class GuideNoDataPreferences(
+    val blockMinutes: Int,
+    val showChannelText: Boolean
 )
 
 private data class CombinedGuideDependencies(
@@ -278,7 +289,9 @@ class EpgViewModel @Inject constructor(
         const val PRIME_TIME_HOUR = 20
         const val NO_ACTIVE_PROVIDER = "NO_ACTIVE_PROVIDER"
         private const val NO_GUIDE_DATA_CATEGORY = "No guide data"
-        private const val PLACEHOLDER_PROGRAMME_SLOT_MS = 2 * 60 * 60 * 1000L
+        private const val DEFAULT_NO_DATA_BLOCK_MINUTES = 60
+        private const val MINUTE_MS = 60 * 1000L
+        private const val MIN_PLACEHOLDER_RECORDING_MS = 60 * MINUTE_MS
     }
 
     private val _uiState = MutableStateFlow(EpgUiState())
@@ -554,28 +567,35 @@ class EpgViewModel @Inject constructor(
     }
 
     fun scheduleRecording(channel: Channel, program: Program, recurrence: RecordingRecurrence = RecordingRecurrence.NONE) {
-        if (program.isPlaceholder) return
         viewModelScope.launch {
+            val recordingProgram = if (program.title.isBlank()) {
+                program.copy(title = channel.name)
+            } else {
+                program
+            }
+            val nowMs = System.currentTimeMillis()
+            val scheduledStartMs = maxOf(nowMs, recordingProgram.startTime)
+            val scheduledEndMs = resolveGuideRecordingEndMs(recordingProgram, scheduledStartMs)
+            val normalizedRecordingProgram = recordingProgram.copy(endTime = scheduledEndMs)
             val command = ScheduleRecordingCommand(
                 contentType = ContentType.LIVE,
                 providerId = channel.providerId,
                 channel = channel,
                 streamUrl = channel.streamUrl,
-                currentProgram = program,
+                currentProgram = normalizedRecordingProgram,
                 nextProgram = null,
                 recurrence = recurrence
             )
             val result = scheduleRecording(command)
             when (result) {
                 is Result.Success -> {
-                    _uiState.update { it.copy(recordingMessage = "Recording scheduled: ${program.title}") }
+                    _uiState.update { it.copy(recordingMessage = "Recording scheduled: ${normalizedRecordingProgram.title}") }
                 }
                 is Result.Error -> {
                     val msg = result.message.orEmpty()
                     if (msg.contains("conflicts", ignoreCase = true)) {
-                        val scheduledStartMs = maxOf(System.currentTimeMillis(), program.startTime)
                         val conflicts = recordingManager.getConflictingRecordings(
-                            scheduledStartMs, program.endTime, channel.providerId
+                            scheduledStartMs, scheduledEndMs, channel.providerId
                         )
                         if (conflicts.isNotEmpty()) {
                             _uiState.update {
@@ -588,11 +608,11 @@ class EpgViewModel @Inject constructor(
                                             channelName = channel.name,
                                             streamUrl = channel.streamUrl,
                                             scheduledStartMs = scheduledStartMs,
-                                            scheduledEndMs = program.endTime,
-                                            programTitle = program.title,
+                                            scheduledEndMs = scheduledEndMs,
+                                            programTitle = normalizedRecordingProgram.title,
                                             recurrence = recurrence
                                         ),
-                                        programTitle = program.title ?: channel.name
+                                        programTitle = normalizedRecordingProgram.title.ifBlank { channel.name }
                                     )
                                 )
                             }
@@ -604,6 +624,11 @@ class EpgViewModel @Inject constructor(
                 else -> {}
             }
         }
+    }
+
+    private fun resolveGuideRecordingEndMs(program: Program, scheduledStartMs: Long): Long {
+        if (!program.isPlaceholder) return program.endTime
+        return maxOf(program.endTime, scheduledStartMs + MIN_PLACEHOLDER_RECORDING_MS)
     }
 
     fun forceScheduleRecording() {
@@ -849,6 +874,8 @@ class EpgViewModel @Inject constructor(
                         requestedCategoryId = selection.requestedCategoryId,
                         anchorTime = selection.anchorTime,
                         favoritesOnly = selection.favoritesOnly,
+                        noDataBlockMinutes = selection.noDataBlockMinutes,
+                        noDataShowChannelText = selection.noDataShowChannelText,
                         parentalControlLevel = parentalControlLevel,
                         unlockedCategoryIds = unlockedCategoryIds,
                         isStartupSelection = selection.isStartupSelection
@@ -880,7 +907,9 @@ class EpgViewModel @Inject constructor(
                     anchorTime = selection.anchorTime,
                     favoritesOnly = selection.favoritesOnly,
                     windowStart = selection.anchorTime - LOOKBACK_MS,
-                    windowEnd = selection.anchorTime + LOOKAHEAD_MS
+                    windowEnd = selection.anchorTime + LOOKAHEAD_MS,
+                    noDataBlockMinutes = selection.noDataBlockMinutes,
+                    noDataShowChannelText = selection.noDataShowChannelText
                 )
             }.collectLatest { request ->
                 val categories = request.categories
@@ -986,7 +1015,9 @@ class EpgViewModel @Inject constructor(
                     anchorTime = data.selection.first.anchorTime,
                     favoritesOnly = data.selection.first.favoritesOnly,
                     windowStart = data.selection.first.anchorTime - LOOKBACK_MS,
-                    windowEnd = data.selection.first.anchorTime + LOOKAHEAD_MS
+                    windowEnd = data.selection.first.anchorTime + LOOKAHEAD_MS,
+                    noDataBlockMinutes = data.selection.first.noDataBlockMinutes,
+                    noDataShowChannelText = data.selection.first.noDataShowChannelText
                 ),
                 providerIds = data.providerIds
             )
@@ -1089,6 +1120,15 @@ class EpgViewModel @Inject constructor(
         }
     }
 
+    private fun guideNoDataPreferencesFlow(): Flow<GuideNoDataPreferences> =
+        preferencesRepository.guideNoDataBlockMinutes
+            .combine(preferencesRepository.guideNoDataShowChannelText) { blockMinutes, showChannelText ->
+                GuideNoDataPreferences(
+                    blockMinutes = normalizeGuideNoDataBlockMinutes(blockMinutes),
+                    showChannelText = showChannelText
+                )
+            }
+
     private fun guideSelectionSeedFlow(): Flow<GuideSelectionSeed> =
         combine(
             selectedCategoryId,
@@ -1101,7 +1141,14 @@ class EpgViewModel @Inject constructor(
                 requestedCategoryId = startupSelectionId ?: requestedCategoryId,
                 anchorTime = anchorTime,
                 favoritesOnly = favoritesOnly,
+                noDataBlockMinutes = DEFAULT_NO_DATA_BLOCK_MINUTES,
+                noDataShowChannelText = true,
                 isStartupSelection = startupSelectionId != null
+            )
+        }.combine(guideNoDataPreferencesFlow()) { seed, noDataPreferences ->
+            seed.copy(
+                noDataBlockMinutes = noDataPreferences.blockMinutes,
+                noDataShowChannelText = noDataPreferences.showChannelText
             )
         }
 
@@ -1155,6 +1202,8 @@ class EpgViewModel @Inject constructor(
             guideAnchorTime = request.anchorTime,
             guideWindowStart = request.windowStart,
             guideWindowEnd = request.windowEnd,
+            noDataBlockMinutes = request.noDataBlockMinutes,
+            noDataShowChannelText = request.noDataShowChannelText,
             hiddenCategoryIds = request.hiddenCategoryIds,
             nextRawChannelOffset = MAX_CHANNELS,
             hasMoreChannels = if (supportsOffsetPaging) {
@@ -1674,7 +1723,9 @@ class EpgViewModel @Inject constructor(
         val displayProgramsByChannel = candidateProgramsByChannel.withChannelGuidePlaceholders(
             channels = displayChannels,
             windowStart = baseSnapshot.guideWindowStart,
-            windowEnd = baseSnapshot.guideWindowEnd
+            windowEnd = baseSnapshot.guideWindowEnd,
+            blockMinutes = baseSnapshot.noDataBlockMinutes,
+            showChannelText = baseSnapshot.noDataShowChannelText
         )
 
         return GuideDisplaySnapshot(
@@ -1689,13 +1740,22 @@ class EpgViewModel @Inject constructor(
     private fun Map<String, List<Program>>.withChannelGuidePlaceholders(
         channels: List<Channel>,
         windowStart: Long,
-        windowEnd: Long
+        windowEnd: Long,
+        blockMinutes: Int,
+        showChannelText: Boolean
     ): Map<String, List<Program>> {
         if (channels.isEmpty()) return this
+        val slotMs = normalizeGuideNoDataBlockMinutes(blockMinutes) * MINUTE_MS
         val placeholders = channels.mapNotNull { channel ->
             val lookupKey = channel.guideLookupKey() ?: return@mapNotNull null
             if (this[lookupKey].orEmpty().hasRealGuidePrograms()) return@mapNotNull null
-            lookupKey to channel.toGuidePlaceholderPrograms(lookupKey, windowStart, windowEnd)
+            lookupKey to channel.toGuidePlaceholderPrograms(
+                lookupKey = lookupKey,
+                windowStart = windowStart,
+                windowEnd = windowEnd,
+                slotMs = slotMs,
+                showChannelText = showChannelText
+            )
         }
         if (placeholders.isEmpty()) return this
         return this + placeholders
@@ -1704,22 +1764,26 @@ class EpgViewModel @Inject constructor(
     private fun Channel.toGuidePlaceholderPrograms(
         lookupKey: String,
         windowStart: Long,
-        windowEnd: Long
+        windowEnd: Long,
+        slotMs: Long,
+        showChannelText: Boolean
     ): List<Program> {
         if (windowEnd <= windowStart) return emptyList()
-        val description = buildGuidePlaceholderDescription()
+        val description = if (showChannelText) buildGuidePlaceholderDescription() else ""
+        val title = if (showChannelText) name else ""
+        val category = NO_GUIDE_DATA_CATEGORY.takeIf { showChannelText }
         return buildList {
             var slotStart = windowStart
             while (slotStart < windowEnd) {
-                val slotEnd = minOf(slotStart + PLACEHOLDER_PROGRAMME_SLOT_MS, windowEnd)
+                val slotEnd = minOf(slotStart + slotMs, windowEnd)
                 add(
                     Program(
                         channelId = lookupKey,
-                        title = name,
+                        title = title,
                         description = description,
                         startTime = slotStart,
                         endTime = slotEnd,
-                        category = NO_GUIDE_DATA_CATEGORY,
+                        category = category,
                         providerId = providerId,
                         isPlaceholder = true
                     )
@@ -1896,6 +1960,8 @@ private data class GuideSelectionSeed(
     val requestedCategoryId: Long,
     val anchorTime: Long,
     val favoritesOnly: Boolean,
+    val noDataBlockMinutes: Int,
+    val noDataShowChannelText: Boolean,
     val isStartupSelection: Boolean
 )
 
@@ -1906,3 +1972,9 @@ private data class GuideCategoryData(
     val sortMode: com.afterglowtv.domain.model.CategorySortMode,
     val showAllChannels: Boolean = true
 )
+
+private fun normalizeGuideNoDataBlockMinutes(minutes: Int): Int = when (minutes) {
+    120 -> 120
+    1_440 -> 1_440
+    else -> 60
+}

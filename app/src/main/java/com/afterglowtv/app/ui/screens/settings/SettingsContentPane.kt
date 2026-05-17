@@ -89,7 +89,9 @@ internal fun SettingsContentPane(
                 onShowSubtitleTextColorDialogChange = { dialogState.showSubtitleTextColorDialog = it },
                 onShowSubtitleBackgroundDialogChange = { dialogState.showSubtitleBackgroundDialog = it },
                 onShowWifiQualityDialogChange = { dialogState.showWifiQualityDialog = it },
-                onShowEthernetQualityDialogChange = { dialogState.showEthernetQualityDialog = it }
+                onShowEthernetQualityDialogChange = { dialogState.showEthernetQualityDialog = it },
+                onShowRemoteChannelUpButtonDialogChange = { dialogState.showRemoteChannelUpButtonDialog = it },
+                onShowRemoteChannelDownButtonDialogChange = { dialogState.showRemoteChannelDownButtonDialog = it }
             )
         } else if (dialogState.selectedCategory == 2) {
             settingsBrowsingSection(
@@ -97,6 +99,7 @@ internal fun SettingsContentPane(
                 viewModel = viewModel,
                 context = context,
                 guideDefaultCategoryLabel = screenLabels.guideDefaultCategoryLabel,
+                guideNoDataBlockLabel = screenLabels.guideNoDataBlockLabel,
                 timeFormatLabel = screenLabels.timeFormatLabel,
                 appLanguageLabel = screenLabels.appLanguageLabel,
                 onShowLiveTvModeDialogChange = { dialogState.showLiveTvModeDialog = it },
@@ -107,6 +110,7 @@ internal fun SettingsContentPane(
                 onShowGroupedChannelLabelDialogChange = { dialogState.showGroupedChannelLabelDialog = it },
                 onShowLiveVariantPreferenceDialogChange = { dialogState.showLiveVariantPreferenceDialog = it },
                 onShowGuideDefaultCategoryDialogChange = { dialogState.showGuideDefaultCategoryDialog = it },
+                onShowGuideNoDataBlockDialogChange = { dialogState.showGuideNoDataBlockDialog = it },
                 onShowTimeFormatDialogChange = { dialogState.showTimeFormatDialog = it },
                 onShowVodViewModeDialogChange = { dialogState.showVodViewModeDialog = it },
                 onCategorySortDialogTypeChange = { dialogState.categorySortDialogType = it },

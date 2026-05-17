@@ -35,7 +35,8 @@ internal data class SettingsScreenLabels(
     val lastSpeedTestSummary: String,
     val speedTestRecommendationLabel: String,
     val protectionSummary: String,
-    val guideDefaultCategoryLabel: String
+    val guideDefaultCategoryLabel: String,
+    val guideNoDataBlockLabel: String
 )
 
 @Composable
@@ -138,6 +139,9 @@ internal fun rememberSettingsScreenLabels(
             ?.name
             ?: context.getString(R.string.settings_guide_default_category_fallback)
     }
+    val guideNoDataBlockLabel = remember(uiState.guideNoDataBlockMinutes, context) {
+        formatGuideNoDataBlockLabel(uiState.guideNoDataBlockMinutes, context)
+    }
 
     return SettingsScreenLabels(
         buildVerificationLabel = buildVerificationLabel,
@@ -164,7 +168,8 @@ internal fun rememberSettingsScreenLabels(
         lastSpeedTestSummary = lastSpeedTestSummary,
         speedTestRecommendationLabel = speedTestRecommendationLabel,
         protectionSummary = protectionSummary,
-        guideDefaultCategoryLabel = guideDefaultCategoryLabel
+        guideDefaultCategoryLabel = guideDefaultCategoryLabel,
+        guideNoDataBlockLabel = guideNoDataBlockLabel
     )
 }
 
@@ -196,6 +201,12 @@ private fun formatAppTimeFormatLabel(
         AppTimeFormat.TWENTY_FOUR_HOUR -> R.string.settings_time_format_24h
     }
 )
+
+private fun formatGuideNoDataBlockLabel(minutes: Int, context: Context): String = when (minutes) {
+    120 -> context.getString(R.string.settings_guide_no_data_block_2_hours)
+    1_440 -> context.getString(R.string.settings_guide_no_data_block_24_hours)
+    else -> context.getString(R.string.settings_guide_no_data_block_1_hour)
+}
 
 private fun formatTimeshiftDepthLabel(
     depthMinutes: Int,

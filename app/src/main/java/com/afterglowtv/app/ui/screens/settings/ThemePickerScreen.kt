@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -69,12 +70,22 @@ class ThemePickerViewModel @Inject constructor(
         SharingStarted.Eagerly,
         "afterglow_sunset",
     )
+    val backgroundGradientsEnabled = preferences.backgroundGradientsEnabled.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        false,
+    )
 
     fun select(palette: AppPalette) {
         viewModelScope.launch {
             preferences.setThemePalette(palette.id)
             AppColors.applyPalette(palette)
         }
+    }
+
+    fun setBackgroundGradientsEnabled(enabled: Boolean) {
+        AppColors.applyBackgroundGradientsEnabled(enabled)
+        viewModelScope.launch { preferences.setBackgroundGradientsEnabled(enabled) }
     }
 }
 
@@ -84,6 +95,7 @@ fun ThemePickerScreen(
     viewModel: ThemePickerViewModel = hiltViewModel(),
 ) {
     val activeId by viewModel.activePaletteId.collectAsState()
+    val backgroundGradientsEnabled by viewModel.backgroundGradientsEnabled.collectAsState()
     val palettes = AppPalette.ALL
     val initialIndex = palettes.indexOfFirst { it.id == activeId }.coerceAtLeast(0)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
@@ -142,6 +154,12 @@ fun ThemePickerScreen(
                 }
             }
 
+            GradientPreferenceCard(
+                enabled = backgroundGradientsEnabled,
+                onEnabledChange = viewModel::setBackgroundGradientsEnabled,
+                modifier = Modifier.padding(bottom = 14.dp),
+            )
+
             LazyColumn(
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -160,6 +178,101 @@ fun ThemePickerScreen(
 }
 
 @Composable
+private fun GradientPreferenceCard(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(10.dp)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val glow = when {
+        isFocused -> listOf(
+            GlowSpec(Color.White, 16.dp, 0.58f),
+            GlowSpec(AppColors.TiviAccentLight, 26.dp, 0.28f),
+        )
+        enabled -> listOf(
+            GlowSpec(AppColors.TiviAccent, 14.dp, 0.45f),
+        )
+        else -> emptyList()
+    }
+
+    TvClickableSurface(
+        onClick = { onEnabledChange(!enabled) },
+        interactionSource = interactionSource,
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (glow.isNotEmpty()) Modifier.afterglow(glow, shape) else Modifier),
+        shape = ClickableSurfaceDefaults.shape(shape),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = AppColors.SurfaceElevated.copy(alpha = 0.88f),
+            contentColor = AppColors.TextPrimary,
+            focusedContainerColor = AppColors.SurfaceAccent.copy(alpha = 0.96f),
+            focusedContentColor = AppColors.TextPrimary,
+            pressedContainerColor = AppColors.SurfaceAccent,
+            pressedContentColor = AppColors.TextPrimary,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, AppColors.Outline.copy(alpha = 0.70f)),
+                shape = shape,
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(FocusSpec.BorderWidth + 1.dp, Color.White),
+                shape = shape,
+            ),
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.012f),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 84.dp, height = 48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                AppColors.TiviSurfaceDeep,
+                                AppColors.TiviSurfaceCool,
+                                AppColors.TiviAccent,
+                                AppColors.EpgNowLine,
+                            ),
+                        ),
+                    )
+                    .border(1.dp, AppColors.Divider, RoundedCornerShape(8.dp)),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Background gradients",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = AppColors.TextPrimary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = if (enabled) {
+                        "Blend the selected theme colors across app backgrounds"
+                    } else {
+                        "Keep app backgrounds solid; theme cards still show gradients"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.TextSecondary,
+                )
+            }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange,
+            )
+        }
+    }
+}
+
+@Composable
 private fun PaletteCard(
     palette: AppPalette,
     isSelected: Boolean,
@@ -170,8 +283,8 @@ private fun PaletteCard(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val focusGlow = when {
         isFocused -> listOf(
-            GlowSpec(AppColors.Focus, 18.dp, 0.90f),
-            GlowSpec(palette.accent, 36.dp, 0.45f),
+            GlowSpec(Color.White, 18.dp, 0.70f),
+            GlowSpec(palette.accentLight, 30.dp, 0.35f),
         )
         isSelected -> listOf(
             GlowSpec(palette.accent, 16.dp, 0.70f),
@@ -210,7 +323,7 @@ private fun PaletteCard(
                 shape = shape,
             ),
             focusedBorder = Border(
-                border = BorderStroke(FocusSpec.BorderWidth + 1.dp, AppColors.Focus),
+                border = BorderStroke(FocusSpec.BorderWidth + 1.dp, Color.White),
                 shape = shape,
             ),
         ),
@@ -221,13 +334,6 @@ private fun PaletteCard(
                 .matchParentSize()
                 .background(Brush.horizontalGradient(themeSelectionGradient(palette))),
         )
-        if (isFocused) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(AppColors.FocusFill.copy(alpha = 0.36f)),
-            )
-        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()

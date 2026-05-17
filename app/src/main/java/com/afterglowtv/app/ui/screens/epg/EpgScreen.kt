@@ -171,6 +171,7 @@ fun FullEpgScreen(
         reminderBlockedMessage = stringResource(R.string.notification_permission_reminder_required),
         recordingBlockedMessage = stringResource(R.string.notification_permission_recording_alert_required)
     )
+    val guideToolbarFocusRequester = remember { FocusRequester() }
     val returnRoute = remember(uiState.selectedCategoryId, uiState.guideAnchorTime, uiState.showFavoritesOnly) {
         Routes.epg(
             categoryId = uiState.selectedCategoryId.takeIf { it != ChannelRepository.ALL_CHANNELS_ID },
@@ -190,7 +191,7 @@ fun FullEpgScreen(
     }
     val playerIsVirtualCategory = playerCategoryId == VirtualCategoryIds.FAVORITES ||
         playerCategoryId == VirtualCategoryIds.RECENT ||
-        playerCategoryId < 0L
+        (playerCategoryId < 0L && playerCategoryId != ChannelRepository.ALL_CHANNELS_ID)
 
     fun executeLockedGuideAction(action: LockedGuideAction) {
         when (action) {
@@ -418,6 +419,7 @@ fun FullEpgScreen(
                             .firstOrNull { it.id == uiState.selectedCategoryId }
                             ?.name
                             ?: stringResource(R.string.epg_filter_short),
+                        firstButtonFocusRequester = guideToolbarFocusRequester,
                         onOpenCategoryPicker = {
                             showCategoryPicker = true
                         },
@@ -505,6 +507,10 @@ fun FullEpgScreen(
                                     programStartMs = program.startTime,
                                     categoryId = uiState.selectedCategoryId,
                                 )
+                            },
+                            onRequestGuideToolbarFocus = {
+                                topNavVisible = true
+                                guideToolbarFocusRequester.requestFocus()
                             },
                             onRequestMoreChannels = viewModel::requestMoreChannels
                         )
@@ -642,6 +648,7 @@ fun FullEpgScreen(
                 null
             }
             val canWatchArchive = !isPlaceholderProgram && channel.isArchivePlayable(program, currentGuideNow())
+            val canScheduleRecording = channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()
             CompactGuideProgramDialog(
                 channel = channel,
                 program = program,
@@ -693,7 +700,7 @@ fun FullEpgScreen(
                         }
                     }
                 },
-                onScheduleRecording = if (!isPlaceholderProgram && channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
+                onScheduleRecording = if (canScheduleRecording) {
                     {
                         notificationPermissionGate.runRecordingAction {
                             viewModel.scheduleRecording(channel, program)
@@ -702,7 +709,7 @@ fun FullEpgScreen(
                 } else {
                     null
                 },
-                onScheduleDailyRecording = if (!isPlaceholderProgram && channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
+                onScheduleDailyRecording = if (canScheduleRecording) {
                     {
                         notificationPermissionGate.runRecordingAction {
                             viewModel.scheduleRecording(channel, program, com.afterglowtv.domain.model.RecordingRecurrence.DAILY)
@@ -711,7 +718,7 @@ fun FullEpgScreen(
                 } else {
                     null
                 },
-                onScheduleWeeklyRecording = if (!isPlaceholderProgram && channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
+                onScheduleWeeklyRecording = if (canScheduleRecording) {
                     {
                         notificationPermissionGate.runRecordingAction {
                             viewModel.scheduleRecording(channel, program, com.afterglowtv.domain.model.RecordingRecurrence.WEEKLY)

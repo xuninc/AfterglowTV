@@ -1,5 +1,6 @@
 package com.afterglowtv.app.ui.screens.epg
 
+import android.view.KeyEvent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
@@ -29,6 +31,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -73,6 +77,7 @@ import com.afterglowtv.domain.model.Program
 import java.time.Instant
 import java.time.ZoneId
 import kotlin.math.max
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun GuideMessageState(
@@ -128,6 +133,7 @@ internal fun EpgGrid(
     onProgramClick: (Channel, Program) -> Unit,
     onChannelFocused: (Channel, Program?, Boolean) -> Unit,
     onProgramFocused: (Channel, Program, Boolean) -> Unit,
+    onRequestGuideToolbarFocus: () -> Unit = {},
     onRequestMoreChannels: () -> Unit = {}
 ) {
     val channelRailWidth = 180.dp
@@ -138,6 +144,18 @@ internal fun EpgGrid(
         GuideDensity.CINEMATIC -> 68.dp
     }
     val horizontalScrollState = rememberScrollState()
+    val verticalListState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    fun jumpToGuideToolbar(): Boolean {
+        scope.launch {
+            if (verticalListState.firstVisibleItemIndex > 0) {
+                verticalListState.animateScrollToItem(0)
+            }
+            onRequestGuideToolbarFocus()
+        }
+        return true
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -168,7 +186,25 @@ internal fun EpgGrid(
             )
             Spacer(modifier = Modifier.height(4.dp))
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onPreviewKeyEvent { event ->
+                        val nativeEvent = event.nativeKeyEvent
+                        if (nativeEvent.action != KeyEvent.ACTION_DOWN) {
+                            return@onPreviewKeyEvent false
+                        }
+                        when (nativeEvent.keyCode) {
+                            KeyEvent.KEYCODE_MOVE_HOME,
+                            KeyEvent.KEYCODE_PAGE_UP -> jumpToGuideToolbar()
+                            KeyEvent.KEYCODE_DPAD_UP -> {
+                                nativeEvent.repeatCount >= 6 &&
+                                    verticalListState.firstVisibleItemIndex > 0 &&
+                                    jumpToGuideToolbar()
+                            }
+                            else -> false
+                        }
+                    },
+                state = verticalListState,
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 itemsIndexed(
@@ -718,25 +754,28 @@ fun ProgramItem(
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = program.title,
-                    style = titleStyle,
-                    color = if (isPlaceholder && !isFocused) OnSurfaceDim else epgProgramTitleColor(liveStyle, isCurrent, isFocused),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (!isVeryCompactCell && !showCornerTag) {
+                val shouldDrawPlaceholderText = !isPlaceholder || program.title.isNotBlank() || program.description.isNotBlank()
+                if (shouldDrawPlaceholderText) {
                     Text(
-                        text = if (isPlaceholder) {
-                            program.description.ifBlank { stringResource(R.string.epg_no_schedule_short) }
-                        } else {
-                            "$startStr - $endStr"
-                        },
-                        style = timeStyle,
-                        color = if (isFocused) TextSecondary else OnSurfaceDim,
+                        text = program.title,
+                        style = titleStyle,
+                        color = if (isPlaceholder && !isFocused) OnSurfaceDim else epgProgramTitleColor(liveStyle, isCurrent, isFocused),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (!isVeryCompactCell && !showCornerTag) {
+                        Text(
+                            text = if (isPlaceholder) {
+                                program.description.ifBlank { stringResource(R.string.epg_no_schedule_short) }
+                            } else {
+                                "$startStr - $endStr"
+                            },
+                            style = timeStyle,
+                            color = if (isFocused) TextSecondary else OnSurfaceDim,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

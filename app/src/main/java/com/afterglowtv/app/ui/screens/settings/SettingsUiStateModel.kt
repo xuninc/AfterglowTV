@@ -2,6 +2,7 @@ package com.afterglowtv.app.ui.screens.settings
 
 import com.afterglowtv.app.ui.model.LiveTvChannelMode
 import com.afterglowtv.app.ui.model.LiveTvQuickFilterVisibilityMode
+import com.afterglowtv.app.ui.model.RemoteChannelButtonAction
 import com.afterglowtv.app.ui.model.VodViewMode
 import com.afterglowtv.domain.manager.BackupImportPlan
 import com.afterglowtv.domain.manager.BackupPreview
@@ -102,11 +103,15 @@ data class SettingsUiState(
     val vodInfiniteScroll: Boolean = true,
     val guideDefaultCategoryId: Long = com.afterglowtv.domain.model.VirtualCategoryIds.FAVORITES,
     val guideDefaultCategoryOptions: List<Category> = emptyList(),
+    val guideNoDataBlockMinutes: Int = 60,
+    val guideNoDataShowChannelText: Boolean = true,
     val preventStandbyDuringPlayback: Boolean = true,
     val zapAutoRevert: Boolean = true,
     val remoteDpadChannelZapping: Boolean = true,
     val remoteDpadInvertChannelZapping: Boolean = false,
     val remoteShowInfoOnZap: Boolean = false,
+    val remoteChannelUpButtonAction: RemoteChannelButtonAction = RemoteChannelButtonAction.CHANGE_CHANNELS,
+    val remoteChannelDownButtonAction: RemoteChannelButtonAction = RemoteChannelButtonAction.CHANGE_CHANNELS,
     val autoPlayNextEpisode: Boolean = true,
     val categorySortModes: Map<ContentType, CategorySortMode> = emptyMap(),
     val hiddenCategories: List<Category> = emptyList(),

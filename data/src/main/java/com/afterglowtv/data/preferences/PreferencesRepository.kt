@@ -47,6 +47,12 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 @Singleton
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
+private fun normalizeGuideNoDataBlockMinutes(minutes: Int?): Int = when (minutes) {
+    120 -> 120
+    1_440 -> 1_440
+    else -> 60
+}
+
 private fun sanitizePlaybackTimerMinutes(minutes: Int): Int = when (minutes) {
     0, 15, 30, 45, 60, 90, 120 -> minutes
     in Int.MIN_VALUE..7 -> 0
@@ -141,6 +147,8 @@ class PreferencesRepository @Inject constructor(
         val GUIDE_DENSITY = stringPreferencesKey("guide_density")
         val GUIDE_CHANNEL_MODE = stringPreferencesKey("guide_channel_mode")
         val GUIDE_DEFAULT_CATEGORY_ID = longPreferencesKey("guide_default_category_id")
+        val GUIDE_NO_DATA_BLOCK_MINUTES = intPreferencesKey("guide_no_data_block_minutes")
+        val GUIDE_NO_DATA_SHOW_CHANNEL_TEXT = booleanPreferencesKey("guide_no_data_show_channel_text")
         val GUIDE_FAVORITES_ONLY = intPreferencesKey("guide_favorites_only")
         val GUIDE_ANCHOR_TIME = longPreferencesKey("guide_anchor_time")
         val PROMOTED_LIVE_GROUP_IDS = stringPreferencesKey("promoted_live_group_ids")
@@ -185,6 +193,8 @@ class PreferencesRepository @Inject constructor(
         val REMOTE_DPAD_CHANNEL_ZAPPING = booleanPreferencesKey("remote_dpad_channel_zapping")
         val REMOTE_DPAD_INVERT_CHANNEL_ZAPPING = booleanPreferencesKey("remote_dpad_invert_channel_zapping")
         val REMOTE_SHOW_INFO_ON_ZAP = booleanPreferencesKey("remote_show_info_on_zap")
+        val REMOTE_CHANNEL_UP_BUTTON_ACTION = stringPreferencesKey("remote_channel_up_button_action")
+        val REMOTE_CHANNEL_DOWN_BUTTON_ACTION = stringPreferencesKey("remote_channel_down_button_action")
         val PREVENT_STANDBY_DURING_PLAYBACK = booleanPreferencesKey("prevent_standby_during_playback")
         val AUTO_PLAY_NEXT_EPISODE = booleanPreferencesKey("auto_play_next_episode")
         val AUTO_CHECK_APP_UPDATES = booleanPreferencesKey("auto_check_app_updates")
@@ -611,6 +621,14 @@ class PreferencesRepository @Inject constructor(
         preferences[PreferencesKeys.REMOTE_SHOW_INFO_ON_ZAP] ?: false
     }
 
+    val remoteChannelUpButtonAction: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.REMOTE_CHANNEL_UP_BUTTON_ACTION]
+    }
+
+    val remoteChannelDownButtonAction: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.REMOTE_CHANNEL_DOWN_BUTTON_ACTION]
+    }
+
     val recordingWifiOnly: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[PreferencesKeys.RECORDING_WIFI_ONLY] ?: false
     }
@@ -644,6 +662,18 @@ class PreferencesRepository @Inject constructor(
     suspend fun setRemoteShowInfoOnZap(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.REMOTE_SHOW_INFO_ON_ZAP] = enabled
+        }
+    }
+
+    suspend fun setRemoteChannelUpButtonAction(action: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.REMOTE_CHANNEL_UP_BUTTON_ACTION] = action
+        }
+    }
+
+    suspend fun setRemoteChannelDownButtonAction(action: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.REMOTE_CHANNEL_DOWN_BUTTON_ACTION] = action
         }
     }
 
@@ -1507,6 +1537,26 @@ class PreferencesRepository @Inject constructor(
     suspend fun setGuideDefaultCategoryId(categoryId: Long) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.GUIDE_DEFAULT_CATEGORY_ID] = categoryId
+        }
+    }
+
+    val guideNoDataBlockMinutes: Flow<Int> = context.dataStore.data.map { preferences ->
+        normalizeGuideNoDataBlockMinutes(preferences[PreferencesKeys.GUIDE_NO_DATA_BLOCK_MINUTES])
+    }
+
+    suspend fun setGuideNoDataBlockMinutes(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.GUIDE_NO_DATA_BLOCK_MINUTES] = normalizeGuideNoDataBlockMinutes(minutes)
+        }
+    }
+
+    val guideNoDataShowChannelText: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.GUIDE_NO_DATA_SHOW_CHANNEL_TEXT] ?: true
+    }
+
+    suspend fun setGuideNoDataShowChannelText(show: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.GUIDE_NO_DATA_SHOW_CHANNEL_TEXT] = show
         }
     }
 

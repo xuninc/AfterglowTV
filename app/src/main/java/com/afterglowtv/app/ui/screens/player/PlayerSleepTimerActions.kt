@@ -30,7 +30,7 @@ fun PlayerViewModel.setIdleStandbyTimer(minutes: Int) {
     sleepTimerExitEmitted = false
     updateSleepTimerState(idleMinutes = normalized)
     startIdleStandbyTimerJob(normalized)
-    showPlayerNotice(message = "Idle standby will be allowed after ${formatTimerMinutesNotice(normalized)} without activity.")
+    showPlayerNotice(message = "Player will exit after ${formatTimerMinutesNotice(normalized)} without remote activity.")
 }
 
 fun PlayerViewModel.extendStopPlaybackTimer(minutes: Int = 30) {

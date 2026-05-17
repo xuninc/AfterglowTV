@@ -63,7 +63,9 @@ internal fun LazyListScope.settingsPlaybackSection(
     onShowSubtitleTextColorDialogChange: (Boolean) -> Unit,
     onShowSubtitleBackgroundDialogChange: (Boolean) -> Unit,
     onShowWifiQualityDialogChange: (Boolean) -> Unit,
-    onShowEthernetQualityDialogChange: (Boolean) -> Unit
+    onShowEthernetQualityDialogChange: (Boolean) -> Unit,
+    onShowRemoteChannelUpButtonDialogChange: (Boolean) -> Unit,
+    onShowRemoteChannelDownButtonDialogChange: (Boolean) -> Unit
 ) {
     item {
         TvClickableSurface(
@@ -198,29 +200,39 @@ internal fun LazyListScope.settingsPlaybackSection(
         }
         HorizontalDivider(color = Color.White.copy(alpha = 0.07f), modifier = Modifier.padding(vertical = 4.dp))
         Text(
-            text = "Remote control",
+            text = stringResource(R.string.settings_remote_control_title),
             style = MaterialTheme.typography.titleSmall,
             color = Primary,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
         )
         SwitchSettingsRow(
-            label = "D-pad channel zapping",
-            value = "Use Up and Down to change live channels",
+            label = stringResource(R.string.settings_remote_dpad_channel_zapping),
+            value = stringResource(R.string.settings_remote_dpad_channel_zapping_subtitle),
             checked = uiState.remoteDpadChannelZapping,
             onCheckedChange = viewModel::setRemoteDpadChannelZapping
         )
         SwitchSettingsRow(
-            label = "Invert D-pad zapping",
-            value = "Swap the Up and Down channel direction",
+            label = stringResource(R.string.settings_remote_dpad_invert_channel_zapping),
+            value = stringResource(R.string.settings_remote_dpad_invert_channel_zapping_subtitle),
             checked = uiState.remoteDpadInvertChannelZapping,
             enabled = uiState.remoteDpadChannelZapping,
             onCheckedChange = viewModel::setRemoteDpadInvertChannelZapping
         )
         SwitchSettingsRow(
-            label = "Full info on channel change",
-            value = "Show the full channel panel instead of the compact zap banner",
+            label = stringResource(R.string.settings_remote_show_info_on_zap),
+            value = stringResource(R.string.settings_remote_show_info_on_zap_subtitle),
             checked = uiState.remoteShowInfoOnZap,
             onCheckedChange = viewModel::setRemoteShowInfoOnZap
+        )
+        ClickableSettingsRow(
+            label = stringResource(R.string.settings_remote_channel_up_button),
+            value = stringResource(uiState.remoteChannelUpButtonAction.labelResId()),
+            onClick = { onShowRemoteChannelUpButtonDialogChange(true) }
+        )
+        ClickableSettingsRow(
+            label = stringResource(R.string.settings_remote_channel_down_button),
+            value = stringResource(uiState.remoteChannelDownButtonAction.labelResId()),
+            onClick = { onShowRemoteChannelDownButtonDialogChange(true) }
         )
         ClickableSettingsRow(
             label = stringResource(R.string.settings_decoder_mode),

@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.afterglowtv.app.cast.CastMediaRequest
 import com.afterglowtv.app.cast.CastStartResult
 import com.afterglowtv.domain.model.ContentType
+import com.afterglowtv.domain.model.Program
 import com.afterglowtv.domain.model.RecordingRecurrence
 import com.afterglowtv.domain.model.RecordingRequest
 import com.afterglowtv.domain.model.Result
@@ -11,6 +12,8 @@ import com.afterglowtv.domain.model.StreamInfo
 import com.afterglowtv.domain.model.StreamType
 import com.afterglowtv.domain.usecase.ScheduleRecordingCommand
 import kotlinx.coroutines.launch
+
+internal const val MIN_ACTIVE_RECORDING_DURATION_MS = 60 * 60_000L
 
 fun PlayerViewModel.castCurrentMedia(onRouteSelectionRequired: () -> Unit) {
     viewModelScope.launch {
@@ -78,7 +81,7 @@ fun PlayerViewModel.startManualRecording() {
                 channelName = channel.name,
                 streamUrl = currentStreamUrl,
                 scheduledStartMs = now,
-                scheduledEndMs = currentProgram.value?.endTime ?: (now + 30 * 60_000L),
+                scheduledEndMs = resolveManualRecordingEndMs(now, currentProgram.value),
                 programTitle = currentProgram.value?.title
             )
         )
@@ -87,6 +90,16 @@ fun PlayerViewModel.startManualRecording() {
         } else {
             showPlayerNotice(message = "Recording started for ${channel.name}.")
         }
+    }
+}
+
+internal fun resolveManualRecordingEndMs(nowMs: Long, currentProgram: Program?): Long {
+    val fallbackEndMs = nowMs + MIN_ACTIVE_RECORDING_DURATION_MS
+    return when {
+        currentProgram == null -> fallbackEndMs
+        currentProgram.isPlaceholder -> maxOf(currentProgram.endTime, fallbackEndMs)
+        currentProgram.endTime <= nowMs -> fallbackEndMs
+        else -> currentProgram.endTime
     }
 }
 

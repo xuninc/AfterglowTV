@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -289,13 +291,19 @@ internal fun formatLiveTvQuickFiltersValue(filters: List<String>, context: andro
 @Composable
 internal fun SettingsNavItem(
     label: String,
-    badgeChar: String,
+    badgeIcon: ImageVector,
     accentColor: Color,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
+    indent: Dp = 0.dp,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
+    val badgeSize = if (compact) 24.dp else 28.dp
+    val iconSize = if (compact) 15.dp else 18.dp
+    val verticalPadding = if (compact) 8.dp else 12.dp
+    val barHeight = if (compact) 16.dp else 22.dp
     TvClickableSurface(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(0.dp)),
@@ -312,14 +320,14 @@ internal fun SettingsNavItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 12.dp),
+                .padding(start = 10.dp + indent, end = 10.dp, top = verticalPadding, bottom = verticalPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Box(
                 Modifier
                     .width(3.dp)
-                    .height(22.dp)
+                    .height(barHeight)
                     .background(
                         color = if (isSelected) Primary else Color.Transparent,
                         shape = RoundedCornerShape(2.dp)
@@ -327,20 +335,20 @@ internal fun SettingsNavItem(
             )
             Box(
                 Modifier
-                    .size(28.dp)
+                    .size(badgeSize)
                     .background(accentColor.copy(alpha = 0.18f), RoundedCornerShape(7.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = badgeChar,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accentColor,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = badgeIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(iconSize),
+                    tint = accentColor,
                 )
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
                 color = if (isSelected) Primary else OnBackground,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
             )

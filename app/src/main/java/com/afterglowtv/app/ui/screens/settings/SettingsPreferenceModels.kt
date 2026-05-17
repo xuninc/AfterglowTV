@@ -4,6 +4,7 @@ import android.app.Application
 import com.afterglowtv.app.R
 import com.afterglowtv.app.ui.model.LiveTvChannelMode
 import com.afterglowtv.app.ui.model.LiveTvQuickFilterVisibilityMode
+import com.afterglowtv.app.ui.model.RemoteChannelButtonAction
 import com.afterglowtv.app.ui.model.VodViewMode
 import com.afterglowtv.domain.model.AppTimeFormat
 import com.afterglowtv.domain.model.Category
@@ -80,11 +81,15 @@ internal data class SettingsPreferenceSnapshot(
     val vodInfiniteScroll: Boolean,
     val guideDefaultCategoryId: Long,
     val guideDefaultCategoryOptions: List<Category>,
+    val guideNoDataBlockMinutes: Int,
+    val guideNoDataShowChannelText: Boolean,
     val preventStandbyDuringPlayback: Boolean,
     val zapAutoRevert: Boolean,
     val remoteDpadChannelZapping: Boolean,
     val remoteDpadInvertChannelZapping: Boolean,
     val remoteShowInfoOnZap: Boolean,
+    val remoteChannelUpButtonAction: RemoteChannelButtonAction,
+    val remoteChannelDownButtonAction: RemoteChannelButtonAction,
     val autoPlayNextEpisode: Boolean,
     val autoCheckAppUpdates: Boolean,
     val autoDownloadAppUpdates: Boolean,

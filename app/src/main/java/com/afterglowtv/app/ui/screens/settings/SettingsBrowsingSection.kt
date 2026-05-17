@@ -32,6 +32,7 @@ internal fun LazyListScope.settingsBrowsingSection(
     viewModel: SettingsViewModel,
     context: android.content.Context,
     guideDefaultCategoryLabel: String,
+    guideNoDataBlockLabel: String,
     timeFormatLabel: String,
     appLanguageLabel: String,
     onShowLiveTvModeDialogChange: (Boolean) -> Unit,
@@ -42,6 +43,7 @@ internal fun LazyListScope.settingsBrowsingSection(
     onShowGroupedChannelLabelDialogChange: (Boolean) -> Unit,
     onShowLiveVariantPreferenceDialogChange: (Boolean) -> Unit,
     onShowGuideDefaultCategoryDialogChange: (Boolean) -> Unit,
+    onShowGuideNoDataBlockDialogChange: (Boolean) -> Unit,
     onShowTimeFormatDialogChange: (Boolean) -> Unit,
     onShowVodViewModeDialogChange: (Boolean) -> Unit,
     onCategorySortDialogTypeChange: (String?) -> Unit,
@@ -157,6 +159,20 @@ internal fun LazyListScope.settingsBrowsingSection(
             label = stringResource(R.string.settings_guide_default_category),
             value = guideDefaultCategoryLabel,
             onClick = { onShowGuideDefaultCategoryDialogChange(true) }
+        )
+        ClickableSettingsRow(
+            label = stringResource(R.string.settings_guide_no_data_block_size),
+            value = guideNoDataBlockLabel,
+            onClick = { onShowGuideNoDataBlockDialogChange(true) }
+        )
+        SwitchSettingsRow(
+            label = stringResource(R.string.settings_guide_no_data_show_channel_text),
+            value = stringResource(
+                if (uiState.guideNoDataShowChannelText) R.string.settings_guide_no_data_show_channel_text_on
+                else R.string.settings_guide_no_data_show_channel_text_off
+            ),
+            checked = uiState.guideNoDataShowChannelText,
+            onCheckedChange = viewModel::setGuideNoDataShowChannelText
         )
         ClickableSettingsRow(
             label = stringResource(R.string.settings_time_format),

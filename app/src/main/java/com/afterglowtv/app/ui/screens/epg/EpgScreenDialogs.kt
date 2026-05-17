@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.tv.material3.Border
+import androidx.tv.material3.ButtonColors
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.MaterialTheme
@@ -322,7 +323,9 @@ internal fun CompactGuideProgramDialog(
     val appTimeFormat = LocalAppTimeFormat.current
     val format = remember(appTimeFormat) { appTimeFormat.createTimeFormat() }
     val firstButtonFocusRequester = remember { FocusRequester() }
+    val actionButtonShape = RoundedCornerShape(12.dp)
     val noScheduleLabel = stringResource(R.string.epg_no_schedule_short)
+    val displayTitle = program.title.ifBlank { channel.name }
     LaunchedEffect(Unit) { firstButtonFocusRequester.requestFocus() }
     GuideModalDialog(onDismiss = onDismiss) {
         Surface(
@@ -338,7 +341,7 @@ internal fun CompactGuideProgramDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = program.title,
+                    text = displayTitle,
                     style = MaterialTheme.typography.headlineSmall,
                     color = OnSurface,
                     maxLines = 2,
@@ -350,7 +353,7 @@ internal fun CompactGuideProgramDialog(
                         append(channel.name)
                         if (program.isPlaceholder) {
                             append("  |  ")
-                            append(program.category ?: noScheduleLabel)
+                            append(program.category?.takeIf { it.isNotBlank() } ?: noScheduleLabel)
                         } else {
                             append("  |  ")
                             append(format.format(Date(program.startTime)))
@@ -390,106 +393,139 @@ internal fun CompactGuideProgramDialog(
                     )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    TvButton(
+                    GuideDialogActionButton(
                         onClick = onWatchLive,
                         modifier = Modifier.fillMaxWidth().focusRequester(firstButtonFocusRequester),
-                        scale = ButtonDefaults.scale(focusedScale = 1f)
+                        shape = actionButtonShape
                     ) {
                         Text(stringResource(R.string.epg_watch_live))
                     }
                     if (onWatchArchive != null) {
-                        TvButton(
+                        GuideDialogActionButton(
                             onClick = onWatchArchive,
                             modifier = Modifier.fillMaxWidth(),
-                            scale = ButtonDefaults.scale(focusedScale = 1f),
                             colors = ButtonDefaults.colors(
                                 containerColor = Primary,
                                 contentColor = Color.White
-                            )
+                            ),
+                            shape = actionButtonShape
                         ) {
                             Text(stringResource(R.string.epg_watch_archive))
                         }
                     }
                     if (reminderButtonLabel != null && onToggleReminder != null) {
-                        TvButton(
+                        GuideDialogActionButton(
                             onClick = onToggleReminder,
                             modifier = Modifier.fillMaxWidth(),
-                            scale = ButtonDefaults.scale(focusedScale = 1f),
                             colors = ButtonDefaults.colors(
                                 containerColor = SurfaceHighlight,
                                 contentColor = OnSurface
-                            )
+                            ),
+                            shape = actionButtonShape
                         ) {
                             Text(reminderButtonLabel)
                         }
                     }
                     if (onScheduleRecording != null) {
-                        TvButton(
+                        GuideDialogActionButton(
                             onClick = { onScheduleRecording(); onDismiss() },
                             modifier = Modifier.fillMaxWidth(),
-                            scale = ButtonDefaults.scale(focusedScale = 1f),
                             colors = ButtonDefaults.colors(
                                 containerColor = com.afterglowtv.app.ui.theme.AccentRed,
                                 contentColor = Color.White
-                            )
+                            ),
+                            shape = actionButtonShape
                         ) {
                             Text(stringResource(R.string.epg_schedule_recording))
                         }
                     }
                     if (onScheduleDailyRecording != null) {
-                        TvButton(
+                        GuideDialogActionButton(
                             onClick = { onScheduleDailyRecording(); onDismiss() },
                             modifier = Modifier.fillMaxWidth(),
-                            scale = ButtonDefaults.scale(focusedScale = 1f),
                             colors = ButtonDefaults.colors(
                                 containerColor = SurfaceHighlight,
                                 contentColor = OnSurface
-                            )
+                            ),
+                            shape = actionButtonShape
                         ) {
                             Text(stringResource(R.string.epg_schedule_daily_recording))
                         }
                     }
                     if (onScheduleWeeklyRecording != null) {
-                        TvButton(
+                        GuideDialogActionButton(
                             onClick = { onScheduleWeeklyRecording(); onDismiss() },
                             modifier = Modifier.fillMaxWidth(),
-                            scale = ButtonDefaults.scale(focusedScale = 1f),
                             colors = ButtonDefaults.colors(
                                 containerColor = SurfaceHighlight,
                                 contentColor = OnSurface
-                            )
+                            ),
+                            shape = actionButtonShape
                         ) {
                             Text(stringResource(R.string.epg_schedule_weekly_recording))
                         }
                     }
-                    TvButton(
+                    GuideDialogActionButton(
                         onClick = { showDetails = !showDetails },
                         modifier = Modifier.fillMaxWidth(),
-                        scale = ButtonDefaults.scale(focusedScale = 1f),
                         colors = ButtonDefaults.colors(
                             containerColor = SurfaceHighlight,
                             contentColor = OnSurface
-                        )
+                        ),
+                        shape = actionButtonShape
                     ) {
                         Text(
                             if (showDetails) stringResource(R.string.epg_program_details_hide)
                             else stringResource(R.string.epg_program_details_show)
                         )
                     }
-                    TvButton(
+                    GuideDialogActionButton(
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth(),
-                        scale = ButtonDefaults.scale(focusedScale = 1f),
                         colors = ButtonDefaults.colors(
                             containerColor = Color.Transparent,
                             contentColor = OnSurface
-                        )
+                        ),
+                        shape = actionButtonShape
                     ) {
                         Text(stringResource(R.string.settings_cancel))
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GuideDialogActionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    colors: ButtonColors = ButtonDefaults.colors(
+        containerColor = SurfaceHighlight,
+        contentColor = OnSurface
+    ),
+    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+    content: @Composable () -> Unit
+) {
+    TvButton(
+        onClick = onClick,
+        modifier = modifier,
+        scale = ButtonDefaults.scale(focusedScale = 1f),
+        colors = colors,
+        shape = ButtonDefaults.shape(shape = shape),
+        border = ButtonDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f)),
+                shape = shape
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(3.dp, FocusBorder),
+                shape = shape
+            )
+        ),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        content()
     }
 }
 

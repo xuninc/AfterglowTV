@@ -69,6 +69,7 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "RecordingManager"
 private const val MIN_FREE_SPACE_BYTES = 512L * 1024L * 1024L // 512 MB
+private const val IMMEDIATE_RECORDING_START_GRACE_MS = 15_000L
 private const val FAILURE_NOTIFICATION_CHANNEL_ID = "afterglowtv_recording_failure"
 private const val FAILURE_NOTIFICATION_ID_BASE = 5000
 
@@ -184,8 +185,7 @@ class RecordingManagerImpl @Inject constructor(
                 ?: request.recurrence.takeIf { it != RecordingRecurrence.NONE }?.let { UUID.randomUUID().toString() }
             val run = persistScheduledRun(request, recurringRuleId)
 
-            scheduleStartAlarmOrFail(run.id, run.scheduledStartMs)
-            run.toStandaloneDomain()
+            scheduleStartOrLaunchDueRun(run).toStandaloneDomain()
         }.fold(
             onSuccess = { Result.success(it) },
             onFailure = { error -> Result.error(error.message ?: "Failed to schedule recording", error) }
@@ -328,8 +328,7 @@ class RecordingManagerImpl @Inject constructor(
                 recordingRunDao.insert(run)
             }
 
-            scheduleStartAlarmOrFail(run.id, run.scheduledStartMs)
-            run.toStandaloneDomain()
+            scheduleStartOrLaunchDueRun(run).toStandaloneDomain()
         }.fold(
             onSuccess = { Result.success(it) },
             onFailure = { error -> Result.error(error.message ?: "Failed to force-schedule recording", error) }
@@ -1052,6 +1051,17 @@ class RecordingManagerImpl @Inject constructor(
             }
             Result.Loading -> Unit
         }
+    }
+
+    private suspend fun scheduleStartOrLaunchDueRun(run: RecordingRunEntity): RecordingRunEntity {
+        val now = System.currentTimeMillis()
+        if (run.scheduledStartMs > now + IMMEDIATE_RECORDING_START_GRACE_MS) {
+            scheduleStartAlarmOrFail(run.id, run.scheduledStartMs)
+            return run
+        }
+
+        recordingServiceLauncher.startCapture(context, run.id)
+        return run
     }
 
     private suspend fun scheduleStopAlarmOrFail(recordingId: String, whenMs: Long) {

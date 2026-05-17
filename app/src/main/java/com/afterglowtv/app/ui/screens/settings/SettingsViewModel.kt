@@ -507,6 +507,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setGuideNoDataBlockMinutes(minutes: Int) {
+        viewModelScope.launch {
+            preferencesRepository.setGuideNoDataBlockMinutes(minutes)
+        }
+    }
+
+    fun setGuideNoDataShowChannelText(show: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setGuideNoDataShowChannelText(show)
+        }
+    }
+
     fun setAppTimeFormat(format: AppTimeFormat) {
         viewModelScope.launch {
             preferencesRepository.setAppTimeFormat(format)
@@ -654,6 +666,18 @@ class SettingsViewModel @Inject constructor(
     fun setRemoteShowInfoOnZap(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setRemoteShowInfoOnZap(enabled)
+        }
+    }
+
+    fun setRemoteChannelUpButtonAction(action: com.afterglowtv.app.ui.model.RemoteChannelButtonAction) {
+        viewModelScope.launch {
+            preferencesRepository.setRemoteChannelUpButtonAction(action.storageValue)
+        }
+    }
+
+    fun setRemoteChannelDownButtonAction(action: com.afterglowtv.app.ui.model.RemoteChannelButtonAction) {
+        viewModelScope.launch {
+            preferencesRepository.setRemoteChannelDownButtonAction(action.storageValue)
         }
     }
 

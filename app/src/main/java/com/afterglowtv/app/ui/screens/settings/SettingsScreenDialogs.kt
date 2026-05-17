@@ -7,11 +7,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Text
 import com.afterglowtv.app.R
+import com.afterglowtv.app.ui.model.RemoteChannelButtonAction
 import com.afterglowtv.app.ui.theme.OnSurface
 import com.afterglowtv.app.ui.theme.Primary
 import com.afterglowtv.app.ui.theme.SurfaceElevated
@@ -111,12 +113,32 @@ internal fun SettingsScreenDialogs(
         )
     }
 
+    if (dialogState.showRemoteChannelUpButtonDialog) {
+        RemoteChannelButtonActionDialog(
+            title = stringResource(R.string.settings_select_remote_channel_up_button_action),
+            selectedAction = uiState.remoteChannelUpButtonAction,
+            onDismiss = { dialogState.showRemoteChannelUpButtonDialog = false },
+            onSelected = viewModel::setRemoteChannelUpButtonAction
+        )
+    }
+
+    if (dialogState.showRemoteChannelDownButtonDialog) {
+        RemoteChannelButtonActionDialog(
+            title = stringResource(R.string.settings_select_remote_channel_down_button_action),
+            selectedAction = uiState.remoteChannelDownButtonAction,
+            onDismiss = { dialogState.showRemoteChannelDownButtonDialog = false },
+            onSelected = viewModel::setRemoteChannelDownButtonAction
+        )
+    }
+
     SettingsPreferenceDialogs(
         uiState = uiState,
         viewModel = viewModel,
         context = context,
         showGuideDefaultCategoryDialog = dialogState.showGuideDefaultCategoryDialog,
         onShowGuideDefaultCategoryDialogChange = { dialogState.showGuideDefaultCategoryDialog = it },
+        showGuideNoDataBlockDialog = dialogState.showGuideNoDataBlockDialog,
+        onShowGuideNoDataBlockDialogChange = { dialogState.showGuideNoDataBlockDialog = it },
         showPlaybackSpeedDialog = dialogState.showPlaybackSpeedDialog,
         onShowPlaybackSpeedDialogChange = { dialogState.showPlaybackSpeedDialog = it },
         showTimeFormatDialog = dialogState.showTimeFormatDialog,
@@ -274,4 +296,31 @@ internal fun SettingsScreenDialogs(
         viewModel = viewModel,
         providerState = providerState
     )
+}
+
+@Composable
+private fun RemoteChannelButtonActionDialog(
+    title: String,
+    selectedAction: RemoteChannelButtonAction,
+    onDismiss: () -> Unit,
+    onSelected: (RemoteChannelButtonAction) -> Unit
+) {
+    val actions = remember { RemoteChannelButtonAction.entries.toList() }
+    val selectedIndex = actions.indexOf(selectedAction).takeIf { it >= 0 } ?: 0
+    PremiumSelectionDialog(
+        title = title,
+        onDismiss = onDismiss
+    ) {
+        actions.forEachIndexed { index, action ->
+            LevelOption(
+                level = index,
+                text = stringResource(action.labelResId()),
+                currentLevel = selectedIndex,
+                onSelect = {
+                    onSelected(action)
+                    onDismiss()
+                }
+            )
+        }
+    }
 }

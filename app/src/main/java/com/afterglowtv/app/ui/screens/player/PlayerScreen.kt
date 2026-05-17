@@ -77,6 +77,7 @@ import com.afterglowtv.app.MainActivity
 import com.afterglowtv.app.cast.CastConnectionState
 import com.afterglowtv.app.ui.components.PlayerRenderView
 import com.afterglowtv.app.ui.design.requestFocusSafely
+import com.afterglowtv.app.ui.model.RemoteChannelButtonAction
 import com.afterglowtv.app.ui.notifications.rememberNotificationPermissionGate
 import com.afterglowtv.app.ui.screens.player.overlay.ChannelInfoOverlay
 import com.afterglowtv.app.ui.screens.player.overlay.ChannelVariantSelectionDialog
@@ -556,6 +557,26 @@ fun PlayerScreen(
         handleBackPress()
     }
 
+    fun handleRemoteChannelButton(
+        action: RemoteChannelButtonAction,
+        direction: RemoteDpadVerticalDirection
+    ): Boolean = when (action) {
+        RemoteChannelButtonAction.CHANGE_CHANNELS -> viewModel.playDedicatedChannelButton(direction)
+        RemoteChannelButtonAction.OPEN_GUIDE -> {
+            viewModel.openEpgOverlay()
+            true
+        }
+        RemoteChannelButtonAction.OPEN_CHANNEL_LIST -> {
+            viewModel.openChannelListOverlay()
+            true
+        }
+        RemoteChannelButtonAction.SHOW_INFO -> {
+            if (showChannelInfoOverlay) viewModel.closeChannelInfoOverlay() else viewModel.openChannelInfoOverlay()
+            true
+        }
+        RemoteChannelButtonAction.DISABLED -> true
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -603,39 +624,27 @@ fun PlayerScreen(
                 if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay) {
                     return@onPreviewKeyEvent false
                 }
-                if (showTrackSelection != null || showVariantSelection || showSpeedSelection || showAudioVideoOffsetDialog || showStopPlaybackTimerDialog || showIdleStandbyTimerDialog || showProgramHistory || showSplitDialog || showEpisodePicker) {
+                if (showControls || showChannelInfoOverlay || showDiagnostics) {
                     return@onPreviewKeyEvent false
                 }
-                if (showChannelInfoOverlay && channelInfoSubPanelOpen) {
+                if (showTrackSelection != null || showVariantSelection || showSpeedSelection || showAudioVideoOffsetDialog || showStopPlaybackTimerDialog || showIdleStandbyTimerDialog || showProgramHistory || showSplitDialog || showEpisodePicker) {
                     return@onPreviewKeyEvent false
                 }
 
                 when (event.nativeKeyEvent.keyCode) {
                     KeyEvent.KEYCODE_DPAD_UP,
                     KeyEvent.KEYCODE_DPAD_UP_RIGHT -> {
-                        if (showChannelInfoOverlay || showDiagnostics) {
-                            viewModel.onLiveOverlayInteraction()
-                        }
                         viewModel.playRemoteDpadChannel(RemoteDpadVerticalDirection.UP)
                     }
                     KeyEvent.KEYCODE_CHANNEL_UP -> {
-                        if (showChannelInfoOverlay || showDiagnostics) {
-                            viewModel.onLiveOverlayInteraction()
-                        }
-                        viewModel.playDedicatedChannelButton(RemoteDpadVerticalDirection.UP)
+                        handleRemoteChannelButton(viewModel.remoteChannelUpButtonAction, RemoteDpadVerticalDirection.UP)
                     }
                     KeyEvent.KEYCODE_DPAD_DOWN,
                     KeyEvent.KEYCODE_DPAD_DOWN_LEFT -> {
-                        if (showChannelInfoOverlay || showDiagnostics) {
-                            viewModel.onLiveOverlayInteraction()
-                        }
                         viewModel.playRemoteDpadChannel(RemoteDpadVerticalDirection.DOWN)
                     }
                     KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                        if (showChannelInfoOverlay || showDiagnostics) {
-                            viewModel.onLiveOverlayInteraction()
-                        }
-                        viewModel.playDedicatedChannelButton(RemoteDpadVerticalDirection.DOWN)
+                        handleRemoteChannelButton(viewModel.remoteChannelDownButtonAction, RemoteDpadVerticalDirection.DOWN)
                     }
                     else -> false
                 }
@@ -802,14 +811,12 @@ fun PlayerScreen(
                             if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics) {
                                 viewModel.onLiveOverlayInteraction()
                             }
-                            if (showChannelInfoOverlay && channelInfoSubPanelOpen) return@onKeyEvent false
-                            if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay || showChannelInfoOverlay) return@onKeyEvent false
-                            if (showControls && (contentType != "LIVE" || isCatchUpPlayback)) return@onKeyEvent false
+                            if (showChannelInfoOverlay || showDiagnostics) return@onKeyEvent false
+                            if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay) return@onKeyEvent false
+                            if (showControls) return@onKeyEvent false
 
                             if (isLinearLivePlayback) {
-                                if (!viewModel.playRemoteDpadChannel(RemoteDpadVerticalDirection.UP)) {
-                                    viewModel.toggleControls()
-                                }
+                                viewModel.playRemoteDpadChannel(RemoteDpadVerticalDirection.UP)
                             } else if (canOpenEpisodePicker) {
                                 showEpisodePicker = true
                             } else {
@@ -821,14 +828,12 @@ fun PlayerScreen(
                             if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics) {
                                 viewModel.onLiveOverlayInteraction()
                             }
-                            if (showChannelInfoOverlay && channelInfoSubPanelOpen) return@onKeyEvent false
+                            if (showChannelInfoOverlay || showDiagnostics) return@onKeyEvent false
                             if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay) return@onKeyEvent false
-                            if (showControls && (contentType != "LIVE" || isCatchUpPlayback)) return@onKeyEvent false
+                            if (showControls) return@onKeyEvent false
 
                             if (isLinearLivePlayback) {
-                                if (!viewModel.playRemoteDpadChannel(RemoteDpadVerticalDirection.DOWN)) {
-                                    viewModel.toggleControls()
-                                }
+                                viewModel.playRemoteDpadChannel(RemoteDpadVerticalDirection.DOWN)
                             } else {
                                 viewModel.toggleControls()
                             }
@@ -851,17 +856,17 @@ fun PlayerScreen(
                         KeyEvent.KEYCODE_CHANNEL_UP -> {
                             if (showChannelInfoOverlay && channelInfoSubPanelOpen) {
                                 true
-                            } else
-                            if (isLinearLivePlayback) {
-                                viewModel.playDedicatedChannelButton(RemoteDpadVerticalDirection.UP)
-                                true
+                            } else if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics || showControls) {
+                                false
+                            } else if (isLinearLivePlayback) {
+                                handleRemoteChannelButton(viewModel.remoteChannelUpButtonAction, RemoteDpadVerticalDirection.UP)
                             } else {
                                 false
                             }
                         }
                         KeyEvent.KEYCODE_DPAD_UP_RIGHT -> {
-                            if (showChannelInfoOverlay && channelInfoSubPanelOpen) {
-                                true
+                            if (showChannelInfoOverlay || showDiagnostics || showControls) {
+                                false
                             } else if (isLinearLivePlayback) {
                                 viewModel.playRemoteDpadChannel(RemoteDpadVerticalDirection.UP)
                                 true
@@ -872,17 +877,17 @@ fun PlayerScreen(
                         KeyEvent.KEYCODE_CHANNEL_DOWN -> {
                             if (showChannelInfoOverlay && channelInfoSubPanelOpen) {
                                 true
-                            } else
-                            if (isLinearLivePlayback) {
-                                viewModel.playDedicatedChannelButton(RemoteDpadVerticalDirection.DOWN)
-                                true
+                            } else if (showChannelListOverlay || showCategoryListOverlay || showEpgOverlay || showChannelInfoOverlay || showDiagnostics || showControls) {
+                                false
+                            } else if (isLinearLivePlayback) {
+                                handleRemoteChannelButton(viewModel.remoteChannelDownButtonAction, RemoteDpadVerticalDirection.DOWN)
                             } else {
                                 false
                             }
                         }
                         KeyEvent.KEYCODE_DPAD_DOWN_LEFT -> {
-                            if (showChannelInfoOverlay && channelInfoSubPanelOpen) {
-                                true
+                            if (showChannelInfoOverlay || showDiagnostics || showControls) {
+                                false
                             } else if (isLinearLivePlayback) {
                                 viewModel.playRemoteDpadChannel(RemoteDpadVerticalDirection.DOWN)
                                 true

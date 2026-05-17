@@ -7,11 +7,21 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.afterglowtv.app.R
@@ -19,7 +29,7 @@ import com.afterglowtv.app.ui.theme.Primary
 
 private data class SettingsNavEntry(
     val label: String,
-    val icon: String,
+    val icon: ImageVector,
     val accent: Color
 )
 
@@ -33,42 +43,42 @@ internal fun SettingsNavigationRail(
     val entries = listOf(
         SettingsNavEntry(
             label = stringResource(R.string.settings_providers),
-            icon = "P",
+            icon = Icons.Default.Settings,
             accent = Primary
         ),
         SettingsNavEntry(
             label = stringResource(R.string.settings_playback),
-            icon = ">",
+            icon = Icons.Default.PlayArrow,
             accent = Color(0xFF9E8FFF)
         ),
         SettingsNavEntry(
             label = stringResource(R.string.settings_browsing),
-            icon = "#",
+            icon = Icons.Default.Search,
             accent = Color(0xFF26A69A)
         ),
         SettingsNavEntry(
             label = stringResource(R.string.settings_privacy),
-            icon = "L",
+            icon = Icons.Default.Lock,
             accent = Color(0xFFFFB74D)
         ),
         SettingsNavEntry(
             label = stringResource(R.string.settings_recording_title),
-            icon = "R",
+            icon = Icons.Default.Star,
             accent = Color(0xFFEF5350)
         ),
         SettingsNavEntry(
             label = stringResource(R.string.settings_backup_restore),
-            icon = "B",
+            icon = Icons.Default.Menu,
             accent = Color(0xFF42A5F5)
         ),
         SettingsNavEntry(
             label = "EPG Sources",
-            icon = "E",
+            icon = Icons.Default.Info,
             accent = Color(0xFF66BB6A)
         ),
         SettingsNavEntry(
             label = stringResource(R.string.settings_about),
-            icon = "i",
+            icon = Icons.Default.Info,
             accent = Color(0xFF78909C)
         )
     )
@@ -84,7 +94,7 @@ internal fun SettingsNavigationRail(
         itemsIndexed(entries) { index, entry ->
             SettingsNavItem(
                 label = entry.label,
-                badgeChar = entry.icon,
+                badgeIcon = entry.icon,
                 accentColor = entry.accent,
                 isSelected = selectedCategory == index,
                 modifier = if (selectedCategory == index) Modifier.focusRequester(focusRequester) else Modifier,
@@ -94,7 +104,7 @@ internal fun SettingsNavigationRail(
         item {
             SettingsNavItem(
                 label = "Themes",
-                badgeChar = "T",
+                badgeIcon = Icons.Default.Star,
                 accentColor = Color(0xFFFF77FF),
                 isSelected = false,
                 onClick = { onNavigate(com.afterglowtv.app.navigation.Routes.THEMES) },
@@ -103,18 +113,22 @@ internal fun SettingsNavigationRail(
         item {
             SettingsNavItem(
                 label = "Glow",
-                badgeChar = "G",
+                badgeIcon = Icons.Default.Info,
                 accentColor = Color(0xFF5EEAD4),
                 isSelected = false,
+                indent = 28.dp,
+                compact = true,
                 onClick = { onNavigate(com.afterglowtv.app.navigation.Routes.GLOW_SETTINGS) },
             )
         }
         item {
             SettingsNavItem(
                 label = "Customize",
-                badgeChar = "C",
+                badgeIcon = Icons.Default.Edit,
                 accentColor = Color(0xFFFF7A38),
                 isSelected = false,
+                indent = 28.dp,
+                compact = true,
                 onClick = { onNavigate(com.afterglowtv.app.navigation.Routes.STYLE_CUSTOMIZER) },
             )
         }

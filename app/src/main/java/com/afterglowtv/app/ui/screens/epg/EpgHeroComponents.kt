@@ -20,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -298,6 +300,7 @@ internal fun GuideHeroBadge(
 @Composable
 internal fun GuideToolbarRow(
     selectedCategoryName: String,
+    firstButtonFocusRequester: FocusRequester? = null,
     onOpenCategoryPicker: () -> Unit,
     onJumpToNow: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -312,7 +315,9 @@ internal fun GuideToolbarRow(
     ) {
         GuideToolbarButton(
             label = selectedCategoryName,
-            modifier = Modifier.widthIn(min = 200.dp, max = 280.dp),
+            modifier = Modifier
+                .widthIn(min = 200.dp, max = 280.dp)
+                .then(firstButtonFocusRequester?.let { Modifier.focusRequester(it) } ?: Modifier),
             onClick = onOpenCategoryPicker,
             onFocused = onGuideInteract
         )

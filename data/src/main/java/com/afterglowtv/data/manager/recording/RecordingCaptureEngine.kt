@@ -28,6 +28,7 @@ data class CaptureProgress(
 private const val MAX_TRANSIENT_RETRIES = 3
 private const val RETRY_BACKOFF_BASE_MS = 15_000L
 private const val STALL_TIMEOUT_MS = 60_000L
+private const val LIVE_TS_RECONNECT_DELAY_MS = 1_000L
 
 private fun isTransientFailure(error: Throwable): Boolean {
     val msg = error.message.orEmpty().lowercase(Locale.ROOT)
@@ -107,7 +108,13 @@ class TsPassThroughCaptureEngine @Inject constructor(
                             sink.flush()
                         }
                     }
-                    break // Normal completion
+                    if (System.currentTimeMillis() >= scheduledEndMs) break
+                    retryCount = 0
+                    delay(
+                        LIVE_TS_RECONNECT_DELAY_MS
+                            .coerceAtMost(scheduledEndMs - System.currentTimeMillis())
+                            .coerceAtLeast(0)
+                    )
                 } catch (e: Throwable) {
                     if (!isTransientFailure(e) || retryCount >= MAX_TRANSIENT_RETRIES) throw e
                     retryCount++

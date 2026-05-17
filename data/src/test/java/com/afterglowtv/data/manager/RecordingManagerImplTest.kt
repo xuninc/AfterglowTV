@@ -130,6 +130,25 @@ class RecordingManagerImplTest {
     }
 
     @Test
+    fun `scheduleRecording routes current-window recording through foreground service immediately`() = runBlocking {
+        val now = System.currentTimeMillis()
+        val request = recordingRequest(
+            startMs = now - 1_000L,
+            endMs = now + 60_000L
+        )
+        runBlocking {
+            whenever(recordingScheduleDao.insert(any())).thenReturn(18L)
+        }
+
+        val manager = createManager()
+        val result = manager.scheduleRecording(request)
+
+        assertThat(result).isInstanceOf(com.afterglowtv.domain.model.Result.Success::class.java)
+        verify(alarmScheduler, never()).scheduleStart(any(), any())
+        verify(recordingServiceLauncher).startCapture(eq(context), any())
+    }
+
+    @Test
     fun `promoteScheduledRecording completes for one-shot schedule without deadlock`() {
         runBlocking {
             val run = scheduledRun(id = "scheduled-one-shot")
@@ -218,13 +237,16 @@ class RecordingManagerImplTest {
         maxSimultaneousRecordings = maxSimultaneousRecordings
     )
 
-    private fun recordingRequest() = RecordingRequest(
+    private fun recordingRequest(
+        startMs: Long = System.currentTimeMillis() + 60_000L,
+        endMs: Long = System.currentTimeMillis() + 120_000L
+    ) = RecordingRequest(
         providerId = 7L,
         channelId = 100L,
         channelName = "BBC One",
         streamUrl = "https://example.com/live.ts",
-        scheduledStartMs = System.currentTimeMillis() + 60_000L,
-        scheduledEndMs = System.currentTimeMillis() + 120_000L,
+        scheduledStartMs = startMs,
+        scheduledEndMs = endMs,
         programTitle = "World News"
     )
 
@@ -232,7 +254,9 @@ class RecordingManagerImplTest {
         id: String,
         status: RecordingStatus = RecordingStatus.SCHEDULED,
         recurrence: RecordingRecurrence = RecordingRecurrence.NONE,
-        recurringRuleId: String? = null
+        recurringRuleId: String? = null,
+        scheduledStartMs: Long = System.currentTimeMillis() + 60_000L,
+        scheduledEndMs: Long = System.currentTimeMillis() + 120_000L
     ) = RecordingRunEntity(
         id = id,
         scheduleId = 11L,
@@ -241,8 +265,8 @@ class RecordingManagerImplTest {
         channelName = "BBC One",
         streamUrl = "https://example.com/live.ts",
         programTitle = "World News",
-        scheduledStartMs = System.currentTimeMillis() + 60_000L,
-        scheduledEndMs = System.currentTimeMillis() + 120_000L,
+        scheduledStartMs = scheduledStartMs,
+        scheduledEndMs = scheduledEndMs,
         recurrence = recurrence,
         recurringRuleId = recurringRuleId,
         status = status,
@@ -250,7 +274,7 @@ class RecordingManagerImplTest {
         headersJson = "{}",
         failureCategory = RecordingFailureCategory.NONE,
         scheduleEnabled = true,
-        alarmStartAtMs = System.currentTimeMillis() + 60_000L
+        alarmStartAtMs = scheduledStartMs
     )
 
     private fun resolvedSource() = ResolvedRecordingSource(

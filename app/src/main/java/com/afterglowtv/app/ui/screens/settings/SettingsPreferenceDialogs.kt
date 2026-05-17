@@ -18,6 +18,8 @@ internal fun SettingsPreferenceDialogs(
     context: Context,
     showGuideDefaultCategoryDialog: Boolean,
     onShowGuideDefaultCategoryDialogChange: (Boolean) -> Unit,
+    showGuideNoDataBlockDialog: Boolean,
+    onShowGuideNoDataBlockDialogChange: (Boolean) -> Unit,
     showPlaybackSpeedDialog: Boolean,
     onShowPlaybackSpeedDialogChange: (Boolean) -> Unit,
     showTimeFormatDialog: Boolean,
@@ -104,6 +106,35 @@ internal fun SettingsPreferenceDialogs(
                     onSelect = {
                         viewModel.setGuideDefaultCategory(category.id)
                         onShowGuideDefaultCategoryDialogChange(false)
+                    }
+                )
+            }
+        }
+    }
+
+    if (showGuideNoDataBlockDialog) {
+        val options = remember {
+            listOf(60, 120, 1_440)
+        }
+        val selectedIndex = options.indexOf(uiState.guideNoDataBlockMinutes).takeIf { it >= 0 } ?: 0
+        PremiumSelectionDialog(
+            title = stringResource(R.string.settings_select_guide_no_data_block_size),
+            onDismiss = { onShowGuideNoDataBlockDialogChange(false) }
+        ) {
+            options.forEachIndexed { index, minutes ->
+                LevelOption(
+                    level = index,
+                    text = stringResource(
+                        when (minutes) {
+                            120 -> R.string.settings_guide_no_data_block_2_hours
+                            1_440 -> R.string.settings_guide_no_data_block_24_hours
+                            else -> R.string.settings_guide_no_data_block_1_hour
+                        }
+                    ),
+                    currentLevel = selectedIndex,
+                    onSelect = {
+                        viewModel.setGuideNoDataBlockMinutes(minutes)
+                        onShowGuideNoDataBlockDialogChange(false)
                     }
                 )
             }

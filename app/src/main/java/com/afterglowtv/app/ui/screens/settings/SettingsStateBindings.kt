@@ -4,6 +4,7 @@ package com.afterglowtv.app.ui.screens.settings
 
 import com.afterglowtv.app.ui.model.LiveTvChannelMode
 import com.afterglowtv.app.ui.model.LiveTvQuickFilterVisibilityMode
+import com.afterglowtv.app.ui.model.RemoteChannelButtonAction
 import com.afterglowtv.app.ui.model.VodViewMode
 import com.afterglowtv.data.preferences.PreferencesRepository
 import com.afterglowtv.domain.model.AppTimeFormat
@@ -79,11 +80,15 @@ internal fun observeSettingsPreferenceSnapshot(
             vodInfiniteScroll = true,
             guideDefaultCategoryId = VirtualCategoryIds.FAVORITES,
             guideDefaultCategoryOptions = emptyList(),
+            guideNoDataBlockMinutes = 60,
+            guideNoDataShowChannelText = true,
             preventStandbyDuringPlayback = true,
             zapAutoRevert = true,
             remoteDpadChannelZapping = true,
             remoteDpadInvertChannelZapping = false,
             remoteShowInfoOnZap = false,
+            remoteChannelUpButtonAction = RemoteChannelButtonAction.CHANGE_CHANNELS,
+            remoteChannelDownButtonAction = RemoteChannelButtonAction.CHANGE_CHANNELS,
             autoPlayNextEpisode = true,
             autoCheckAppUpdates = true,
             autoDownloadAppUpdates = false,
@@ -185,6 +190,10 @@ internal fun observeSettingsPreferenceSnapshot(
         snapshot.copy(vodInfiniteScroll = vodInfiniteScroll)
     }.combine(preferencesRepository.guideDefaultCategoryId) { snapshot, guideDefaultCategoryId ->
         snapshot.copy(guideDefaultCategoryId = guideDefaultCategoryId ?: VirtualCategoryIds.FAVORITES)
+    }.combine(preferencesRepository.guideNoDataBlockMinutes) { snapshot, minutes ->
+        snapshot.copy(guideNoDataBlockMinutes = minutes)
+    }.combine(preferencesRepository.guideNoDataShowChannelText) { snapshot, showChannelText ->
+        snapshot.copy(guideNoDataShowChannelText = showChannelText)
     }.combine(preferencesRepository.preventStandbyDuringPlayback) { snapshot, preventStandby ->
         snapshot.copy(preventStandbyDuringPlayback = preventStandby)
     }.combine(preferencesRepository.zapAutoRevert) { snapshot, zapAutoRevert ->
@@ -195,6 +204,10 @@ internal fun observeSettingsPreferenceSnapshot(
         snapshot.copy(remoteDpadInvertChannelZapping = enabled)
     }.combine(preferencesRepository.remoteShowInfoOnZap) { snapshot, enabled ->
         snapshot.copy(remoteShowInfoOnZap = enabled)
+    }.combine(preferencesRepository.remoteChannelUpButtonAction) { snapshot, action ->
+        snapshot.copy(remoteChannelUpButtonAction = RemoteChannelButtonAction.fromStorage(action))
+    }.combine(preferencesRepository.remoteChannelDownButtonAction) { snapshot, action ->
+        snapshot.copy(remoteChannelDownButtonAction = RemoteChannelButtonAction.fromStorage(action))
     }.combine(preferencesRepository.autoPlayNextEpisode) { snapshot, autoPlayNextEpisode ->
         snapshot.copy(autoPlayNextEpisode = autoPlayNextEpisode)
     }.combine(preferencesRepository.autoCheckAppUpdates) { snapshot, autoCheckAppUpdates ->

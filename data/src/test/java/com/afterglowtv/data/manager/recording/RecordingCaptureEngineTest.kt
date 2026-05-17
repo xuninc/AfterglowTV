@@ -5,7 +5,11 @@ import com.google.common.truth.Truth.assertThat
 import com.afterglowtv.domain.model.RecordingSourceType
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -21,6 +25,50 @@ class RecordingCaptureEngineTest {
 
     @get:Rule
     val tempFolder = TemporaryFolder()
+
+    @Test
+    fun tsCaptureReconnectsWhenLiveBodyEndsBeforeScheduledEnd() {
+        runTest {
+            val streamAttempts = AtomicInteger(0)
+            val client = OkHttpClient.Builder()
+                .addInterceptor(Interceptor { chain ->
+                    when (chain.request().url.toString()) {
+                        "https://example.com/live.ts" -> response(
+                            chain = chain,
+                            code = 200,
+                            body = "chunk-${streamAttempts.incrementAndGet()}\n"
+                        )
+                        else -> error("Unexpected URL ${chain.request().url}")
+                    }
+                })
+                .build()
+            val engine = TsPassThroughCaptureEngine(client)
+            val outputFile = tempFolder.newFile("capture-live.ts")
+
+            val captureJob = launch {
+                engine.capture(
+                    source = ResolvedRecordingSource(
+                        url = "https://example.com/live.ts",
+                        sourceType = RecordingSourceType.TS
+                    ),
+                    outputTarget = RecordingOutputTarget.FileTarget(outputFile),
+                    contentResolver = mock<ContentResolver>(),
+                    scheduledEndMs = System.currentTimeMillis() + 60_000,
+                    onProgress = {}
+                )
+            }
+
+            withTimeout(3_000) {
+                while (streamAttempts.get() < 2) {
+                    delay(25)
+                }
+            }
+            captureJob.cancelAndJoin()
+
+            assertThat(outputFile.readText()).contains("chunk-1")
+            assertThat(outputFile.readText()).contains("chunk-2")
+        }
+    }
 
     @Test
     fun hlsCaptureRetriesTransientSegmentFailureOnNextPlaylistRefresh() {
