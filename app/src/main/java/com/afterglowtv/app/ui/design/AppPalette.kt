@@ -700,6 +700,36 @@ data class AppPalette(
             outline = Color(0x66B8B4B1),
         )
 
+        /** Copper Fjord — theme built from the rust, teal, burgundy, and charcoal swatch reference image. */
+        val CopperFjord = AppPalette(
+            id = "copper_fjord",
+            displayName = "Copper Fjord",
+            description = "Rust copper, deep teal, burgundy shadow, and near-black charcoal.",
+            surfaceDeep = Color(0xFF071118),
+            surfaceBase = Color(0xFF003A40),
+            surfaceCool = Color(0xFF003A45),
+            surfaceAccent = Color(0xFF015468),
+            accent = Color(0xFF963C2A),
+            accentLight = Color(0xFFD46A4E),
+            accentMuted = Color(0x66963C2A),
+            panelScrim = Color(0xD6071118),
+            osdScrim = Color(0xA6071118),
+            nowLine = Color(0xFFD46A4E),
+            nowFill = Color(0x33015468),
+            live = Color(0xFFD46A4E),
+            pipPreviewOutline = Color(0xFF015468),
+            focusFill = Color(0x40963C2A),
+            textPrimary = Color(0xFFF7EFEB),
+            textSecondary = Color(0xD9D6E6E7),
+            textTertiary = Color(0x99D6E6E7),
+            textDisabled = Color(0x66D6E6E7),
+            success = Color(0xFF2F8AA0),
+            warning = Color(0xFFD46A4E),
+            info = Color(0xFFB86A78),
+            divider = Color(0x22D6E6E7),
+            outline = Color(0x66015468),
+        )
+
         /** All available presets, in display order. Afterglow Dark 1-4 first
          *  in numerical order (Dark 2 is the default), then the gray
          *  variant, then Afterglow Light 1-4, then the gray light, then the
@@ -722,6 +752,7 @@ data class AppPalette(
             NeonDusk,
             UltravioletSpectrum,
             MineralSlate,
+            CopperFjord,
             CyberPunk,
             ForestMist,
             PureOnyx,
